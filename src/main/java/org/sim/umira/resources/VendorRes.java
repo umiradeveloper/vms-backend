@@ -14,11 +14,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.configs.ConfigHttpService;
 import org.sim.umira.dtos.ApprovalPengajuanDto;
 import org.sim.umira.dtos.CreateUpdateVendorDto;
+import org.sim.umira.dtos.CreateVendorBulkNewDto;
 import org.sim.umira.dtos.CreateVendorDto;
 import org.sim.umira.dtos.CreateVendorUploadBulkDto;
 import org.sim.umira.dtos.CreateVendorUploadDto;
@@ -60,6 +62,7 @@ public class VendorRes {
    @Inject
     ConfigHttpService httpService;
 
+    
 
     @POST
     @Path("/create-vendor/upload")
@@ -129,6 +132,147 @@ public class VendorRes {
         
         return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
     }
+
+
+    @POST
+    @Path("/create-vendor/create-bulk")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createVendorUploadBulkNew(
+        @MultipartForm CreateVendorBulkNewDto create, @Context SecurityContext ctx
+    ){
+    //    VmsVendorEntity vm = VmsVendorEntity.findById(create);
+    //    System.out.println(create);
+        VmsVendorEntity vm = new VmsVendorEntity();
+        VmsVendorMstKualifikasi ku = VmsVendorMstKualifikasi.findById(create.id_kualifikasi_usaha);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        // System.out.println();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyyHHmmss");
+        LocalDateTime now = LocalDateTime.now();
+        String pengajuan = "VMS.Pengajuan."+now.format(formatter);
+        vm.nama_perusahaan = create.nama_perusahaan;
+        vm.user = ue;
+        vm.id_pengajuan = pengajuan;
+        vm.tanggal_pengajuan = LocalDateTime.now();
+        vm.kualifikasi_usaha = ku;
+        vm.klasifikasi_usaha = create.klasifikasi_usaha;
+        vm.alamat_perusahaan = create.alamat_perusahaan;
+        vm.kategori = create.kategori;
+        vm.spesialisasi = create.spesialis;
+        vm.nama_pic = create.nama_pic;
+        vm.email_pic = create.email_pic;
+        vm.no_hp_pic = create.no_hp_pic;
+        vm.nama_direktur = create.nama_direktur;
+        vm.email_direktur = create.email_direktur;
+        vm.no_hp_direktur = create.no_hp_direktur;
+        vm.website = create.website;
+        vm.persist();
+
+        // VmsVendorEntity vms = VmsVendorEntity.findById(create.id_vendor);
+        for (int i = 0; i < create.files.size(); i++) {
+            
+            VmsVendorMstDokumenEntity vd = VmsVendorMstDokumenEntity.findById(create.id_dokumen.get(i));
+            // System.out.println(file.files.fileName());
+            String ext = create.files.get(i).fileName().substring(create.files.get(i).fileName().lastIndexOf("."));
+            String randomFileName = UUID.randomUUID().toString() + ext;
+            try {
+                java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
+                Files.createDirectories(target.getParent());
+                Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
+                ve.vendor = vm;
+                // ve.dokumen = vd;
+                ve.nama_dokumen = vd.nama_dokumen;
+                ve.url_dokumen = target.toString();
+                ve.persist();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
+    }
+    @POST
+    @Path("/update-vendor/update-bulk")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateVendorBulkNew(
+        @MultipartForm CreateVendorBulkNewDto create, @QueryParam("id") String id, @Context SecurityContext ctx
+    ){
+
+
+
+        VmsVendorEntity vm = VmsVendorEntity.findById(id);
+        VmsVendorMstKualifikasi ku = VmsVendorMstKualifikasi.findById(create.id_kualifikasi_usaha);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        System.out.println(create.nama_perusahaan);
+        vm.nama_perusahaan = create.nama_perusahaan;
+        vm.user = ue;
+        // vm.id_pengajuan = pengajuan;
+        // vm.tanggal_pengajuan = LocalDateTime.now();
+        vm.kualifikasi_usaha = ku;
+        vm.klasifikasi_usaha = create.klasifikasi_usaha;
+        vm.alamat_perusahaan = create.alamat_perusahaan;
+        vm.kategori = create.kategori;
+        vm.spesialisasi = create.spesialis;
+        vm.nama_pic = create.nama_pic;
+        vm.email_pic = create.email_pic;
+        vm.no_hp_pic = create.no_hp_pic;
+        vm.nama_direktur = create.nama_direktur;
+        vm.email_direktur = create.email_direktur;
+        vm.no_hp_direktur = create.no_hp_direktur;
+        vm.website = create.website;
+        
+        List<CompletableFuture<Void>> tasks = new ArrayList<>();
+        // VmsVendorEntity vm = VmsVendorEntity.findById(create.id_vendor);
+        System.out.println(create.files.size());
+        if(create.files.size() > 0){
+            List <VmsVendorDetailEntity> vmsDetail = VmsVendorDetailEntity.find("vendor = ?1", vm).list();
+            System.out.println(vmsDetail.size());
+            if(vmsDetail.size() > 0){
+                vmsDetail.forEach(detail -> {
+                    tasks.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            Files.deleteIfExists(java.nio.file.Path.of("uploads", detail.url_dokumen));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                         
+                    }));
+                //    detail.delete();
+                });
+            }
+            long delete = VmsVendorDetailEntity.delete("vendor = ?1", vm);
+            for (int i = 0; i < create.files.size(); i++) {
+                
+                VmsVendorMstDokumenEntity vd = VmsVendorMstDokumenEntity.findById(create.id_dokumen.get(i));
+                // System.out.println(file.files.fileName());
+                String ext = create.files.get(i).fileName().substring(create.files.get(i).fileName().lastIndexOf("."));
+                String randomFileName = UUID.randomUUID().toString() + ext;
+                try {
+                    java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
+                    Files.createDirectories(target.getParent());
+                    Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                    VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
+                    ve.vendor = vm;
+                    // ve.dokumen = vd;
+                    ve.nama_dokumen = vd.nama_dokumen;
+                    ve.url_dokumen = target.toString();
+                    ve.persist();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
+        
+       
+        
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
+    }
+
 
 
     @POST

@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public class CreateProyekDto {
-    public String id_proyek;
 
     @NotBlank(message = "nama proyek is required")
     public String nama_proyek;
@@ -24,7 +23,6 @@ public class CreateProyekDto {
     @NotNull(message = "biaya rab is required")
     public Integer biaya_rab;  
 
-    // @NotBlank(message = "tanggal awal kontrak is required")
     @NotNull(message = "tanggal awal kontrak is required")
     public LocalDate tanggal_awal_kontrak;
 

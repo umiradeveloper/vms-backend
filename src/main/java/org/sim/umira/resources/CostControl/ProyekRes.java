@@ -53,23 +53,33 @@ public class ProyekRes {
         List<ProyekEntity> proyek = ProyekEntity.listAll();
         return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", proyek)).build();
     }
+    @GET
+    @Path("/get-proyek-id")
+    public Response getProyekById(
+        @QueryParam("id") String id
+    ){
+        ProyekEntity proyek = ProyekEntity.findById(id);
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", proyek)).build();
+    }
 
     @PATCH
     @Path("/update-proyek")
     @Transactional
     public Response updateProyek(
-        @Valid @RequestBody CreateProyekDto create
+        @Valid @RequestBody CreateProyekDto create, @Valid @QueryParam("id") String id
     ){
         try {
-            ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            ProyekEntity proyek = ProyekEntity.findById(id);
             proyek.nama_proyek = create.nama_proyek;
             proyek.kode_proyek = create.kode_proyek;
+            proyek.deskripsi_proyek = create.deskripsi_proyek;
             proyek.biaya_rap = create.biaya_rap;
             proyek.biaya_rab = create.biaya_rab;
-            proyek.tanggal_awal_kontrak = proyek.tanggal_awal_kontrak;
-            proyek.tanggal_akhir_kontrak = proyek.tanggal_akhir_kontrak;
+            proyek.tanggal_awal_kontrak = create.tanggal_awal_kontrak;
+            proyek.tanggal_akhir_kontrak = create.tanggal_akhir_kontrak;
             return Response.ok().entity(ResponseHandler.ok("Update Proyek Berhasil", null)).build();
         } catch (Exception e) {
+            System.out.println(e);
             throw new InternalError(e.getMessage());
         }
         
