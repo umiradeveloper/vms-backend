@@ -1,0 +1,4 @@
+INSERT INTO vms.menu (id_menu,code_apps,code_menu,nama_menu,menu_title,icon_menu,type_menu,active_menu,selected_menu,dircange_menu,path_menu) VALUES
+	('e41bb5af-5132-45c8-9b43-25880f56ac21','73fd69aa-2f3d-4ded-babd-022adc5a2f99','01|02|04','Buat Satuan',NULL,'ti-user','link',NULL,'false','false','/apps/CostControl/Satuan/CreateSatuan'),
+	('c829e7a9-fc9c-47cf-b0a3-8cace4795999','73fd69aa-2f3d-4ded-babd-022adc5a2f99','01|02|05','Daftar Satuan',NULL,'ti-user','link',NULL,'false','false','/apps/CostControl/Satuan/DaftarSatuan'),
+	('5d87e913-2bf3-46d7-8c99-0662433e4510','73fd69aa-2f3d-4ded-babd-022adc5a2f99','01|02|06','Daftar Kategori',NULL,'ti-user','link',NULL,'false','false','/apps/CostControl/Kategori/DaftarKategori'); 
