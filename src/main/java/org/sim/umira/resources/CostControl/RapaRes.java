@@ -8,8 +8,10 @@ import org.hibernate.Session;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
 import org.sim.umira.dtos.CostControl.CreateRapaBulkDto;
 import org.sim.umira.dtos.CostControl.CreateRapaDto;
+import org.sim.umira.entities.CostControl.KategoriEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.RapaEntity;
+import org.sim.umira.entities.CostControl.SatuanEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
@@ -20,6 +22,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -76,32 +79,39 @@ public class RapaRes {
                 String uuid = java.util.UUID.randomUUID().toString();
                 final int idx = i;
                 // System.out.println(create.kategori.get(idx));
-                session.doWork(connection -> {
-                    try (PreparedStatement ps = connection.prepareStatement(
-                        "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group_name`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                    )) {
-                        ps.setString(1, uuid);
-                        ps.setString(2, proyek.id_proyek);
-                        ps.setString(3, create.kategori.get(idx));
-                        ps.setString(4, create.kode_rap.get(idx));
-                        ps.setString(5, create.group.get(idx));
-                        ps.setString(6, create.item_pekerjaan.get(idx));
-                        ps.setString(7, create.spesifikasi.get(idx));
-                        ps.setString(8, create.satuan.get(idx));
-                        ps.setBigDecimal(9, create.volume.get(idx));
-                        ps.setInt(10, create.harga_satuan.get(idx));
-                        ps.setBigDecimal(11, create.harga_total.get(idx));
-                        // ps.setBigDecimal(2, p.nilai);
-                        // ps.setObject(3, p.tanggal);
-                        ps.addBatch();
-                        ps.executeBatch();
-                    }
+                SatuanEntity satuan = SatuanEntity.find("nama_satuan = ?1", create.satuan.get(idx)).firstResult();
+                KategoriEntity kategori = KategoriEntity.find("nama_kategori = ?1", create.kategori.get(idx)).firstResult();
+                if(satuan != null && kategori != null){
+                    session.doWork(connection -> {
+                        try (PreparedStatement ps = connection.prepareStatement(
+                            "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group_name`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                        )) {
+                            ps.setString(1, uuid);
+                            ps.setString(2, proyek.id_proyek);
+                            ps.setString(3, create.kategori.get(idx));
+                            ps.setString(4, create.kode_rap.get(idx));
+                            ps.setString(5, create.group.get(idx));
+                            ps.setString(6, create.item_pekerjaan.get(idx));
+                            ps.setString(7, create.spesifikasi.get(idx));
+                            ps.setString(8, create.satuan.get(idx));
+                            ps.setBigDecimal(9, create.volume.get(idx));
+                            ps.setInt(10, create.harga_satuan.get(idx));
+                            ps.setBigDecimal(11, create.harga_total.get(idx));
+                            // ps.setBigDecimal(2, p.nilai);
+                            // ps.setObject(3, p.tanggal);
+                            ps.addBatch();
+                            ps.executeBatch();
+                        }
 
-                });
-                 if (i % batch == 0) {
-                    session.flush();
-                    session.clear();
+                    });
+                    if (i % batch == 0) {
+                        session.flush();
+                        session.clear();
+                    }
+                }else{
+                    throw new NotFoundException("Nama Satuan atau nama kategori tidak tersedia");
                 }
+                
             }
             
             return Response.ok().entity(ResponseHandler.ok("Create Rapa Berhasil", null)).build();
