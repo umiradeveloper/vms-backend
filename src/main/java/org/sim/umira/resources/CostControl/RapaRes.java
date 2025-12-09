@@ -79,12 +79,12 @@ public class RapaRes {
                 String uuid = java.util.UUID.randomUUID().toString();
                 final int idx = i;
                 // System.out.println(create.kategori.get(idx));
-                SatuanEntity satuan = SatuanEntity.find("nama_satuan = ?1", create.satuan.get(idx)).firstResult();
-                KategoriEntity kategori = KategoriEntity.find("nama_kategori = ?1", create.kategori.get(idx)).firstResult();
-                if(satuan != null && kategori != null){
+                // SatuanEntity satuan = SatuanEntity.find("nama_satuan = ?1", create.satuan.get(idx)).firstResult();
+                // KategoriEntity kategori = KategoriEntity.find("nama_kategori = ?1", create.kategori.get(idx)).firstResult();
+                // if(satuan != null && kategori != null){
                     session.doWork(connection -> {
                         try (PreparedStatement ps = connection.prepareStatement(
-                            "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group_name`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                            "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                         )) {
                             ps.setString(1, uuid);
                             ps.setString(2, proyek.id_proyek);
@@ -108,9 +108,9 @@ public class RapaRes {
                         session.flush();
                         session.clear();
                     }
-                }else{
-                    throw new NotFoundException("Nama Satuan atau nama kategori tidak tersedia");
-                }
+                // }else{
+                //     throw new NotFoundException("Nama Satuan atau nama kategori tidak tersedia");
+                // }
                 
             }
             
