@@ -23,6 +23,12 @@ public class PendapatanUsahaEntity extends PanacheEntityBase {
     @GeneratedValue(strategy = GenerationType.UUID)
     public String id_pu;
 
+    public String week_pu;
+
+    public LocalDate tanggal_awal;
+
+    public LocalDate tanggal_akhir;
+
     public Integer nominal_pu;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,8 +36,8 @@ public class PendapatanUsahaEntity extends PanacheEntityBase {
     @JsonBackReference
     public ProyekEntity proyek;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_rapa")
-    @JsonBackReference
-    public RapaEntity rapa;
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "id_rapa")
+    // @JsonBackReference
+    // public RapaEntity rapa;
 }
