@@ -11,7 +11,7 @@ public class CreatePuDto {
 
     public String id_pu;
     
-    @NotBlank(message = "id_proyek must be required")
+    // @NotBlank(message = "id_proyek must be required")
     public String id_proyek;
 
     @NotBlank(message = "week_pu must be required")
