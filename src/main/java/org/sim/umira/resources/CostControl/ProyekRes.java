@@ -26,7 +26,6 @@ import jakarta.ws.rs.core.Response;
 @Secured
 public class ProyekRes {
     
-
     @POST
     @Path("/create-proyek")
     @Transactional
@@ -65,7 +64,7 @@ public class ProyekRes {
         ProyekEntity proyek = ProyekEntity.findById(id);
         return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", proyek)).build();
     }
-     @GET
+    @GET
     @Path("/get-proyek-id-bk-pu")
     public Response getProyekByIdBkPu(
         @QueryParam("id") String id
