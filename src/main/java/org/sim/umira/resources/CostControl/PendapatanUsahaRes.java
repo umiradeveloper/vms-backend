@@ -57,6 +57,19 @@ public class PendapatanUsahaRes {
             throw new InternalError(e.getMessage());
         }
     }
+    @GET
+    @Path("/get-pu-by-id")
+    @Transactional
+     public Response getPuById(
+        @QueryParam("id") String id
+    ){
+        try {
+            PendapatanUsahaEntity pu = PendapatanUsahaEntity.findById(id);
+            return Response.ok().entity(ResponseHandler.ok("get Pu by id Berhasil", pu)).build();
+        } catch (Exception e) {
+            throw new InternalError(e.getMessage());
+        }
+    }
 
     @POST
     @Path("/update-pu")
