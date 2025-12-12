@@ -78,12 +78,12 @@ public class PendapatanUsahaRes {
         @Valid @RequestBody CreatePuDto create
     ){
         try {
-            ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            // ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
             PendapatanUsahaEntity pu = PendapatanUsahaEntity.findById(create.id_pu);
             pu.week_pu = create.week_pu;
             pu.tanggal_awal = create.tanggal_awal;
             pu.tanggal_akhir = create.tanggal_akhir;
-            pu.proyek = proyek;
+            // pu.proyek = proyek;
             pu.nominal_pu = create.nominal_pu;
             return Response.ok().entity(ResponseHandler.ok("Update Pu Berhasil", null)).build();
         } catch (Exception e) {
