@@ -1,12 +1,17 @@
 package org.sim.umira.resources.CostControl;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.CostControl.CreatePuDto;
+import org.sim.umira.dtos.CostControl.ResponseRapaPendapatanUsahaDto;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
+import org.sim.umira.entities.CostControl.BiayaKontruksiEntity;
 import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
+import org.sim.umira.entities.CostControl.RapaEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
@@ -69,6 +74,36 @@ public class PendapatanUsahaRes {
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
         }
+    }
+
+    @GET
+    @Path("/get-rapa-proyek")
+    @Transactional
+    public Response getRapaByProyek(
+        @QueryParam("id_proyek") String id_proyek
+    ){
+        try {
+           
+            ProyekEntity proyek = ProyekEntity.findById(id_proyek);
+            List<RapaEntity> rapa = RapaEntity.find("proyek = ?1", proyek).list();
+            List<ResponseRapaPendapatanUsahaDto> rapaNew = new ArrayList<>();
+            for (RapaEntity rapaEntity : rapa) {
+                List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("rapa =?1 ", rapaEntity).list();
+                BigDecimal total_bk_rapa = BigDecimal.ZERO;
+                for (BiayaKontruksiEntity bkArr : bk) {
+                    total_bk_rapa = total_bk_rapa.add(bkArr.harga_total);
+                }
+
+                rapaNew.add(new ResponseRapaPendapatanUsahaDto(rapaEntity.id_rapa, rapaEntity.Kategori, rapaEntity.kode_rap, rapaEntity.group,
+            rapaEntity.item_pekerjaan, rapaEntity.spesifikasi, rapaEntity.satuan, rapaEntity.volume, rapaEntity.harga_satuan,
+            rapaEntity.harga_total, total_bk_rapa));
+            }
+            
+            return Response.ok().entity(ResponseHandler.ok("get Rapa by proyek Berhasil", rapaNew)).build();
+        } catch (Exception e) {
+            throw new InternalError(e.getMessage());
+        }
+        
     }
 
     @POST
