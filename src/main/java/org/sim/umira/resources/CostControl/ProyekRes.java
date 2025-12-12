@@ -80,9 +80,11 @@ public class ProyekRes {
         BigDecimal total_bk = BigDecimal.ZERO;
         List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proyek).list();
         for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
-                total_bk.add(biayaKontruksiEntity.harga_total);
-        }
 
+                // total_bk.add(biayaKontruksiEntity.harga_total);
+                total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
+        }
+        // System.out.println(total_bk);
         
         return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, proyek))).build();
     }
