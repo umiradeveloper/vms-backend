@@ -43,7 +43,7 @@ public class ProyekEntity extends PanacheEntityBase {
     // @Column(columnDefinition = "DATE", name = "tanggal_akhir_kontrak", nullable = false)
     public LocalDate tanggal_akhir_kontrak;
 
-    @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JsonManagedReference
-    public List<RapaEntity> rapa;
+    // @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    // @JsonManagedReference
+    // public List<RapaEntity> rapa;
 }

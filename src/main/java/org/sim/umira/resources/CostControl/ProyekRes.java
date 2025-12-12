@@ -1,9 +1,13 @@
 package org.sim.umira.resources.CostControl;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
+import org.sim.umira.dtos.CostControl.ResponseProyekDto;
+import org.sim.umira.entities.CostControl.BiayaKontruksiEntity;
+import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
@@ -60,6 +64,27 @@ public class ProyekRes {
     ){
         ProyekEntity proyek = ProyekEntity.findById(id);
         return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", proyek)).build();
+    }
+     @GET
+    @Path("/get-proyek-id-bk-pu")
+    public Response getProyekByIdBkPu(
+        @QueryParam("id") String id
+    ){
+        ProyekEntity proyek = ProyekEntity.findById(id);
+
+        List<PendapatanUsahaEntity> pu = PendapatanUsahaEntity.find("proyek = ?1", proyek).list();
+        Integer total_pu = 0;
+        for (PendapatanUsahaEntity pendapatanUsahaEntity : pu) {
+            total_pu += pendapatanUsahaEntity.nominal_pu;
+        }
+        BigDecimal total_bk = BigDecimal.ZERO;
+        List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proyek).list();
+        for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
+                total_bk.add(biayaKontruksiEntity.harga_total);
+        }
+
+        
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, proyek))).build();
     }
 
     @PATCH

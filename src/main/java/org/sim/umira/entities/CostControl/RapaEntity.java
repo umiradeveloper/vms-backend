@@ -43,9 +43,9 @@ public class RapaEntity extends PanacheEntityBase {
 
     public BigDecimal harga_total;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_proyek")
-    @JsonBackReference
-    public ProyekEntity proyek;
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "id_proyek")
+    // @JsonBackReference
+    // public ProyekEntity proyek;
     
 }
