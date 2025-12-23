@@ -38,8 +38,12 @@ public class ProyekRes {
             proyek.nama_proyek = create.nama_proyek;
             proyek.kode_proyek = create.kode_proyek;
             proyek.deskripsi_proyek = create.deskripsi_proyek;
+            
             proyek.biaya_rap = create.biaya_rap;
             proyek.biaya_rab = create.biaya_rab;
+            proyek.kerja_tambah = create.kerja_tambah;
+            proyek.kerja_kurang = create.kerja_kurang;
+            proyek.bk_pu_awal = create.bk_pu_awal;
             proyek.tanggal_awal_kontrak = create.tanggal_awal_kontrak;
             proyek.tanggal_akhir_kontrak = create.tanggal_akhir_kontrak;
             proyek.persist();
@@ -101,6 +105,9 @@ public class ProyekRes {
             proyek.deskripsi_proyek = create.deskripsi_proyek;
             proyek.biaya_rap = create.biaya_rap;
             proyek.biaya_rab = create.biaya_rab;
+            proyek.kerja_tambah = create.kerja_tambah;
+            proyek.kerja_kurang = create.kerja_kurang;
+            proyek.bk_pu_awal = create.bk_pu_awal;
             proyek.tanggal_awal_kontrak = create.tanggal_awal_kontrak;
             proyek.tanggal_akhir_kontrak = create.tanggal_akhir_kontrak;
             return Response.ok().entity(ResponseHandler.ok("Update Proyek Berhasil", null)).build();

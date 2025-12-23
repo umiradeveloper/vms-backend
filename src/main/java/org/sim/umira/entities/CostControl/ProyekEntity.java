@@ -1,5 +1,6 @@
 package org.sim.umira.entities.CostControl;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -33,9 +34,15 @@ public class ProyekEntity extends PanacheEntityBase {
 
     public String deskripsi_proyek;
 
-    public Integer biaya_rap;
+    public BigInteger biaya_rap;
 
-    public Integer biaya_rab;  
+    public BigInteger biaya_rab;  
+
+    public BigInteger kerja_tambah;
+
+    public BigInteger kerja_kurang; 
+    
+    public String bk_pu_awal;
 
     // @Column(columnDefinition = "DATE", name = "tanggal_awal_kontrak", nullable = false)
     public LocalDate tanggal_awal_kontrak;

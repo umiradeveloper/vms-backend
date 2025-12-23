@@ -1,5 +1,6 @@
 package org.sim.umira.dtos.CostControl;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 
 
@@ -17,11 +18,20 @@ public class CreateProyekDto {
     @NotBlank(message = "deskripsi proyek is required")
     public String deskripsi_proyek;
 
+    @NotBlank(message = "Bk PU Awal is required")
+    public String bk_pu_awal;
+
     @NotNull(message = "biaya_rap is required")
-    public Integer biaya_rap;
+    public BigInteger biaya_rap;
 
     @NotNull(message = "biaya rab is required")
-    public Integer biaya_rab;  
+    public BigInteger biaya_rab;  
+
+    @NotNull(message = "kerja_tambah is required")
+    public BigInteger kerja_tambah;
+
+    @NotNull(message = "kerja_kurang is required")
+    public BigInteger kerja_kurang;  
 
     @NotNull(message = "tanggal awal kontrak is required")
     public LocalDate tanggal_awal_kontrak;
