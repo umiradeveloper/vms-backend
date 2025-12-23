@@ -27,10 +27,10 @@ public class CreateProyekDto {
     @NotNull(message = "biaya rab is required")
     public BigInteger biaya_rab;  
 
-    @NotNull(message = "kerja_tambah is required")
+    // @NotNull(message = "kerja_tambah is required")
     public BigInteger kerja_tambah;
 
-    @NotNull(message = "kerja_kurang is required")
+    // @NotNull(message = "kerja_kurang is required")
     public BigInteger kerja_kurang;  
 
     @NotNull(message = "tanggal awal kontrak is required")
