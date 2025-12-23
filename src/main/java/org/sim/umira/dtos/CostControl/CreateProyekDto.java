@@ -18,8 +18,8 @@ public class CreateProyekDto {
     @NotBlank(message = "deskripsi proyek is required")
     public String deskripsi_proyek;
 
-    @NotBlank(message = "Bk PU Awal is required")
-    public String bk_pu_awal;
+    // @NotBlank(message = "Bk PU Awal is required")
+    // public String bk_pu_awal;
 
     @NotNull(message = "biaya_rap is required")
     public BigInteger biaya_rap;
