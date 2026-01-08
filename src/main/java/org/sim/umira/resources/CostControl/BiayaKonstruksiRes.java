@@ -1,5 +1,6 @@
 package org.sim.umira.resources.CostControl;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -11,6 +12,7 @@ import org.sim.umira.entities.CostControl.RapaEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
+import io.quarkus.security.ForbiddenException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.DELETE;
@@ -32,6 +34,14 @@ public class BiayaKonstruksiRes {
         try {
             RapaEntity rapa = RapaEntity.findById(create.id_rapa);
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            List <BiayaKontruksiEntity> listBk = BiayaKontruksiEntity.find("rapa = ?1", rapa).list();
+            BigDecimal totalBk = create.harga_total;
+            for (BiayaKontruksiEntity biayaKontruksiEntity : listBk) {
+                totalBk = totalBk.add(biayaKontruksiEntity.harga_total);
+            }
+            if(totalBk.compareTo(new BigDecimal(proyek.biaya_rap)) > 0){
+                throw new ForbiddenException("total BK melebihi biaya RAP");
+            }
             BiayaKontruksiEntity bk = new BiayaKontruksiEntity();
             bk.rapa = rapa;
             bk.proyek = proyek;
