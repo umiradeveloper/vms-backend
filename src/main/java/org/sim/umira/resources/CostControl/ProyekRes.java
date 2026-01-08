@@ -1,6 +1,7 @@
 package org.sim.umira.resources.CostControl;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -43,7 +44,7 @@ public class ProyekRes {
             proyek.biaya_rab = create.biaya_rab;
             proyek.kerja_tambah = create.kerja_tambah;
             proyek.kerja_kurang = create.kerja_kurang;
-            proyek.bk_pu_awal = create.bk_pu_awal;
+            proyek.bk_pu_awal = create.biaya_rab.multiply(BigInteger.valueOf(100)).divide(create.biaya_rap).toString();
             proyek.tanggal_awal_kontrak = create.tanggal_awal_kontrak;
             proyek.tanggal_akhir_kontrak = create.tanggal_akhir_kontrak;
             proyek.persist();
@@ -107,7 +108,7 @@ public class ProyekRes {
             proyek.biaya_rab = create.biaya_rab;
             proyek.kerja_tambah = create.kerja_tambah;
             proyek.kerja_kurang = create.kerja_kurang;
-            proyek.bk_pu_awal = create.bk_pu_awal;
+            proyek.bk_pu_awal = create.biaya_rab.multiply(BigInteger.valueOf(100)).divide(create.biaya_rap).toString();
             proyek.tanggal_awal_kontrak = create.tanggal_awal_kontrak;
             proyek.tanggal_akhir_kontrak = create.tanggal_akhir_kontrak;
             return Response.ok().entity(ResponseHandler.ok("Update Proyek Berhasil", null)).build();
