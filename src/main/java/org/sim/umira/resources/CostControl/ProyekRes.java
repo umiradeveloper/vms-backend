@@ -45,7 +45,7 @@ public class ProyekRes {
             proyek.biaya_rab = create.biaya_rab;
             proyek.kerja_tambah = create.kerja_tambah;
             proyek.kerja_kurang = create.kerja_kurang;
-            proyek.bk_pu_awal = create.biaya_rab.multiply(BigInteger.valueOf(100)).divide(create.biaya_rap).toString();
+            proyek.bk_pu_awal = create.biaya_rap.multiply(BigInteger.valueOf(100)).divide(create.biaya_rab).toString();
             proyek.tanggal_awal_kontrak = create.tanggal_awal_kontrak;
             proyek.tanggal_akhir_kontrak = create.tanggal_akhir_kontrak;
             proyek.persist();
@@ -85,9 +85,7 @@ public class ProyekRes {
         BigDecimal total_bk = BigDecimal.ZERO;
         List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proyek).list();
         for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
-
-                // total_bk.add(biayaKontruksiEntity.harga_total);
-                total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
+            total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
         }
         // System.out.println(total_bk);
         
@@ -109,7 +107,7 @@ public class ProyekRes {
             proyek.biaya_rab = create.biaya_rab;
             proyek.kerja_tambah = create.kerja_tambah;
             proyek.kerja_kurang = create.kerja_kurang;
-            proyek.bk_pu_awal = create.biaya_rab.multiply(BigInteger.valueOf(100)).divide(create.biaya_rap).toString();
+            proyek.bk_pu_awal = create.biaya_rap.multiply(BigInteger.valueOf(100)).divide(create.biaya_rab).toString();
             proyek.tanggal_awal_kontrak = create.tanggal_awal_kontrak;
             proyek.tanggal_akhir_kontrak = create.tanggal_akhir_kontrak;
             return Response.ok().entity(ResponseHandler.ok("Update Proyek Berhasil", null)).build();

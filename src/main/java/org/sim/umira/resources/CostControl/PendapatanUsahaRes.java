@@ -42,7 +42,7 @@ public class PendapatanUsahaRes {
             pu.tanggal_akhir = create.tanggal_akhir;
             pu.nominal_pu = create.nominal_pu;
             pu.persist();
-            return Response.ok().entity(ResponseHandler.ok("Create Pu Berhasil", null)).build();
+            return Response.ok().entity(ResponseHandler.ok("Create Pu Berhasil", pu)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
             // TODO: handle exception
