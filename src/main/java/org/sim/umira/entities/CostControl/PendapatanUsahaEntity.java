@@ -36,6 +36,9 @@ public class PendapatanUsahaEntity extends PanacheEntityBase {
     @JsonBackReference
     public ProyekEntity proyek;
 
+
+    public String dokumen_pu;
+
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "id_rapa")
     // @JsonBackReference
