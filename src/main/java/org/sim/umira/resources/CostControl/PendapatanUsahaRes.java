@@ -154,7 +154,8 @@ public class PendapatanUsahaRes {
                     Files.createDirectories(UPLOAD_DIR);
                 }
                 Files.deleteIfExists(java.nio.file.Path.of(pu.dokumen_pu));
-                String fileName = java.util.UUID.randomUUID() + "-" + create.dokumen_upload.fileName();
+                String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
+                String fileName = java.util.UUID.randomUUID() + ext;
                 java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
                 Files.copy(create.dokumen_upload.uploadedFile(),target,java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 pu.dokumen_pu = target.toString();

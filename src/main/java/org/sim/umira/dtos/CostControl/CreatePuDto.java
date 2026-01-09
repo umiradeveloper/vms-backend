@@ -15,7 +15,7 @@ import jakarta.ws.rs.core.MediaType;
 
 public class CreatePuDto {
 
-    @FormParam("id_proyek")
+    @FormParam("id_pu")
     @PartType(MediaType.TEXT_PLAIN)
     public String id_pu;
     
@@ -44,7 +44,7 @@ public class CreatePuDto {
     @PartType(MediaType.TEXT_PLAIN)
     public Integer nominal_pu;
 
-    @NotNull(message = "file upload must be required")
+    // @NotNull(message = "file upload must be required")
     @FormParam("dokumen_upload")
     @PartType(MediaType.APPLICATION_OCTET_STREAM)
     public FileUpload dokumen_upload;
