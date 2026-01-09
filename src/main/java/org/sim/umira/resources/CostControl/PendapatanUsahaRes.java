@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreatePuDto;
 import org.sim.umira.dtos.CostControl.ResponseRapaPendapatanUsahaDto;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
@@ -18,11 +19,13 @@ import org.sim.umira.jwt.Secured;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 @Path("/CostControl/PendapatanUsaha")
@@ -35,8 +38,9 @@ public class PendapatanUsahaRes {
     @POST
     @Path("/create-pu")
     @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
      public Response createPu(
-        @Valid @RequestBody CreatePuDto create
+        @Valid @MultipartForm CreatePuDto create
     ){
         try {
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
@@ -123,8 +127,9 @@ public class PendapatanUsahaRes {
     @POST
     @Path("/update-pu")
     @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
      public Response updatePu(
-        @Valid @RequestBody CreatePuDto create
+        @Valid @MultipartForm CreatePuDto create
     ){
         try {
             // ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
@@ -135,16 +140,10 @@ public class PendapatanUsahaRes {
             // pu.proyek = proyek;
             pu.nominal_pu = create.nominal_pu;
             if(create.dokumen_upload != null){
-               
                 Files.deleteIfExists(java.nio.file.Path.of(pu.dokumen_pu));
-
                 String fileName = java.util.UUID.randomUUID() + "-" + create.dokumen_upload.fileName();
                 java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
-                Files.copy(
-                    create.dokumen_upload.uploadedFile(),
-                    target,
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                );
+                Files.copy(create.dokumen_upload.uploadedFile(),target,java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 pu.dokumen_pu = target.toString();
             }
             
