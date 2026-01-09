@@ -1,6 +1,7 @@
 package org.sim.umira.resources.CostControl;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +28,10 @@ import jakarta.ws.rs.core.Response;
 @Path("/CostControl/PendapatanUsaha")
 @Secured
 public class PendapatanUsahaRes {
+
+    private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/dokumen-pendapatan-usaha");
+
+
     @POST
     @Path("/create-pu")
     @Transactional
@@ -35,12 +40,21 @@ public class PendapatanUsahaRes {
     ){
         try {
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+
             PendapatanUsahaEntity pu = new PendapatanUsahaEntity();
+            String fileName = java.util.UUID.randomUUID() + "-" + create.dokumen_upload.fileName();
+            java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
+            Files.copy(
+                create.dokumen_upload.uploadedFile(),
+                target,
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            );
             pu.proyek = proyek;
             pu.week_pu = create.week_pu;
             pu.tanggal_awal = create.tanggal_awal;
             pu.tanggal_akhir = create.tanggal_akhir;
             pu.nominal_pu = create.nominal_pu;
+            pu.dokumen_pu = target.toString();
             pu.persist();
             return Response.ok().entity(ResponseHandler.ok("Create Pu Berhasil", pu)).build();
         } catch (Exception e) {
@@ -120,6 +134,20 @@ public class PendapatanUsahaRes {
             pu.tanggal_akhir = create.tanggal_akhir;
             // pu.proyek = proyek;
             pu.nominal_pu = create.nominal_pu;
+            if(create.dokumen_upload != null){
+               
+                Files.deleteIfExists(java.nio.file.Path.of(pu.dokumen_pu));
+
+                String fileName = java.util.UUID.randomUUID() + "-" + create.dokumen_upload.fileName();
+                java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
+                Files.copy(
+                    create.dokumen_upload.uploadedFile(),
+                    target,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                );
+                pu.dokumen_pu = target.toString();
+            }
+            
             return Response.ok().entity(ResponseHandler.ok("Update Pu Berhasil", null)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());

@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.jboss.resteasy.reactive.multipart.FileUpload;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -25,5 +27,8 @@ public class CreatePuDto {
 
     @NotNull(message = "nominal pendapatan usaha must be required")
     public Integer nominal_pu;
+
+    @NotNull(message = "file upload must be required")
+    public FileUpload dokumen_upload;
 
 }
