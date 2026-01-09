@@ -1,9 +1,12 @@
 package org.sim.umira.resources.CostControl;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.MultipartForm;
@@ -24,6 +27,7 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -43,10 +47,15 @@ public class PendapatanUsahaRes {
         @Valid @MultipartForm CreatePuDto create
     ){
         try {
+            // System.out.println(create.dokumen_upload.fileName());
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
 
             PendapatanUsahaEntity pu = new PendapatanUsahaEntity();
-            String fileName = java.util.UUID.randomUUID() + "-" + create.dokumen_upload.fileName();
+             String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
+            String fileName = java.util.UUID.randomUUID() + ext;
+            if (!Files.exists(UPLOAD_DIR)) {
+                Files.createDirectories(UPLOAD_DIR);
+            }
             java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
             Files.copy(
                 create.dokumen_upload.uploadedFile(),
@@ -60,8 +69,9 @@ public class PendapatanUsahaRes {
             pu.nominal_pu = create.nominal_pu;
             pu.dokumen_pu = target.toString();
             pu.persist();
-            return Response.ok().entity(ResponseHandler.ok("Create Pu Berhasil", pu)).build();
+            return Response.ok().entity(ResponseHandler.ok("Create Pu Berhasil", null)).build();
         } catch (Exception e) {
+            e.printStackTrace();
             throw new InternalError(e.getMessage());
             // TODO: handle exception
         }
@@ -140,6 +150,9 @@ public class PendapatanUsahaRes {
             // pu.proyek = proyek;
             pu.nominal_pu = create.nominal_pu;
             if(create.dokumen_upload != null){
+                if (!Files.exists(UPLOAD_DIR)) {
+                    Files.createDirectories(UPLOAD_DIR);
+                }
                 Files.deleteIfExists(java.nio.file.Path.of(pu.dokumen_pu));
                 String fileName = java.util.UUID.randomUUID() + "-" + create.dokumen_upload.fileName();
                 java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
@@ -167,5 +180,23 @@ public class PendapatanUsahaRes {
             throw new InternalError(e.getMessage());
             // TODO: handle exception
         }
+    }
+
+
+    @GET
+    @Path("/dokumen-file")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces("application/pdf")
+    public Response getFile(
+        @QueryParam("id") String id
+    ){  
+        try {  // direktori saat jar dijalankan
+            PendapatanUsahaEntity pu = PendapatanUsahaEntity.findById(id);
+            InputStream imageStream = Files.newInputStream(Paths.get(pu.dokumen_pu));
+            return Response.ok(imageStream).build();
+        } catch (Exception e) {
+           throw new InternalError("Cant get file");
+        }
+        
     }
 }
