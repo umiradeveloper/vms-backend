@@ -1,6 +1,7 @@
 package org.sim.umira.entities.CostControl;
 
 import java.math.BigInteger;
+import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
@@ -24,6 +25,10 @@ public class MosNewEntity extends PanacheEntityBase {
     public String week;
 
     public BigInteger nominal_mos;
+
+    public LocalDate tanggal_awal;
+
+    public LocalDate tanggal_akhir;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proyek")

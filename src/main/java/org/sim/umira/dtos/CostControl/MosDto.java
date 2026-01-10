@@ -1,6 +1,7 @@
 package org.sim.umira.dtos.CostControl;
 
 import java.math.BigInteger;
+import java.time.LocalDate;
 
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
@@ -20,6 +21,14 @@ public class MosDto {
     @NotBlank(message = "week is required")
     @FormParam("week")
     public String week;
+
+    @NotBlank(message = "tanggal_awal is required")
+    @FormParam("tanggal_awal")
+    public LocalDate tanggal_awal;
+
+    @NotBlank(message = "tanggal_akhir is required")
+    @FormParam("tanggal_akhir")
+    public LocalDate tanggal_akhir;
 
     @NotNull(message = "nominal_mos is required")
     @FormParam("nominal_mos")
