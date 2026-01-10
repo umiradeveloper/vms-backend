@@ -30,5 +30,7 @@ public class MosNewEntity extends PanacheEntityBase {
     @JsonBackReference
     public ProyekEntity proyek;
 
+    public String dokumen_upload;
+
     
 }

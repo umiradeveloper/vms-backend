@@ -1,8 +1,10 @@
 package org.sim.umira.resources.CostControl;
 
+import java.nio.file.Files;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreateMosDto;
 import org.sim.umira.dtos.CostControl.MosDto;
 import org.sim.umira.entities.CostControl.MosEntity;
@@ -27,18 +29,36 @@ import jakarta.ws.rs.core.Response;
 @Path("/CostControl/MaterialOnSite")
 @Secured
 public class MosRes {
+
+    private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/dokumen-mos");
+
     @POST
     @Path("/create-mos")
     @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createMos(
-        @Valid @RequestBody MosDto create
+        @Valid @MultipartForm MosDto create
     ){
         try {
             MosNewEntity mos = new MosNewEntity();
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            
             mos.week = create.week;
             mos.nominal_mos = create.nominal_mos;
             mos.proyek = proyek;
+            String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
+            String fileName = java.util.UUID.randomUUID() + ext;
+            if (!Files.exists(UPLOAD_DIR)) {
+                Files.createDirectories(UPLOAD_DIR);
+            }
+            java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
+            Files.copy(
+                create.dokumen_upload.uploadedFile(),
+                target,
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            );
+            
+            mos.dokumen_upload = target.toString();
             mos.persist();
             return Response.ok().entity(ResponseHandler.ok("Create Mos Berhasil", null)).build();
         } catch (Exception e) {
@@ -50,8 +70,9 @@ public class MosRes {
     @PATCH
     @Path("/update-mos")
     @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response updateMos(
-        @Valid @RequestBody MosDto create
+        @Valid @MultipartForm MosDto create
     ){
         try {
             MosNewEntity mos = MosNewEntity.findById(create.id_mos);
@@ -59,6 +80,22 @@ public class MosRes {
             mos.week = create.week;
             mos.nominal_mos = create.nominal_mos;
             mos.proyek = proyek;
+            if(create.dokumen_upload != null){
+                Files.deleteIfExists(java.nio.file.Path.of(mos.dokumen_upload));
+                String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
+                String fileName = java.util.UUID.randomUUID() + ext;
+                if (!Files.exists(UPLOAD_DIR)) {
+                    Files.createDirectories(UPLOAD_DIR);
+                }
+                java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
+                Files.copy(
+                    create.dokumen_upload.uploadedFile(),
+                    target,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                );
+                
+                mos.dokumen_upload = target.toString();
+            }
             // mos.persist();
             return Response.ok().entity(ResponseHandler.ok("Update Mos Berhasil", null)).build();
         } catch (Exception e) {
