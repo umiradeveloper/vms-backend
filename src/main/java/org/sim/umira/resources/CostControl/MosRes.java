@@ -149,7 +149,7 @@ public class MosRes {
         @QueryParam("id") String id
     ){  
         try {  // direktori saat jar dijalankan
-            MosEntity mos = MosEntity.findById(id);
+            MosNewEntity mos = MosNewEntity.findById(id);
             InputStream imageStream = Files.newInputStream(Paths.get(mos.dokumen_upload));
             return Response.ok(imageStream).build();
         } catch (Exception e) {
