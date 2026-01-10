@@ -50,6 +50,8 @@ public class MosRes {
             mos.week = create.week;
             mos.nominal_mos = create.nominal_mos;
             mos.proyek = proyek;
+            mos.tanggal_awal = create.tanggal_awal;
+            mos.tanggal_akhir = create.tanggal_akhir;
             String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
             String fileName = java.util.UUID.randomUUID() + ext;
             if (!Files.exists(UPLOAD_DIR)) {
