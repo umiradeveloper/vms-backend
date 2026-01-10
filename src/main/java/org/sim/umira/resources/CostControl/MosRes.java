@@ -46,7 +46,6 @@ public class MosRes {
         try {
             MosNewEntity mos = new MosNewEntity();
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
-            
             mos.week = create.week;
             mos.nominal_mos = create.nominal_mos;
             mos.proyek = proyek;
