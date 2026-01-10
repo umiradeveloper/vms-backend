@@ -22,11 +22,11 @@ public class MosDto {
     @FormParam("week")
     public String week;
 
-    @NotBlank(message = "tanggal_awal is required")
+    @NotNull(message = "tanggal_awal is required")
     @FormParam("tanggal_awal")
     public LocalDate tanggal_awal;
 
-    @NotBlank(message = "tanggal_akhir is required")
+    @NotNull(message = "tanggal_akhir is required")
     @FormParam("tanggal_akhir")
     public LocalDate tanggal_akhir;
 
