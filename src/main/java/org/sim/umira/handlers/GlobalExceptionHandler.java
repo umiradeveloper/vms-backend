@@ -18,6 +18,7 @@ public class GlobalExceptionHandler implements ExceptionMapper<Throwable> {
             message = webEx.getMessage();
             // System.out.println(webEx.getLocalizedMessage());
         }
+        exception.printStackTrace();
 
         return Response
                 .status(status)
