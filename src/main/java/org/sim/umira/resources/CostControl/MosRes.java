@@ -135,7 +135,7 @@ public class MosRes {
         @Valid @QueryParam("id") String id_proyek
     ){
         try {
-            List<MosNewEntity> mos = MosNewEntity.findById(id_proyek);
+            MosNewEntity mos = MosNewEntity.findById(id_proyek);
             
             return Response.ok().entity(ResponseHandler.ok("get Mos Berhasil", mos)).build();
         } catch (Exception e) {
