@@ -128,6 +128,22 @@ public class MosRes {
         
     }
 
+    @GET
+    @Path("/get-mos-by-id")
+    @Transactional
+    public Response getMosById(
+        @Valid @QueryParam("id") String id_proyek
+    ){
+        try {
+            List<MosNewEntity> mos = MosNewEntity.findById(id_proyek);
+            
+            return Response.ok().entity(ResponseHandler.ok("get Mos Berhasil", mos)).build();
+        } catch (Exception e) {
+            throw new InternalError(e.getMessage());
+        }
+        
+    }
+
     @DELETE
     @Path("/delete-mos")
     @Transactional
