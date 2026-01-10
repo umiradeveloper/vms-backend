@@ -1,5 +1,6 @@
 package org.sim.umira.resources.CostControl;
 
+import java.io.InputStream;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -11,6 +12,8 @@ import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.RapaEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -20,6 +23,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -99,4 +103,21 @@ public class MosRes {
         }
         
     }
+
+    @GET
+    @Path("/dokumen-file")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces("application/pdf")
+    public Response getFile(
+        @QueryParam("id") String id
+    ){  
+        try {  // direktori saat jar dijalankan
+            MosEntity mos = MosEntity.findById(id);
+            InputStream imageStream = Files.newInputStream(Paths.get(mos.dokumen_upload));
+            return Response.ok(imageStream).build();
+        } catch (Exception e) {
+           throw new InternalError("Cant get file");
+        }
+    }
 }
+

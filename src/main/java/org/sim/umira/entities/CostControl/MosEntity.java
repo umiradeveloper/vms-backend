@@ -44,11 +44,11 @@ public class MosEntity extends PanacheEntityBase {
 
     public BigDecimal volume;
 
+    public String dokumen_upload;
+
     public String created_by;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     public LocalDateTime createdAt;
-
-
 }

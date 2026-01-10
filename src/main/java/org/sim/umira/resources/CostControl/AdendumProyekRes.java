@@ -51,7 +51,7 @@ public class AdendumProyekRes {
             ProyekEntity proyek = ProyekEntity.find("id_proyek = ?1", create.id_proyek).firstResult();
             Session session = em.unwrap(Session.class);
             int batch = create.dokumen_adendum.size();
-            Files.createDirectories(UPLOAD_DIR);
+            Files.createDirectories(UPLOAD_DIR);    
             for (int i = 0; i < create.nomor_adendum.size(); i++) {
                 String uuid = java.util.UUID.randomUUID().toString();
                 final int idx = i;
