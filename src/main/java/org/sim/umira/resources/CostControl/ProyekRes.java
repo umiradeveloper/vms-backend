@@ -7,6 +7,7 @@ import java.util.List;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
 import org.sim.umira.dtos.CostControl.ResponseProyekDto;
+import org.sim.umira.entities.CostControl.AdendumProyekEntity;
 import org.sim.umira.entities.CostControl.BiayaKontruksiEntity;
 import org.sim.umira.entities.CostControl.MosEntity;
 import org.sim.umira.entities.CostControl.MosNewEntity;
@@ -94,10 +95,19 @@ public class ProyekRes {
         if(mos.size() > 0){
             currMos = mos.get(0).nominal_mos;
         }
+        List<AdendumProyekEntity> adendumProyek = AdendumProyekEntity.find("proyek = ?1", proyek).list();
+        BigInteger kerja_tambah_total = BigInteger.ZERO;
+        for (AdendumProyekEntity adendumPro : adendumProyek){
+            kerja_tambah_total = kerja_tambah_total.add(adendumPro.kerja_tambah);
+        }
         
+        BigInteger kerja_kurang_total = BigInteger.ZERO;
+        for (AdendumProyekEntity adendumPro : adendumProyek){
+            kerja_kurang_total = kerja_kurang_total.add(adendumPro.kerja_kurang);
+        }
         // System.out.println(total_bk);
         
-        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, currMos, proyek))).build();
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proyek))).build();
     }
 
     @PATCH
