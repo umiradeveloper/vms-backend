@@ -15,7 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "cc_adendum_kontrak")
+@Table(name = "cc_adendum_proyek")
 public class AdendumProyekEntity extends PanacheEntityBase {
      @Id
     @GeneratedValue(strategy = GenerationType.UUID)

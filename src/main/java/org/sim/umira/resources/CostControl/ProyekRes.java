@@ -8,11 +8,14 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
 import org.sim.umira.dtos.CostControl.ResponseProyekDto;
 import org.sim.umira.entities.CostControl.BiayaKontruksiEntity;
+import org.sim.umira.entities.CostControl.MosEntity;
+import org.sim.umira.entities.CostControl.MosNewEntity;
 import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
+import io.quarkus.panache.common.Sort;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.DELETE;
@@ -86,9 +89,15 @@ public class ProyekRes {
         for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
             total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
         }
+        List<MosNewEntity> mos = MosNewEntity.find("proyek = ?1", Sort.by("week").descending(), proyek).list();
+        BigInteger currMos = BigInteger.ZERO;
+        if(mos.size() > 0){
+            currMos = mos.get(0).nominal_mos;
+        }
+        
         // System.out.println(total_bk);
         
-        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, proyek))).build();
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, currMos, proyek))).build();
     }
 
     @PATCH

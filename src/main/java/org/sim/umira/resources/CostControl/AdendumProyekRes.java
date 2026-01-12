@@ -10,9 +10,11 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.hibernate.Session;
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreateAdendumProyekDto;
+import org.sim.umira.dtos.CostControl.CreateAdendumProyekNewDto;
 import org.sim.umira.dtos.CostControl.CreateKategoriDto;
 import org.sim.umira.entities.CostControl.AdendumProyekEntity;
 import org.sim.umira.entities.CostControl.KategoriEntity;
+import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
@@ -41,10 +43,10 @@ public class AdendumProyekRes {
     private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/dokumen-adendum");
 
     @POST
-    @Path("/create-adendum")
+    @Path("/create-adendum-bulk")
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response createAdendum(
+    public Response createAdendumBulk(
         @Valid @MultipartForm CreateAdendumProyekDto create
     ){
         try {
@@ -92,10 +94,10 @@ public class AdendumProyekRes {
 
 
     @POST
-    @Path("/update-adendum")
+    @Path("/update-adendum-bulk")
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response updateAdendum(
+    public Response updateAdendumBulk(
         @Valid @MultipartForm CreateAdendumProyekDto create
     ){
         try {
@@ -149,6 +151,37 @@ public class AdendumProyekRes {
             throw new InternalError(e.getMessage());
         }
         
+    }
+
+    @POST
+    @Path("/create-adendum")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response createAdendum(
+        @Valid @MultipartForm CreateAdendumProyekNewDto create
+    ){
+        try {
+            ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            AdendumProyekEntity adendum = new AdendumProyekEntity();
+            adendum.proyek = proyek;
+            adendum.kerja_tambah = create.kerja_tambah;
+            adendum.kerja_kurang = create.kerja_kurang;
+            adendum.nomor_adendum = create.nomor_adendum;
+            if (!Files.exists(UPLOAD_DIR)) {
+                Files.createDirectories(UPLOAD_DIR);
+            }
+           
+            String ext = create.dokumen_adendum.fileName().substring(create.dokumen_adendum.fileName().lastIndexOf("."));
+            String fileName = java.util.UUID.randomUUID() + ext;
+            java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
+            Files.copy(create.dokumen_adendum.uploadedFile(),target,java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            adendum.dokumen_adendum = target.toString();
+            adendum.persist();
+            return Response.ok().entity(ResponseHandler.ok("Update Pu Berhasil", null)).build();
+        } catch (Exception e) {
+            throw new InternalError(e.getMessage());
+            // TODO: handle exception
+        }
     }
 
     @GET
