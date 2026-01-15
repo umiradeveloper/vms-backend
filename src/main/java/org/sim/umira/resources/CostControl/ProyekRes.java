@@ -78,36 +78,43 @@ public class ProyekRes {
     public Response getProyekByIdBkPu(
         @QueryParam("id") String id
     ){
-        ProyekEntity proyek = ProyekEntity.findById(id);
+        try {
+             ProyekEntity proyek = ProyekEntity.findById(id);
 
-        List<PendapatanUsahaEntity> pu = PendapatanUsahaEntity.find("proyek = ?1", proyek).list();
-        Integer total_pu = 0;
-        for (PendapatanUsahaEntity pendapatanUsahaEntity : pu) {
-            total_pu += pendapatanUsahaEntity.nominal_pu;
+            List<PendapatanUsahaEntity> pu = PendapatanUsahaEntity.find("proyek = ?1", proyek).list();
+            Integer total_pu = 0;
+            for (PendapatanUsahaEntity pendapatanUsahaEntity : pu) {
+                total_pu += pendapatanUsahaEntity.nominal_pu;
+            }
+            BigDecimal total_bk = BigDecimal.ZERO;
+            List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proyek).list();
+            for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
+                total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
+            }
+            List<MosNewEntity> mos = MosNewEntity.find("proyek = ?1", Sort.by("week").descending(), proyek).list();
+            BigInteger currMos = BigInteger.ZERO;
+            if(mos.size() > 0){
+                currMos = mos.get(0).nominal_mos;
+            }
+            List<AdendumProyekEntity> adendumProyek = AdendumProyekEntity.find("proyek = ?1", proyek).list();
+            BigInteger kerja_tambah_total = BigInteger.ZERO;
+            for (AdendumProyekEntity adendumPro : adendumProyek){
+                kerja_tambah_total = kerja_tambah_total.add(adendumPro.kerja_tambah);
+            }
+            
+            BigInteger kerja_kurang_total = BigInteger.ZERO;
+            for (AdendumProyekEntity adendumPro : adendumProyek){
+                kerja_kurang_total = kerja_kurang_total.add(adendumPro.kerja_kurang);
+            }
+            // System.out.println(total_bk);
+            
+            return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proyek))).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new InternalError(e.getMessage());
+            // TODO: handle exception
         }
-        BigDecimal total_bk = BigDecimal.ZERO;
-        List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proyek).list();
-        for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
-            total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
-        }
-        List<MosNewEntity> mos = MosNewEntity.find("proyek = ?1", Sort.by("week").descending(), proyek).list();
-        BigInteger currMos = BigInteger.ZERO;
-        if(mos.size() > 0){
-            currMos = mos.get(0).nominal_mos;
-        }
-        List<AdendumProyekEntity> adendumProyek = AdendumProyekEntity.find("proyek = ?1", proyek).list();
-        BigInteger kerja_tambah_total = BigInteger.ZERO;
-        for (AdendumProyekEntity adendumPro : adendumProyek){
-            kerja_tambah_total = kerja_tambah_total.add(adendumPro.kerja_tambah);
-        }
-        
-        BigInteger kerja_kurang_total = BigInteger.ZERO;
-        for (AdendumProyekEntity adendumPro : adendumProyek){
-            kerja_kurang_total = kerja_kurang_total.add(adendumPro.kerja_kurang);
-        }
-        // System.out.println(total_bk);
-        
-        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proyek))).build();
+       
     }
 
     @PATCH
