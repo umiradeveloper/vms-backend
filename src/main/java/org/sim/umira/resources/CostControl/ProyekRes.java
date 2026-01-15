@@ -99,12 +99,18 @@ public class ProyekRes {
             List<AdendumProyekEntity> adendumProyek = AdendumProyekEntity.find("proyek = ?1", proyek).list();
             BigInteger kerja_tambah_total = BigInteger.ZERO;
             for (AdendumProyekEntity adendumPro : adendumProyek){
-                kerja_tambah_total = kerja_tambah_total.add(adendumPro.kerja_tambah);
+                if(adendumPro.kerja_tambah != null){
+                    kerja_tambah_total = kerja_tambah_total.add(adendumPro.kerja_tambah);
+                }
+                
             }
             
             BigInteger kerja_kurang_total = BigInteger.ZERO;
             for (AdendumProyekEntity adendumPro : adendumProyek){
-                kerja_kurang_total = kerja_kurang_total.add(adendumPro.kerja_kurang);
+                if(adendumPro.kerja_kurang != null){
+                    kerja_kurang_total = kerja_kurang_total.add(adendumPro.kerja_kurang);
+                }
+                
             }
             // System.out.println(total_bk);
             
