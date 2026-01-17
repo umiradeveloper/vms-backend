@@ -25,6 +25,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -165,6 +166,10 @@ public class AdendumProyekRes {
     ){
         try {
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            AdendumProyekEntity cekAdendum = AdendumProyekEntity.find("proyek = ?1 and nomor_adendum = ?2", proyek, create.nomor_adendum).firstResult();
+            if(cekAdendum != null){
+                throw new BadRequestException("nomor adendum exist");
+            }
             AdendumProyekEntity adendum = new AdendumProyekEntity();
             adendum.proyek = proyek;
             adendum.kerja_tambah = create.kerja_tambah;

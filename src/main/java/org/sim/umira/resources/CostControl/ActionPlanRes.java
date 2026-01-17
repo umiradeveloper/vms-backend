@@ -15,6 +15,7 @@ import org.sim.umira.jwt.Secured;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -40,6 +41,10 @@ public class ActionPlanRes {
     ){
         try {
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            ActionPlanEntity cekActionPlan = ActionPlanEntity.find("proyek = ?1 and week = ?2", proyek, create.week).firstResult();
+            if(cekActionPlan != null){
+                throw new BadRequestException("Action Plan Week "+create.week+" exist");
+            }
             ActionPlanEntity ap = new ActionPlanEntity();
             ap.nominal_action_plan = create.nominal_action_plan;
             ap.tanggal_akhir = create.tanggal_akhir;

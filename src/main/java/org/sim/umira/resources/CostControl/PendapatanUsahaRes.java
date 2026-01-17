@@ -22,6 +22,7 @@ import org.sim.umira.jwt.Secured;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -48,10 +49,14 @@ public class PendapatanUsahaRes {
     ){
         try {
             // System.out.println(create.dokumen_upload.fileName());
-            ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
 
+            ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            PendapatanUsahaEntity puCek = PendapatanUsahaEntity.find("proyek = ?1 and week_pu = ?2", proyek, create.week_pu).firstResult();
+            if(puCek != null){
+                throw new BadRequestException("Week pendapatan usaha exist");
+            }
             PendapatanUsahaEntity pu = new PendapatanUsahaEntity();
-             String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
+            String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
             String fileName = java.util.UUID.randomUUID() + ext;
             if (!Files.exists(UPLOAD_DIR)) {
                 Files.createDirectories(UPLOAD_DIR);

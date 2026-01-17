@@ -95,6 +95,14 @@ public class BiayaKonstruksiRes {
         try {
             RapaEntity rapa = RapaEntity.findById(create.id_rapa);
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            List <BiayaKontruksiEntity> listBk = BiayaKontruksiEntity.find("rapa = ?1", rapa).list();
+            BigDecimal totalBk = create.harga_total;
+            for (BiayaKontruksiEntity biayaKontruksiEntity : listBk) {
+                totalBk = totalBk.add(biayaKontruksiEntity.harga_total);
+            }
+            if(totalBk.compareTo(new BigDecimal(proyek.biaya_rap)) > 0){
+                throw new ForbiddenException("total BK melebihi biaya RAP");
+            }
             BiayaKontruksiEntity bk = BiayaKontruksiEntity.findById(create.id_biaya_konstruksi);
             bk.rapa = rapa;
             bk.proyek = proyek;
