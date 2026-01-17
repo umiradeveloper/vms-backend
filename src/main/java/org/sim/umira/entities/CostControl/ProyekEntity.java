@@ -18,6 +18,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 
@@ -53,4 +54,37 @@ public class ProyekEntity extends PanacheEntityBase {
     @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonManagedReference
     public List<RapaEntity> rapa;
+
+
+    @OrderBy("week_pu DESC")
+    @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    public List<PendapatanUsahaEntity> pu;
+
+    @OrderBy("week DESC")
+    @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    public List<MosNewEntity> mos;
+
+    @OrderBy("week DESC")
+    @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    public List<ActionPlanEntity> action_plan;
+
+    @OrderBy("week DESC")
+    @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    public List<ScurveEntity> scurve;
+
+    @OrderBy("nomor_adendum DESC")
+    @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    public List<AdendumProyekEntity> adendum_proyek;
+
+
+    @OrderBy("tanggal_penerima DESC")
+    @OneToMany(mappedBy = "proyek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    public List<BiayaKontruksiEntity> bk;
+
 }

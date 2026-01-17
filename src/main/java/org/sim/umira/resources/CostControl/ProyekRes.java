@@ -2,6 +2,7 @@ package org.sim.umira.resources.CostControl;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -64,6 +65,46 @@ public class ProyekRes {
     public Response getProyek(){
         List<ProyekEntity> proyek = ProyekEntity.listAll();
         return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", proyek)).build();
+    }
+    @GET
+    @Path("/get-proyek-dashboard")
+    public Response getProyekDashboard(){
+        List<ProyekEntity> proyek = ProyekEntity.listAll();
+        ArrayList<ResponseProyekDto> responseProyek = new ArrayList<>();
+        for(ProyekEntity proE: proyek){
+            List<PendapatanUsahaEntity> pu = PendapatanUsahaEntity.find("proyek = ?1", proE).list();
+            Integer total_pu = 0;
+            for (PendapatanUsahaEntity pendapatanUsahaEntity : pu) {
+                total_pu += pendapatanUsahaEntity.nominal_pu;
+            }
+            BigDecimal total_bk = BigDecimal.ZERO;
+            List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proE).list();
+            for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
+                total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
+            }
+            List<MosNewEntity> mos = MosNewEntity.find("proyek = ?1", Sort.by("week").descending(), proE).list();
+            BigInteger currMos = BigInteger.ZERO;
+            if(mos.size() > 0){
+                currMos = mos.get(0).nominal_mos;
+            }
+            List<AdendumProyekEntity> adendumProyek = AdendumProyekEntity.find("proyek = ?1", proE).list();
+            BigInteger kerja_tambah_total = BigInteger.ZERO;
+            for (AdendumProyekEntity adendumPro : adendumProyek){
+                if(adendumPro.kerja_tambah != null){
+                    kerja_tambah_total = kerja_tambah_total.add(adendumPro.kerja_tambah);
+                }
+                
+            }
+            BigInteger kerja_kurang_total = BigInteger.ZERO;
+            for (AdendumProyekEntity adendumPro : adendumProyek){
+                if(adendumPro.kerja_kurang != null){
+                    kerja_kurang_total = kerja_kurang_total.add(adendumPro.kerja_kurang);
+                }
+                
+            }
+            responseProyek.add(new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proE));
+        }
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", responseProyek)).build();
     }
     @GET
     @Path("/get-proyek-id")
