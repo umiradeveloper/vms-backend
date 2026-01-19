@@ -47,7 +47,7 @@ public class PengajuanBiayaKonstruksiEntity extends PanacheEntityBase {
     public RapaEntity rapa;
 
 
-    @OneToMany(mappedBy = "pengajuanBk", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "pengajuan_bk", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonManagedReference
     public List<PengajuanBiayaKonstruksiPersetujuanEntity> pengajuan_persetujuan_bk;
 
