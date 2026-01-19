@@ -1,6 +1,7 @@
 package org.sim.umira.resources.CostControl;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.sim.umira.dtos.CostControl.CreatePengajuanBkDto;
 import org.sim.umira.entities.UserEntity;
@@ -72,10 +73,18 @@ public class PengajuanBiayaKonstruksiRes {
     }
 
     @GET
-    @Path("get-approve-pengajuan_bk")
-    public Response getApprovePengajuanBk(){
+    @Path("/get-approve-pengajuan_bk")
+    public Response getApprovePengajuanBk(
+        @Context SecurityContext ctx
+    ){
         try {
-            return Response.ok().entity(ResponseHandler.ok("Approved Berhasil", null)).build();
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            List<PengajuanBiayaKonstruksiEntity> pengajuan = PengajuanBiayaKonstruksiEntity.listAll();
+            
+            return Response.ok().entity(ResponseHandler.ok("Data Tersedia", pengajuan)).build();
+            // List<PengajuanBiayaKonstruksiEntity> pengajuan = PengajuanBiayaKonstruksiEntity
+
+            
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
