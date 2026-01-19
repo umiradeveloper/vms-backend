@@ -59,6 +59,14 @@ public class UserRes {
         List<UserEntity> ue = UserEntity.find("role = ?1", re).list();
         return Response.ok().entity(ResponseHandler.ok("Success", ue)).build();
     }
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/all/staff")
+    public Response getUsersStaf(@Context SecurityContext ctx) {
+        RoleEntity re = RoleEntity.find("kode_role != ?1", "01").firstResult();
+        List<UserEntity> ue = UserEntity.find("role = ?1", re).list();
+        return Response.ok().entity(ResponseHandler.ok("Success", ue)).build();
+    }
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
