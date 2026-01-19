@@ -13,9 +13,11 @@ import org.sim.umira.jwt.Secured;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
@@ -69,5 +71,34 @@ public class PengajuanBiayaKonstruksiRes {
         
     }
 
+    @GET
+    @Path("get-approve-pengajuan_bk")
+    public Response getApprovePengajuanBk(){
+        try {
+            return Response.ok().entity(ResponseHandler.ok("Approved Berhasil", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @POST
+    @Path("/approve-pengajuan-bk")
+    @Transactional
+    public Response approvePengajuanBk(
+        @QueryParam("id_pengajuan_bk") String id_pengajuan_bk, @Context SecurityContext ctx, @QueryParam("catatan") String catatan
+    ){
+        try {
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            PengajuanBiayaKonstruksiEntity pengajuanBk = PengajuanBiayaKonstruksiEntity.findById(id_pengajuan_bk);
+            PengajuanBiayaKonstruksiPersetujuanEntity getPersetujuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("pengajuan_bk = ?1 and id_user = ?2", pengajuanBk, ue.id_user).firstResult();
+            getPersetujuan.tanggal_persetujuan = LocalDateTime.now();
+            getPersetujuan.catatan_persetujuan = (catatan != "" || catatan != null)?catatan:"";
+            return Response.ok().entity(ResponseHandler.ok("Approved Berhasil", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
 
 }

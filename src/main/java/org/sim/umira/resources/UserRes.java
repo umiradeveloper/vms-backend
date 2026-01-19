@@ -18,6 +18,7 @@ import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -36,7 +37,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/users")
-@Secured
+// @Secured
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class UserRes {
@@ -62,9 +63,10 @@ public class UserRes {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/all/staff")
+    @PermitAll
     public Response getUsersStaf(@Context SecurityContext ctx) {
-        RoleEntity re = RoleEntity.find("kode_role != ?1", "01").firstResult();
-        List<UserEntity> ue = UserEntity.find("role = ?1", re).list();
+        List<RoleEntity> re = RoleEntity.find("kode_role != ?1", "01").list();
+        List<UserEntity> ue = UserEntity.find("role IN ?1", re).list();
         return Response.ok().entity(ResponseHandler.ok("Success", ue)).build();
     }
 
