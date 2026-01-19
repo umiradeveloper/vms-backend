@@ -17,6 +17,10 @@ public class PengajuanBiayaKonstruksiPersetujuanEntity extends PanacheEntityBase
     @GeneratedValue(strategy = GenerationType.UUID)
     public String id_persetujuan;
 
+    public String id_pengajuan_bk;
+
+    public String id_user;
+
     public String nama_persetujuan;
 
     public String jabatan_persetujuan;
@@ -24,4 +28,6 @@ public class PengajuanBiayaKonstruksiPersetujuanEntity extends PanacheEntityBase
     public LocalDateTime tanggal_persetujuan;
 
     public String catatan_persetujuan;
+
+    public Integer urutan;
 }
