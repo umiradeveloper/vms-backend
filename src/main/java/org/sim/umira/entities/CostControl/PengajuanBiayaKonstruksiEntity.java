@@ -2,6 +2,7 @@ package org.sim.umira.entities.CostControl;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -34,7 +35,7 @@ public class PengajuanBiayaKonstruksiEntity extends PanacheEntityBase {
 
     public String nama_penerima;
 
-    public LocalDate tanggal_penerima;
+    public LocalDateTime tanggal_penerima;
 
      @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proyek")

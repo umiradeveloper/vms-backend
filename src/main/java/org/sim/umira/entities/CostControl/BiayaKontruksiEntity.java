@@ -33,6 +33,8 @@ public class BiayaKontruksiEntity extends PanacheEntityBase {
 
     public LocalDateTime tanggal_penerima;
 
+    public String reference_id_pengajuan;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proyek")
     @JsonBackReference

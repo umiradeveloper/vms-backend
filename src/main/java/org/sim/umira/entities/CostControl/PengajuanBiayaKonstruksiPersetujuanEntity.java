@@ -28,6 +28,8 @@ public class PengajuanBiayaKonstruksiPersetujuanEntity extends PanacheEntityBase
 
     public String nama_persetujuan;
 
+    public String status_approver;
+
     public String jabatan_persetujuan;
 
     public LocalDateTime tanggal_persetujuan;
