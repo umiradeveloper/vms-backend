@@ -44,9 +44,8 @@ public class PengajuanBiayaKonstruksiRes {
             pengajuanBk.rapa = rapa;
             pengajuanBk.harga_total = create.harga_total;
             pengajuanBk.persist();
-            String id_pengajuan_bk = pengajuanBk.id_pengajuan_bk;
             PengajuanBiayaKonstruksiPersetujuanEntity persetujuan = new PengajuanBiayaKonstruksiPersetujuanEntity();
-            persetujuan.id_pengajuan_bk = id_pengajuan_bk;
+            persetujuan.pengajuan_bk = pengajuanBk;
             persetujuan.nama_persetujuan = ue.nama;
             persetujuan.id_user = ue.id_user;
             persetujuan.urutan = 0;
@@ -56,7 +55,7 @@ public class PengajuanBiayaKonstruksiRes {
             for (int i = 0; i < create.id_user.size(); i++) {
                 UserEntity userId = UserEntity.findById(create.id_user.get(i));
                 persetujuan.id_user = create.id_user.get(i);
-                persetujuan.id_pengajuan_bk = id_pengajuan_bk;
+                persetujuan.pengajuan_bk = pengajuanBk;
                 persetujuan.nama_persetujuan = userId.nama;
                 persetujuan.jabatan_persetujuan = userId.role.nama_role;
                 persetujuan.persist();
