@@ -15,6 +15,7 @@ import org.sim.umira.jwt.Secured;
 import io.quarkus.security.ForbiddenException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -31,17 +32,25 @@ public class BiayaKonstruksiRes {
      public Response createBk(
         @Valid @RequestBody CreateBiayaBkDto create
     ){
-        try {
+        
             RapaEntity rapa = RapaEntity.findById(create.id_rapa);
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
             List <BiayaKontruksiEntity> listBk = BiayaKontruksiEntity.find("rapa = ?1", rapa).list();
             BigDecimal totalBk = create.harga_total;
+            BigDecimal volumeBk = create.volume_bk;
+
             for (BiayaKontruksiEntity biayaKontruksiEntity : listBk) {
                 totalBk = totalBk.add(biayaKontruksiEntity.harga_total);
+                volumeBk = volumeBk.add(biayaKontruksiEntity.volume_bk);
             }
             if(totalBk.compareTo(new BigDecimal(proyek.biaya_rap)) > 0){
-                throw new ForbiddenException("total BK melebihi biaya RAP");
+                throw new BadRequestException("total BK melebihi biaya RAP silahkan pengajuan approval ke Project Manager");
             }
+            if(volumeBk.compareTo(rapa.volume) > 0){
+                throw new BadRequestException("Volume melebihi perkiraan RAPA silahkan pengajuan approval ke Project Manager");
+            }
+            
+     try {
             BiayaKontruksiEntity bk = new BiayaKontruksiEntity();
             bk.rapa = rapa;
             bk.proyek = proyek;
@@ -92,7 +101,7 @@ public class BiayaKonstruksiRes {
      public Response updateBk(
         @Valid @RequestBody CreateBiayaBkDto create
     ){
-        try {
+        // try {
             RapaEntity rapa = RapaEntity.findById(create.id_rapa);
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
             List <BiayaKontruksiEntity> listBk = BiayaKontruksiEntity.find("rapa = ?1", rapa).list();
@@ -112,10 +121,10 @@ public class BiayaKonstruksiRes {
             bk.harga_total = create.harga_total;
             bk.tanggal_penerima = create.tanggal_penerima;
             return Response.ok().entity(ResponseHandler.ok("Create Bk Berhasil", null)).build();
-        } catch (Exception e) {
-            throw new InternalError(e.getMessage());
-            // TODO: handle exception
-        }
+        // } catch (Exception e) {
+        //     throw new InternalError(e.getMessage());
+        //     // TODO: handle exception
+        // }
     }
 
     @DELETE

@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -43,9 +44,15 @@ public class MosRes {
     public Response createMos(
         @Valid @MultipartForm MosDto create
     ){
+        ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+        MosNewEntity checkMos = MosNewEntity.find("proyek = ?1 and week =?2", proyek, create.week).firstResult();
+
+        if(checkMos != null){
+            throw new BadRequestException("mos dengan week "+create.week+" sudah ada");
+        }
         try {
             MosNewEntity mos = new MosNewEntity();
-            ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            
             mos.week = create.week;
             mos.nominal_mos = create.nominal_mos;
             mos.proyek = proyek;

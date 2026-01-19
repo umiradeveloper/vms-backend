@@ -26,6 +26,7 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -39,22 +40,22 @@ public class PendapatanUsahaRes {
 
     private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/dokumen-pendapatan-usaha");
 
-
     @POST
     @Path("/create-pu")
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-     public Response createPu(
-        @Valid @MultipartForm CreatePuDto create
-    ){
-        try {
-            // System.out.println(create.dokumen_upload.fileName());
+    public Response createPu(
+            @Valid @MultipartForm CreatePuDto create) {
 
-            ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
-            PendapatanUsahaEntity puCek = PendapatanUsahaEntity.find("proyek = ?1 and week_pu = ?2", proyek, create.week_pu).firstResult();
-            if(puCek != null){
-                throw new BadRequestException("Week pendapatan usaha exist");
-            }
+        // System.out.println(create.dokumen_upload.fileName());
+
+        ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+        PendapatanUsahaEntity puCek = PendapatanUsahaEntity.find("proyek = ?1 and week_pu = ?2", proyek, create.week_pu)
+                .firstResult();
+        if (puCek != null) {
+            throw new BadRequestException("Week pendapatan usaha exist");
+        }
+        try {
             PendapatanUsahaEntity pu = new PendapatanUsahaEntity();
             String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
             String fileName = java.util.UUID.randomUUID() + ext;
@@ -63,10 +64,9 @@ public class PendapatanUsahaRes {
             }
             java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
             Files.copy(
-                create.dokumen_upload.uploadedFile(),
-                target,
-                java.nio.file.StandardCopyOption.REPLACE_EXISTING
-            );
+                    create.dokumen_upload.uploadedFile(),
+                    target,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             pu.proyek = proyek;
             pu.week_pu = create.week_pu;
             pu.tanggal_awal = create.tanggal_awal;
@@ -77,30 +77,30 @@ public class PendapatanUsahaRes {
             return Response.ok().entity(ResponseHandler.ok("Create Pu Berhasil", null)).build();
         } catch (Exception e) {
             e.printStackTrace();
-            throw new InternalError(e.getMessage());
+            throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
         }
     }
+
     @GET
     @Path("/get-pu-by-proyek")
     @Transactional
-     public Response getPuByProyek(
-        @QueryParam("id_proyek") String id_proyek
-    ){
+    public Response getPuByProyek(
+            @QueryParam("id_proyek") String id_proyek) {
         try {
             ProyekEntity proyek = ProyekEntity.findById(id_proyek);
-            List<PendapatanUsahaEntity> puList = PendapatanUsahaEntity.find("proyek = ?1", proyek).list(); 
+            List<PendapatanUsahaEntity> puList = PendapatanUsahaEntity.find("proyek = ?1", proyek).list();
             return Response.ok().entity(ResponseHandler.ok("get Pu Berhasil", puList)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
         }
     }
+
     @GET
     @Path("/get-pu-by-id")
     @Transactional
-     public Response getPuById(
-        @QueryParam("id") String id
-    ){
+    public Response getPuById(
+            @QueryParam("id") String id) {
         try {
             PendapatanUsahaEntity pu = PendapatanUsahaEntity.findById(id);
             return Response.ok().entity(ResponseHandler.ok("get Pu by id Berhasil", pu)).build();
@@ -113,10 +113,9 @@ public class PendapatanUsahaRes {
     @Path("/get-rapa-proyek")
     @Transactional
     public Response getRapaByProyek(
-        @QueryParam("id_proyek") String id_proyek
-    ){
+            @QueryParam("id_proyek") String id_proyek) {
         try {
-           
+
             ProyekEntity proyek = ProyekEntity.findById(id_proyek);
             List<RapaEntity> rapa = RapaEntity.find("proyek = ?1", proyek).list();
             List<ResponseRapaPendapatanUsahaDto> rapaNew = new ArrayList<>();
@@ -127,25 +126,26 @@ public class PendapatanUsahaRes {
                     total_bk_rapa = total_bk_rapa.add(bkArr.harga_total);
                 }
 
-                rapaNew.add(new ResponseRapaPendapatanUsahaDto(rapaEntity.id_rapa, rapaEntity.Kategori, rapaEntity.kode_rap, rapaEntity.group,
-            rapaEntity.item_pekerjaan, rapaEntity.spesifikasi, rapaEntity.satuan, rapaEntity.volume, rapaEntity.harga_satuan,
-            rapaEntity.harga_total, total_bk_rapa));
+                rapaNew.add(new ResponseRapaPendapatanUsahaDto(rapaEntity.id_rapa, rapaEntity.Kategori,
+                        rapaEntity.kode_rap, rapaEntity.group,
+                        rapaEntity.item_pekerjaan, rapaEntity.spesifikasi, rapaEntity.satuan, rapaEntity.volume,
+                        rapaEntity.harga_satuan,
+                        rapaEntity.harga_total, total_bk_rapa));
             }
-            
+
             return Response.ok().entity(ResponseHandler.ok("get Rapa by proyek Berhasil", rapaNew)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
         }
-        
+
     }
 
     @POST
     @Path("/update-pu")
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-     public Response updatePu(
-        @Valid @MultipartForm CreatePuDto create
-    ){
+    public Response updatePu(
+            @Valid @MultipartForm CreatePuDto create) {
         try {
             // ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
             PendapatanUsahaEntity pu = PendapatanUsahaEntity.findById(create.id_pu);
@@ -154,18 +154,20 @@ public class PendapatanUsahaRes {
             pu.tanggal_akhir = create.tanggal_akhir;
             // pu.proyek = proyek;
             pu.nominal_pu = create.nominal_pu;
-            if(create.dokumen_upload != null){
+            if (create.dokumen_upload != null) {
                 if (!Files.exists(UPLOAD_DIR)) {
                     Files.createDirectories(UPLOAD_DIR);
                 }
                 Files.deleteIfExists(java.nio.file.Path.of(pu.dokumen_pu));
-                String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
+                String ext = create.dokumen_upload.fileName()
+                        .substring(create.dokumen_upload.fileName().lastIndexOf("."));
                 String fileName = java.util.UUID.randomUUID() + ext;
                 java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
-                Files.copy(create.dokumen_upload.uploadedFile(),target,java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(create.dokumen_upload.uploadedFile(), target,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 pu.dokumen_pu = target.toString();
             }
-            
+
             return Response.ok().entity(ResponseHandler.ok("Update Pu Berhasil", null)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
@@ -176,9 +178,8 @@ public class PendapatanUsahaRes {
     @DELETE
     @Path("/delete-pu")
     @Transactional
-     public Response deletePu(
-        @QueryParam("id") String id
-    ){ 
+    public Response deletePu(
+            @QueryParam("id") String id) {
         try {
             boolean Delete = PendapatanUsahaEntity.deleteById(id);
             return Response.ok().entity(ResponseHandler.ok("Hapus Pu Berhasil", Delete)).build();
@@ -188,21 +189,19 @@ public class PendapatanUsahaRes {
         }
     }
 
-
     @GET
     @Path("/dokumen-file")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces("application/pdf")
     public Response getFile(
-        @QueryParam("id") String id
-    ){  
-        try {  // direktori saat jar dijalankan
+            @QueryParam("id") String id) {
+        try { // direktori saat jar dijalankan
             PendapatanUsahaEntity pu = PendapatanUsahaEntity.findById(id);
             InputStream imageStream = Files.newInputStream(Paths.get(pu.dokumen_pu));
             return Response.ok(imageStream).build();
         } catch (Exception e) {
-           throw new InternalError("Cant get file");
+            throw new InternalError("Cant get file");
         }
-        
+
     }
 }

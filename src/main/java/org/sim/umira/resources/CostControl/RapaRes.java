@@ -71,6 +71,16 @@ public class RapaRes {
     public Response createRapaBulk(
         @Valid @RequestBody CreateRapaBulkDto create
     ){
+        for (int i = 0; i < create.kategori.size(); i++) {
+                final int index = i;
+                SatuanEntity satuan = SatuanEntity.find("nama_satuan = ?1", create.satuan.get(index)).firstResult();
+                KategoriEntity kategori = KategoriEntity.find("nama_kategori = ?1", create.kategori.get(index)).firstResult();
+                
+                if(satuan == null && kategori == null){
+                    throw new BadRequestException("Satuan dan kategori di baris "+index+ " Kategori "+create.kategori.get(index)+" atau Satuan "+create.satuan.get(index)+" tidak terdefinisi");
+                }
+        }
+
         try {
             ProyekEntity proyek = ProyekEntity.find("kode_proyek = ?1", create.kode_proyek).firstResult();
             Session session = em.unwrap(Session.class);
@@ -80,10 +90,7 @@ public class RapaRes {
                 String uuid = java.util.UUID.randomUUID().toString();
                 final int idx = i;
                 // System.out.println(create.kategori.get(idx));
-                SatuanEntity satuan = SatuanEntity.find("nama_satuan = ?1", create.satuan.get(idx)).firstResult();
-                KategoriEntity kategori = KategoriEntity.find("nama_kategori = ?1", create.kategori.get(idx)).firstResult();
                 
-                if(satuan != null && kategori != null){
                     session.doWork(connection -> {
                         try (PreparedStatement ps = connection.prepareStatement(
                             "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
@@ -110,9 +117,7 @@ public class RapaRes {
                         session.flush();
                         session.clear();
                     }
-                }else{
-                    throw new BadRequestException("Nama Satuan atau nama kategori tidak tersedia");
-                }
+                
                 
             }
             

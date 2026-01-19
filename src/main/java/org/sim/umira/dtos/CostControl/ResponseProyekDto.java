@@ -15,6 +15,8 @@ public class ResponseProyekDto<T> {
         this.total_bk = total_bk;
         this.total_pu = total_pu;
         this.proyek = proyek;
+        this.kerja_kurang = kerja_kurang;
+        this.kerja_tambah = kerja_tambah;
         this.current_mos = current_mos;
     }
     

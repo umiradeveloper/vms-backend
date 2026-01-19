@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
+import org.sim.umira.dtos.CostControl.MosDto;
 import org.sim.umira.dtos.CostControl.ResponseProyekDto;
 import org.sim.umira.entities.CostControl.AdendumProyekEntity;
 import org.sim.umira.entities.CostControl.BiayaKontruksiEntity;
@@ -153,9 +154,12 @@ public class ProyekRes {
                 }
                 
             }
+            System.out.println(kerja_tambah_total);
+            // ResponseProyekDto res = new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proyek);
+            ResponseProyekDto<ProyekEntity> dto = new ResponseProyekDto<>(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proyek);
             // System.out.println(total_bk);
             
-            return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proyek))).build();
+            return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", dto)).build();
         } catch (Exception e) {
             e.printStackTrace();
             throw new InternalError(e.getMessage());
