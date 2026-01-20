@@ -47,5 +47,8 @@ public class RapaEntity extends PanacheEntityBase {
     @JoinColumn(name = "id_proyek")
     @JsonBackReference
     public ProyekEntity proyek;
+
+
+
     
 }

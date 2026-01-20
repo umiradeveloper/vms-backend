@@ -126,7 +126,8 @@ public class PengajuanBiayaKonstruksiRes {
             System.out.println(ue.id_user);
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanBiayaKonstruksiEntity> listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
-                FROM PengajuanBiayaKonstruksiEntity p
+                SELECT DISTINCT p
+                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r
                 WHERE EXISTS (
                     SELECT 1
                     FROM PengajuanBiayaKonstruksiPersetujuanEntity ps
@@ -160,19 +161,20 @@ public class PengajuanBiayaKonstruksiRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanBiayaKonstruksiEntity> listPengajuan;
-            // if(ue.role.id_role == "99"){
-                listPengajuan = PengajuanBiayaKonstruksiEntity.listAll(); 
-            // }else{
-            //     listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
-            //     FROM PengajuanBiayaKonstruksiEntity p
-            //     WHERE EXISTS (
-            //         SELECT 1
-            //         FROM PengajuanBiayaKonstruksiPersetujuanEntity ps
-            //         WHERE ps.pengajuan_bk = p
-            //         AND ps.id_user = ?1
-            //     )
-            // """, ue.id_user).list();  
-            // }
+            if(ue.role.id_role == "99"){
+                listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r").list(); 
+            }else{
+                listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
+                SELECT DISTINCT p
+                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM PengajuanBiayaKonstruksiPersetujuanEntity ps
+                    WHERE ps.pengajuan_bk = p
+                    AND ps.id_user = ?1
+                )
+            """, ue.id_user).list();  
+            }
               
             
             return Response.ok().entity(ResponseHandler.ok("Data Tersedia", listPengajuan)).build();

@@ -42,9 +42,9 @@ public class PengajuanBiayaKonstruksiEntity extends PanacheEntityBase {
     @JsonBackReference
     public ProyekEntity proyek;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_rapa")
-    @JsonBackReference
+    // @JsonBackReference
     public RapaEntity rapa;
 
 
