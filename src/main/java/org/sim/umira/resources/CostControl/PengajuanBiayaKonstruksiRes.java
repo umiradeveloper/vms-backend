@@ -225,15 +225,13 @@ public class PengajuanBiayaKonstruksiRes {
                         bk.persist();
                     }
                 }else if(status_approver.equals("Reject")){
-                    List<PengajuanBiayaKonstruksiPersetujuanEntity> getPersetujuanReject = PengajuanBiayaKonstruksiPersetujuanEntity.find("pengajuan_bk = ?1 AND id_user = ?2 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC", pengajuanBk, ue.id_user).list();
+                    List<PengajuanBiayaKonstruksiPersetujuanEntity> getPersetujuanReject = PengajuanBiayaKonstruksiPersetujuanEntity.find("pengajuan_bk = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC", pengajuanBk).list();
                     for(PengajuanBiayaKonstruksiPersetujuanEntity pengajuanReject: getPersetujuanReject){
                         pengajuanReject.tanggal_persetujuan = LocalDateTime.now();
                         pengajuanReject.status_approver = "Reject";
                         pengajuanReject.catatan_persetujuan = "Rejected By "+ue.username;
                     }
-                //     getPersetujuan.status_approver = status_approver;
-                // getPersetujuan.tanggal_persetujuan = LocalDateTime.now();
-                // getPersetujuan.catatan_persetujuan = (catatan != "" || catatan != null)?catatan:"";
+               
                 }
                 
             
