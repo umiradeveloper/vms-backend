@@ -1,0 +1,808 @@
+package org.sim.umira.resources;
+
+
+
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.jboss.resteasy.reactive.MultipartForm;
+import org.sim.umira.configs.ConfigHttpService;
+import org.sim.umira.dtos.ApprovalPengajuanDto;
+import org.sim.umira.dtos.CreateUpdateVendorDto;
+import org.sim.umira.dtos.CreateVendorBulkNewDto;
+import org.sim.umira.dtos.CreateVendorDto;
+import org.sim.umira.dtos.CreateVendorUploadBulkDto;
+import org.sim.umira.dtos.CreateVendorUploadDto;
+import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.VmsVendorDetailEntity;
+import org.sim.umira.entities.VmsVendorEntity;
+import org.sim.umira.entities.VmsVendorMstDokumenEntity;
+import org.sim.umira.entities.VmsVendorMstKualifikasi;
+import org.sim.umira.entities.VmsVendorUpdateEntity;
+import org.sim.umira.handlers.ResponseHandler;
+import org.sim.umira.jwt.Secured;
+
+import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.ext.web.client.WebClient;
+import jakarta.annotation.security.PermitAll;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Null;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
+
+@Path("/vms")
+@Secured
+// @Consumes(MediaType.MULTIPART_FORM_DATA)
+public class VendorRes {
+
+   @Inject
+    ConfigHttpService httpService;
+
+    @ConfigProperty(name = "vms.upload.dir")
+    String uploadDir;
+
+    @POST
+    @Path("/create-vendor/upload")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createVendorUpload(
+        @MultipartForm CreateVendorUploadDto create
+    ){
+       VmsVendorEntity vm = VmsVendorEntity.findById(create.id_vendor);
+       VmsVendorMstDokumenEntity vd = VmsVendorMstDokumenEntity.findById(create.id_dokumen);
+    //    System.out.println(create.id_dokumen);
+        // System.out.println(create.files.size());
+        create.files.forEach(file -> {
+            System.out.println(file.fileName());
+            String ext = file.fileName().substring(file.fileName().lastIndexOf("."));
+            String randomFileName = UUID.randomUUID().toString() + ext;
+            try {
+                java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
+                Files.createDirectories(target.getParent());
+                Files.copy(file.uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
+                ve.vendor = vm;
+                // ve.dokumen = vd;
+                ve.nama_dokumen = vd.nama_dokumen;
+                ve.url_dokumen = target.toString();
+                ve.persist();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
+    }
+
+    @POST
+    @Path("/create-vendor/upload-bulk")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createVendorUploadBulk(
+        @MultipartForm CreateVendorUploadBulkDto create
+    ){
+    //    VmsVendorEntity vm = VmsVendorEntity.findById(create);
+       System.out.println(create);
+    //    System.out.println(create.id_dokumen);
+        VmsVendorEntity vm = VmsVendorEntity.findById(create.id_vendor);
+        for (int i = 0; i < create.files.size(); i++) {
+            
+            VmsVendorMstDokumenEntity vd = VmsVendorMstDokumenEntity.findById(create.id_dokumen.get(i));
+            // System.out.println(file.files.fileName());
+            String ext = create.files.get(i).fileName().substring(create.files.get(i).fileName().lastIndexOf("."));
+            String randomFileName = UUID.randomUUID().toString() + ext;
+            try {
+                java.nio.file.Path target = java.nio.file.Path.of(uploadDir+"/uploads", randomFileName);
+                Files.createDirectories(target.getParent());
+                Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
+                ve.vendor = vm;
+                // ve.dokumen = vd;
+                ve.nama_dokumen = vd.nama_dokumen;
+                ve.url_dokumen ="uploads/"+randomFileName;
+                ve.persist();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
+    }
+
+
+    @POST
+    @Path("/create-vendor/create-bulk")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createVendorUploadBulkNew(
+        @MultipartForm CreateVendorBulkNewDto create, @Context SecurityContext ctx
+    ){
+    //    VmsVendorEntity vm = VmsVendorEntity.findById(create);
+    //    System.out.println(create);
+        VmsVendorEntity vm = new VmsVendorEntity();
+        VmsVendorMstKualifikasi ku = VmsVendorMstKualifikasi.findById(create.id_kualifikasi_usaha);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        // System.out.println();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyyHHmmss");
+        LocalDateTime now = LocalDateTime.now();
+        String pengajuan = "VMS.Pengajuan."+now.format(formatter);
+        vm.nama_perusahaan = create.nama_perusahaan;
+        vm.user = ue;
+        vm.id_pengajuan = pengajuan;
+        vm.tanggal_pengajuan = LocalDateTime.now();
+        vm.kualifikasi_usaha = ku;
+        vm.klasifikasi_usaha = create.klasifikasi_usaha;
+        vm.alamat_perusahaan = create.alamat_perusahaan;
+        vm.kategori = create.kategori;
+        vm.spesialisasi = create.spesialis;
+        vm.nama_pic = create.nama_pic;
+        vm.email_pic = create.email_pic;
+        vm.no_hp_pic = create.no_hp_pic;
+        vm.nama_direktur = create.nama_direktur;
+        vm.email_direktur = create.email_direktur;
+        vm.no_hp_direktur = create.no_hp_direktur;
+        vm.website = create.website;
+        vm.persist();
+
+        // VmsVendorEntity vms = VmsVendorEntity.findById(create.id_vendor);
+        for (int i = 0; i < create.files.size(); i++) {
+            
+            VmsVendorMstDokumenEntity vd = VmsVendorMstDokumenEntity.findById(create.id_dokumen.get(i));
+            // System.out.println(file.files.fileName());
+            String ext = create.files.get(i).fileName().substring(create.files.get(i).fileName().lastIndexOf("."));
+            String randomFileName = UUID.randomUUID().toString() + ext;
+            try {
+                java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
+		System.out.println(target);
+                Files.createDirectories(target.getParent());
+                Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
+                ve.vendor = vm;
+                // ve.dokumen = vd;
+                ve.nama_dokumen = vd.nama_dokumen;
+                ve.url_dokumen = "uploads/"+randomFileName;
+                ve.persist();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
+    }
+    @POST
+    @Path("/update-vendor/update-bulk")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateVendorBulkNew(
+        @MultipartForm CreateVendorBulkNewDto create, @QueryParam("id") String id, @Context SecurityContext ctx
+    ){
+
+
+
+        VmsVendorEntity vm = VmsVendorEntity.findById(id);
+        VmsVendorMstKualifikasi ku = VmsVendorMstKualifikasi.findById(create.id_kualifikasi_usaha);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        System.out.println(create.nama_perusahaan);
+        vm.nama_perusahaan = create.nama_perusahaan;
+        vm.user = ue;
+        // vm.id_pengajuan = pengajuan;
+        // vm.tanggal_pengajuan = LocalDateTime.now();
+        vm.kualifikasi_usaha = ku;
+        vm.klasifikasi_usaha = create.klasifikasi_usaha;
+        vm.alamat_perusahaan = create.alamat_perusahaan;
+        vm.kategori = create.kategori;
+        vm.spesialisasi = create.spesialis;
+        vm.nama_pic = create.nama_pic;
+        vm.email_pic = create.email_pic;
+        vm.no_hp_pic = create.no_hp_pic;
+        vm.nama_direktur = create.nama_direktur;
+        vm.email_direktur = create.email_direktur;
+        vm.no_hp_direktur = create.no_hp_direktur;
+        vm.website = create.website;
+        
+        List<CompletableFuture<Void>> tasks = new ArrayList<>();
+        // VmsVendorEntity vm = VmsVendorEntity.findById(create.id_vendor);
+        System.out.println(create.files.size());
+        if(create.files.size() > 0){
+            List <VmsVendorDetailEntity> vmsDetail = VmsVendorDetailEntity.find("vendor = ?1", vm).list();
+            System.out.println(vmsDetail.size());
+            if(vmsDetail.size() > 0){
+                vmsDetail.forEach(detail -> {
+                    tasks.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            Files.deleteIfExists(java.nio.file.Path.of(uploadDir+"uploads", detail.url_dokumen));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                         
+                    }));
+                //    detail.delete();
+                });
+            }
+            long delete = VmsVendorDetailEntity.delete("vendor = ?1", vm);
+            for (int i = 0; i < create.files.size(); i++) {
+                
+                VmsVendorMstDokumenEntity vd = VmsVendorMstDokumenEntity.findById(create.id_dokumen.get(i));
+                // System.out.println(file.files.fileName());
+                String ext = create.files.get(i).fileName().substring(create.files.get(i).fileName().lastIndexOf("."));
+                String randomFileName = UUID.randomUUID().toString() + ext;
+                try {
+                    java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
+                    Files.createDirectories(target.getParent());
+                    Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                    VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
+                    ve.vendor = vm;
+                    // ve.dokumen = vd;
+                    ve.nama_dokumen = vd.nama_dokumen;
+                    ve.url_dokumen = "uploads/"+randomFileName;
+                    ve.persist();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
+        
+       
+        
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
+    }
+
+
+
+    @POST
+    @Path("/update-vendor/upload-bulk")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateVendorUploadBulk(
+        @MultipartForm CreateVendorUploadBulkDto create
+    ){
+        List<CompletableFuture<Void>> tasks = new ArrayList<>();
+        VmsVendorEntity vm = VmsVendorEntity.findById(create.id_vendor);
+        if(create.files.size() > 0){
+            List <VmsVendorDetailEntity> vmsDetail = VmsVendorDetailEntity.find("vendor = ?1", vm).list();
+            System.out.println(vmsDetail.size());
+            if(vmsDetail.size() > 0){
+                vmsDetail.forEach(detail -> {
+                    tasks.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            Files.deleteIfExists(java.nio.file.Path.of("uploads", detail.url_dokumen));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                         
+                    }));
+                //    detail.delete();
+                });
+            }
+            long delete = VmsVendorDetailEntity.delete("vendor = ?1", vm);
+            for (int i = 0; i < create.files.size(); i++) {
+                
+                VmsVendorMstDokumenEntity vd = VmsVendorMstDokumenEntity.findById(create.id_dokumen.get(i));
+                // System.out.println(file.files.fileName());
+                String ext = create.files.get(i).fileName().substring(create.files.get(i).fileName().lastIndexOf("."));
+                String randomFileName = UUID.randomUUID().toString() + ext;
+                try {
+                    java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
+                    Files.createDirectories(target.getParent());
+                    Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                    VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
+                    ve.vendor = vm;
+                    // ve.dokumen = vd;
+                    ve.nama_dokumen = vd.nama_dokumen;
+                    ve.url_dokumen = target.toString();
+                    ve.persist();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
+        
+       
+        
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
+    }
+
+
+    @POST
+    @Path("/update-vendor/upload")
+    @Transactional
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateVendorUpload(
+        @MultipartForm CreateVendorUploadDto create
+    ){
+       VmsVendorEntity vm = VmsVendorEntity.findById(create.id_vendor);
+       VmsVendorMstDokumenEntity vd = VmsVendorMstDokumenEntity.findById(create.id_dokumen);
+       List<CompletableFuture<Void>> tasks = new ArrayList<>();
+        if(create.files.size() > 0){
+            List <VmsVendorDetailEntity> vmsDetail = VmsVendorDetailEntity.find("vendor = ?1", vm).list();
+            System.out.println(vmsDetail.size());
+            if(vmsDetail.size() > 0){
+                vmsDetail.forEach(detail -> {
+                    tasks.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            Files.deleteIfExists(java.nio.file.Path.of("uploads", detail.url_dokumen));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                         
+                    }));
+                //    detail.delete();
+                });
+            }
+            long delete = VmsVendorDetailEntity.delete("vendor = ?1", vm);
+            // System.out.println(delete);
+            create.files.forEach(file -> {
+                 
+                    System.out.println(file.fileName());
+                    String ext = file.fileName().substring(file.fileName().lastIndexOf("."));
+                    String randomFileName = UUID.randomUUID().toString() + ext;
+                    
+                        java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
+                        tasks.add(CompletableFuture.runAsync(() -> {
+                            try {
+                                Files.createDirectories(target.getParent());
+                                Files.copy(file.uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                         }));
+                        VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
+                        ve.vendor = vm;
+                        // ve.dokumen = vd;
+                        ve.nama_dokumen = vd.nama_dokumen;
+                        ve.url_dokumen = target.toString();
+                        ve.persist();
+                    
+               
+            });
+        }
+        CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
+       
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
+    }
+
+    @POST
+    @Path("/create-vendor")
+    @Transactional
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createVendor(@Valid @RequestBody CreateVendorDto create, @Context SecurityContext ctx){
+        VmsVendorEntity vm = new VmsVendorEntity();
+        VmsVendorMstKualifikasi ku = VmsVendorMstKualifikasi.findById(create.id_kualifikasi_usaha);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        // System.out.println();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyyHHmmss");
+        LocalDateTime now = LocalDateTime.now();
+        String pengajuan = "VMS.Pengajuan."+now.format(formatter);
+        vm.nama_perusahaan = create.nama_perusahaan;
+        vm.user = ue;
+        vm.id_pengajuan = pengajuan;
+        vm.tanggal_pengajuan = LocalDateTime.now();
+        vm.kualifikasi_usaha = ku;
+        vm.klasifikasi_usaha = create.klasifikasi_usaha;
+        vm.alamat_perusahaan = create.alamat_perusahaan;
+        vm.kategori = create.kategori;
+        vm.spesialisasi = create.spesialis;
+        vm.nama_pic = create.nama_pic;
+        vm.email_pic = create.email_pic;
+        vm.no_hp_pic = create.no_hp_pic;
+        vm.nama_direktur = create.nama_direktur;
+        vm.email_direktur = create.email_direktur;
+        vm.no_hp_direktur = create.no_hp_direktur;
+        vm.website = create.website;
+        vm.persist();
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", vm)).build();
+    }
+
+
+    @GET
+    @Path("/pengajuan-vendor")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getPengajuan(){
+        List<VmsVendorEntity> vv = VmsVendorEntity.find("isApproval IS NULL").list();
+
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+
+    }
+
+    @GET
+    @Path("/draft-pengajuan-vendor")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getDraft(@Context SecurityContext ctx){
+        // List<VmsVendorEntity> vv = VmsVendorEntity.find("isApproval IS NULL").list();
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        System.out.println((ue.role.kode_role));
+        List<VmsVendorEntity> vv;
+        if(ue.role.kode_role.equals("99")){
+            vv = VmsVendorEntity.find("isApproval = ?1 ", 0).list();
+        }else{
+            vv = VmsVendorEntity.find("user = ?1 AND isApproval = ?2", ue, 0).list();
+        }
+
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+
+    }
+
+    @GET
+    @Path("/draft-pengajuan-vendor-id")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getDraftById(@QueryParam("id") String id, @Context SecurityContext ctx){
+        // List<VmsVendorEntity> vv = VmsVendorEntity.find("isApproval IS NULL").list();
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        System.out.println((ue.role.kode_role));
+        VmsVendorEntity vv;
+        if(ue.role.kode_role.equals("99")){
+            vv = VmsVendorEntity.find("isApproval = ?1 AND id_vendor = ?2", 0, id).firstResult();
+        }else{
+            vv = VmsVendorEntity.find("user = ?1 AND isApproval = ?2 AND id_vendor = ?3", ue, 0, id).firstResult();
+        }
+
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+
+    }
+
+    @POST
+    @Path("/update-pengajuan-vendor")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updatePengajuan(@QueryParam("id") String id,@Valid @RequestBody CreateVendorDto create, @Context SecurityContext ctx){
+        // List<VmsVendorEntity> vv = VmsVendorEntity.find("isApproval IS NULL").list();
+        VmsVendorEntity vm = VmsVendorEntity.findById(id);
+        VmsVendorMstKualifikasi ku = VmsVendorMstKualifikasi.findById(create.id_kualifikasi_usaha);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+     
+        vm.nama_perusahaan = create.nama_perusahaan;
+        vm.user = ue;
+        // vm.id_pengajuan = pengajuan;
+        // vm.tanggal_pengajuan = LocalDateTime.now();
+        vm.kualifikasi_usaha = ku;
+        vm.klasifikasi_usaha = create.klasifikasi_usaha;
+        vm.alamat_perusahaan = create.alamat_perusahaan;
+        vm.kategori = create.kategori;
+        vm.spesialisasi = create.spesialis;
+        vm.nama_pic = create.nama_pic;
+        vm.email_pic = create.email_pic;
+        vm.no_hp_pic = create.no_hp_pic;
+        vm.nama_direktur = create.nama_direktur;
+        vm.email_direktur = create.email_direktur;
+        vm.no_hp_direktur = create.no_hp_direktur;
+        vm.website = create.website;
+        // vm.persist();
+        return Response.ok().entity(ResponseHandler.ok("Update Vendor Berhasil", vm)).build();
+
+    }
+
+    @PATCH
+    @Path("/pengajuan-vendor/approval")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response updateApproval(
+        @QueryParam("id") String id, @RequestBody ApprovalPengajuanDto approval, @Context SecurityContext ctx
+    ){
+        VmsVendorEntity ve = VmsVendorEntity.find("id_vendor = ?1", id).firstResult();
+        UserEntity ue = UserEntity.find("email =?1", ctx.getUserPrincipal().getName()).firstResult();
+        // System.out.println(ve.email_pic);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyyHHmmss");
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate nowDate = LocalDate.now();
+        ve.approvedBy = ue.username;
+        ve.approvedAt = LocalDateTime.now();
+        ve.isApproval = approval.isApproval;
+        if(approval.isApproval == 1){
+            String no_skt = "SKT."+now.format(formatter);
+            ve.no_skt = no_skt;
+            ve.tanggal_awal_skt = nowDate;
+            ve.tanggal_akhir_skt = nowDate.plusYears(2);
+            httpService.SendWhatsapp(ve.no_hp_pic.trim(), "Pengajuan Pendaftaran vendor telah di approve dengan nomor "+no_skt+" dan nomor pengajuan "+ve.id_pengajuan);
+            httpService.SendWhatsapp(ve.no_hp_direktur.trim(), "Pengajuan Pendaftaran vendor telah di approve dengan nomor "+no_skt+"dan nomor pengajuan "+ve.id_pengajuan);
+            httpService.sendEmail(ve.email_pic.trim(), "Pengajuan Pendaftaran vendor telah di approve dengan nomor "+no_skt+"dan nomor pengajuan "+ve.id_pengajuan, "Approval SKT");
+            httpService.sendEmail(ve.email_direktur.trim(), "Pengajuan Pendaftaran vendor telah di approve dengan nomor "+no_skt+"dan nomor pengajuan "+ve.id_pengajuan, "Approval SKT");
+        }
+        if(approval.isApproval == 0){
+            ve.catatan = approval.catatan;
+            httpService.SendWhatsapp(ve.no_hp_direktur.trim(), "Pengajuan pendaftaran vendor anda telah di tolak dengan catatan "+approval.catatan+" ID Pengajuan "+ve.id_pengajuan);
+            httpService.sendEmail(ve.email_pic.trim(), "Pengajuan pendaftaran vendor anda telah di tolak dengan catatan "+approval.catatan+" ID Pengajuan "+ve.id_pengajuan, "Approval SKT");
+        }
+        
+        
+
+        return Response.ok().entity(ResponseHandler.ok("approval berhasil", ve)).build();
+    }
+
+    @GET
+    @Path("/draft-pengajuan-ajukan")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response updateApprovalDraft(
+        @QueryParam("id") String id, @Context SecurityContext ctx
+    ){
+        VmsVendorEntity ve = VmsVendorEntity.find("id_vendor = ?1", id).firstResult();
+        System.out.println(ve.alamat_perusahaan);
+        // System.out.println(ve.email_pic);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyyHHmmss");
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate nowDate = LocalDate.now();
+        // ve.approvedBy = ctx.getUserPrincipal().getName();
+        ve.tanggal_pengajuan = LocalDateTime.now();
+        ve.isApproval = null;
+        
+        
+
+        return Response.ok().entity(ResponseHandler.ok("approval berhasil", ve)).build();
+    }
+
+    @GET
+    @Path("/monitoring-pengajuan")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getMonitoring(
+        @Context SecurityContext ctx
+    ){
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        String query = "";
+        System.out.println((ue.role.kode_role));
+        List<VmsVendorEntity> vv;
+        if(ue.role.kode_role.equals("99")){
+            vv = VmsVendorEntity.listAll();
+        }else{
+            vv = VmsVendorEntity.find("user = ?1", ue).list();
+        }
+        
+
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+
+    }
+    @GET
+    @Path("/get-pengajuan-id")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getPengajuanById(
+        @Context SecurityContext ctx, @QueryParam("id") String id
+    ){
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        String query = "";
+        System.out.println((ue.role.kode_role));
+        VmsVendorEntity vv;
+        if(ue.role.kode_role.equals("99")){
+            vv = VmsVendorEntity.find("id_vendor = ?1", id).firstResult();
+        }else{
+            vv = VmsVendorEntity.find("user = ?1 AND id_vendor = ?2", ue, id).firstResult();
+        }
+        
+
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+
+    }
+
+    @GET
+    @Path("/list-vendor")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getVendor(
+        @Context SecurityContext ctx
+    ){
+        
+       // List<VmsVendorEntity> vv = VmsVendorEntity.find("isApproval = ?1 GROUP BY nama_perusahaan ORDER BY tanggal_pengajuan DESC", 1).list();
+	//List<VmsVendorEntity> vv = VmsVendorEntity.find("SELECT DISTINCT v.nama_perusahaan FROM VmsVendorEntity v WHERE v.isApproval = ?1 ORDER BY v.tanggal_pengajuan DESC", 1).list();
+	List<VmsVendorEntity> vv = VmsVendorEntity.find(
+    "FROM VmsVendorEntity v " +
+    "WHERE v.isApproval = ?1 AND v.tanggal_pengajuan = (" +
+    "   SELECT MAX(v2.tanggal_pengajuan) FROM VmsVendorEntity v2 " +
+    "   WHERE v2.nama_perusahaan = v.nama_perusahaan" +
+    ") " +
+    "ORDER BY v.tanggal_pengajuan DESC",
+    1
+).list();
+        
+// List<VmsVendorEntity> ve = getEntity
+        // List<VmsVendorEntity> vv = VmsVendorEntity.find(
+              //   "FROM VmsVendorEntity v " +
+              //   "WHERE v.isApproval = ?1 " +
+               //  "AND v.tanggal_pengajuan = (" +
+              //   "   SELECT MAX(v2.tanggal_pengajuan) " +
+             //    "   FROM VmsVendorEntity v2 " +
+             //    "   WHERE v2.nama_perusahaan = v.nama_perusahaan" +
+            //     ")",
+            //     1
+           //  ).list();
+        
+
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+
+    }
+
+    
+
+    @GET
+    @Path("/dokumen-file")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces("application/pdf")
+    public Response getFile(
+        @QueryParam("id") String id
+    ){
+        VmsVendorDetailEntity vme = VmsVendorDetailEntity.findById(id);
+        System.out.println(vme.url_dokumen);
+        try {
+            String baseDir = System.getProperty("user.dir");  // direktori saat jar dijalankan
+          System.out.println(Paths.get(vme.url_dokumen));
+            InputStream imageStream = Files.newInputStream(Paths.get(vme.url_dokumen));
+            return Response.ok(imageStream).build();
+        } catch (Exception e) {
+           throw new InternalError("Cant get file");
+        }
+        
+    }
+
+    
+
+    @DELETE
+    @Path("/delete-pengajuan")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response deleteUploadById(@QueryParam("id") String id){
+        
+        try {
+            // VmsVendorEntity vv = VmsVendorEntity.findById(id);
+            // VmsVendorDetailEntity.delete("vendor = ?1", vv);
+            VmsVendorEntity.deleteById(id);
+            
+            return Response.ok().entity(ResponseHandler.ok("Delete Berhasil",null)).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new InternalError(e.getMessage());
+        }
+        
+    }
+
+
+
+    @POST
+    @Path("/create-vendor-update")
+    @Transactional
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createVendorUpdate(@QueryParam("id") String id,@Valid @RequestBody CreateUpdateVendorDto create, @Context SecurityContext ctx){
+        VmsVendorUpdateEntity vm = new VmsVendorUpdateEntity();
+        VmsVendorEntity ven = VmsVendorEntity.findById(id);
+        // VmsVendorMstKualifikasi ku = VmsVendorMstKualifikasi.findById(create.id_kualifikasi_usaha);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        // System.out.println();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyyHHmmss");
+        LocalDateTime now = LocalDateTime.now();
+        String pengajuan = "VMS.update."+now.format(formatter);
+        // vm.nama_perusahaan = create.nama_perusahaan;
+        vm.user = ue;
+        vm.vendor = ven;
+        vm.id_pengajuan = pengajuan;
+        vm.tanggal_pengajuan = LocalDateTime.now();
+        // vm.kualifikasi_usaha = ku;
+        vm.klasifikasi_usaha = create.klasifikasi_usaha;
+        vm.alamat_perusahaan = create.alamat_perusahaan;
+        vm.kategori = create.kategori;
+        vm.spesialisasi = create.spesialis;
+        vm.nama_pic = create.nama_pic;
+        vm.email_pic = create.email_pic;
+        vm.no_hp_pic = create.no_hp_pic;
+        vm.nama_direktur = create.nama_direktur;
+        vm.email_direktur = create.email_direktur;
+        vm.no_hp_direktur = create.no_hp_direktur;
+        vm.website = create.website;
+        vm.alasan_update = create.catatan;
+        vm.persist();
+        return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", vm)).build();
+    }
+
+    @GET
+    @Path("/pengajuan-vendor-update")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getPengajuanUpdate(){
+        List<VmsVendorUpdateEntity> vv = VmsVendorUpdateEntity.find("isApproval IS NULL").list();
+
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+
+    }
+
+
+
+    @PATCH
+    @Path("/pengajuan-vendor-update/approval")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Transactional
+    public Response updateVendorApproval(
+        @QueryParam("id") String id, @RequestBody ApprovalPengajuanDto approval, @Context SecurityContext ctx
+    ){
+        VmsVendorUpdateEntity ve = VmsVendorUpdateEntity.find("id_vendor_update = ?1", id).firstResult();
+        UserEntity ue = UserEntity.find("email =?1", ctx.getUserPrincipal().getName()).firstResult();
+        // System.out.println(ve.nama_direktur);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyyHHmmss");
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate nowDate = LocalDate.now();
+        ve.approvedBy = ue.email;
+        ve.approvedAt = LocalDateTime.now();
+        ve.isApproval = approval.isApproval;
+        if(approval.isApproval == 1){
+           VmsVendorEntity ven = VmsVendorEntity.find("id_vendor = ?1", ve.vendor.id_vendor).firstResult();
+           ven.klasifikasi_usaha = ve.klasifikasi_usaha;
+           ven.alamat_perusahaan = ve.alamat_perusahaan;
+           ven.kategori = ve.kategori;
+           ven.spesialisasi = ve.spesialisasi;
+           ven.nama_pic = ve.nama_pic;
+           ven.email_pic = ve.email_pic;
+           ven.no_hp_pic = ve.no_hp_pic;
+           ven.nama_direktur = ve.nama_direktur;
+           ven.email_direktur = ve.email_direktur;
+           ven.no_hp_direktur = ve.no_hp_direktur;
+           ven.website = ve.website;
+        }
+        if(approval.isApproval == 0){
+            ve.catatan = approval.catatan;
+        }
+        
+        
+
+        return Response.ok().entity(ResponseHandler.ok("approval berhasil", ve)).build();
+    }
+
+    @GET
+    @Path("/monitoring-pengajuan-update-vendor")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getMonitoringUpdateVendor(
+        @Context SecurityContext ctx
+    ){
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        
+        List<VmsVendorUpdateEntity> vv;
+        if(ue.role.kode_role.equals("99")){
+            vv = VmsVendorUpdateEntity.listAll();
+        }else{
+            vv = VmsVendorUpdateEntity.find("user = ?1", ue).list();
+        }
+        
+
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+
+    }
+
+    
+    
+}
