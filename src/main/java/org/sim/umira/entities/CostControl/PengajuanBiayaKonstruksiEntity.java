@@ -37,18 +37,18 @@ public class PengajuanBiayaKonstruksiEntity extends PanacheEntityBase {
 
     public LocalDateTime tanggal_penerima;
 
-     @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proyek")
     @JsonBackReference
     public ProyekEntity proyek;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_rapa")
     // @JsonBackReference
     public RapaEntity rapa;
 
 
-    @OneToMany(mappedBy = "pengajuan_bk", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "pengajuan_bk", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     public List<PengajuanBiayaKonstruksiPersetujuanEntity> pengajuan_persetujuan_bk;
 

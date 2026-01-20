@@ -88,7 +88,7 @@ public class PengajuanBiayaKonstruksiRes {
                 persetujuan.pengajuan_bk = pengajuanBk;
                 persetujuan.nama_persetujuan = ue.username;
                 persetujuan.id_user = ue.id_user;
-                persetujuan.status_approver = "Approve";
+                persetujuan.status_approver = "Pengajuan";
                 persetujuan.urutan = 0;
                 persetujuan.tanggal_persetujuan = LocalDateTime.now();
                 persetujuan.persist();
