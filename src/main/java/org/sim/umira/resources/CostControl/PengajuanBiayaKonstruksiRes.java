@@ -196,14 +196,11 @@ public class PengajuanBiayaKonstruksiRes {
         if(status_approver == null || status_approver == ""){
             throw new BadRequestException("status_approver harus Di Isi");
         }
-        if(status_approver != "Approve" || status_approver != "Reject"){
-            throw new BadRequestException("status_approver harus Approve atau Reject");
-        }
-
+        
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             PengajuanBiayaKonstruksiEntity pengajuanBk = PengajuanBiayaKonstruksiEntity.findById(id_pengajuan_bk);
-            PengajuanBiayaKonstruksiPersetujuanEntity getPersetujuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("pengajuan_bk = ?1 AND id_user = ?2 AND tanggal_pengajuan IS NULL ORDER BY urutan ASC", pengajuanBk, ue.id_user).firstResult();
+            PengajuanBiayaKonstruksiPersetujuanEntity getPersetujuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("pengajuan_bk = ?1 AND id_user = ?2 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC", pengajuanBk, ue.id_user).firstResult();
             getPersetujuan.status_approver = status_approver;
             getPersetujuan.tanggal_persetujuan = LocalDateTime.now();
             getPersetujuan.catatan_persetujuan = (catatan != "" || catatan != null)?catatan:"";
@@ -228,6 +225,7 @@ public class PengajuanBiayaKonstruksiRes {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
         }
+
     }
 
 }
