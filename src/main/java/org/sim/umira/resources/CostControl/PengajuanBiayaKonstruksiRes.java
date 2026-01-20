@@ -192,37 +192,45 @@ public class PengajuanBiayaKonstruksiRes {
     public Response approvePengajuanBk(
         @QueryParam("id_pengajuan_bk") String id_pengajuan_bk, @Context SecurityContext ctx, @QueryParam("catatan") String catatan, @QueryParam("status_approver") String status_approver
     ){
+
         if(id_pengajuan_bk == null || id_pengajuan_bk == ""){
             throw new BadRequestException("id_pengajuan_bk harus Di Isi");
         }   
         if(status_approver == null || status_approver == ""){
             throw new BadRequestException("status_approver harus Di Isi");
         }
-        
+        System.out.println(id_pengajuan_bk);
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             PengajuanBiayaKonstruksiEntity pengajuanBk = PengajuanBiayaKonstruksiEntity.findById(id_pengajuan_bk);
             PengajuanBiayaKonstruksiPersetujuanEntity getPersetujuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("pengajuan_bk = ?1 AND id_user = ?2 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC", pengajuanBk, ue.id_user).firstResult();
-            getPersetujuan.status_approver = status_approver;
-            getPersetujuan.tanggal_persetujuan = LocalDateTime.now();
-            getPersetujuan.catatan_persetujuan = (catatan != "" || catatan != null)?catatan:"";
-            
-            if(status_approver == "Approve"){
-                List<PengajuanBiayaKonstruksiPersetujuanEntity> pengajuanList = PengajuanBiayaKonstruksiPersetujuanEntity.find("tanggal_pengajuan IS NULL AND pengajuan_bk = ?1", pengajuanBk).list();
-                if(pengajuanList.size() == 0){
-                    BiayaKontruksiEntity bk = new BiayaKontruksiEntity();
-                    bk.nama_penerima = pengajuanBk.nama_penerima;
-                    bk.nama_vendor = pengajuanBk.nama_vendor;
-                    bk.harga_total = pengajuanBk.harga_total;
-                    bk.proyek = pengajuanBk.proyek;
-                    bk.rapa = pengajuanBk.rapa;
-                    bk.tanggal_penerima = pengajuanBk.tanggal_penerima;
-                    bk.reference_id_pengajuan = pengajuanBk.id_pengajuan_bk;
-                    bk.persist();
+            if(getPersetujuan != null){
+                getPersetujuan.status_approver = status_approver;
+                getPersetujuan.tanggal_persetujuan = LocalDateTime.now();
+                getPersetujuan.catatan_persetujuan = (catatan != "" || catatan != null)?catatan:"";
+                
+                if(status_approver.equals("Approve")){
+                    // System.out.println(status_approver);
+                    List<PengajuanBiayaKonstruksiPersetujuanEntity> pengajuanList = PengajuanBiayaKonstruksiPersetujuanEntity.find("tanggal_persetujuan IS NULL AND pengajuan_bk = ?1", pengajuanBk).list();
+                    if(pengajuanList.size() == 0){
+                        BiayaKontruksiEntity bk = new BiayaKontruksiEntity();
+                        bk.nama_penerima = pengajuanBk.nama_penerima;
+                        bk.nama_vendor = pengajuanBk.nama_vendor;
+                        bk.harga_total = pengajuanBk.harga_total;
+                        bk.proyek = pengajuanBk.proyek;
+                        bk.rapa = pengajuanBk.rapa;
+                        bk.volume_bk = pengajuanBk.volume_bk;
+                        bk.tanggal_penerima = pengajuanBk.tanggal_penerima;
+                        bk.reference_id_pengajuan = pengajuanBk.id_pengajuan_bk;
+                        bk.persist();
+                    }
                 }
+            
+                return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
+            }else{
+                return Response.ok().entity(ResponseHandler.error("Data Persetujuan tidak ada")).build();
             }
             
-            return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception

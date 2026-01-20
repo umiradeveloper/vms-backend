@@ -18,6 +18,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 @Entity
@@ -48,6 +49,7 @@ public class PengajuanBiayaKonstruksiEntity extends PanacheEntityBase {
     public RapaEntity rapa;
 
 
+    @OrderBy("urutan ASC")
     @OneToMany(mappedBy = "pengajuan_bk", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     public List<PengajuanBiayaKonstruksiPersetujuanEntity> pengajuan_persetujuan_bk;
