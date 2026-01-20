@@ -162,11 +162,11 @@ public class PengajuanBiayaKonstruksiRes {
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanBiayaKonstruksiEntity> listPengajuan;
             if(ue.role.id_role == "99"){
-                listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r").list(); 
+                listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r JOIN p.proyek pr").list(); 
             }else{
                 listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
                 SELECT DISTINCT p
-                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r
+                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r JOIN p.proyek pr
                 WHERE EXISTS (
                     SELECT 1
                     FROM PengajuanBiayaKonstruksiPersetujuanEntity ps

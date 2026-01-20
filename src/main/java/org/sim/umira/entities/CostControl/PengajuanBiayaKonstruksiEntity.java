@@ -40,7 +40,6 @@ public class PengajuanBiayaKonstruksiEntity extends PanacheEntityBase {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proyek")
-    @JsonBackReference
     public ProyekEntity proyek;
 
     @ManyToOne(fetch = FetchType.LAZY)
