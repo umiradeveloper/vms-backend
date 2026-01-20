@@ -117,7 +117,7 @@ public class PengajuanBiayaKonstruksiRes {
     }
 
     @GET
-    @Path("/get-approve-pengajuan_bk")
+    @Path("/get-approve-pengajuan-bk")
     public Response getApprovePengajuanBk(
         @Context SecurityContext ctx
     ){
