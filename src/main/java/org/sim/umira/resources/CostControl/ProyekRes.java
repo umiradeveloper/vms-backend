@@ -162,9 +162,16 @@ public class ProyekRes {
                 }
                 
             }
+             BigInteger total_scurve = BigInteger.ZERO;
+            List<ScurveEntity> scurve = ScurveEntity.find("proyek = ?1", proyek).list();
+            for(ScurveEntity se: scurve){
+                if(se.nominal_scurve != null){
+                    total_scurve = total_scurve.add(se.nominal_scurve);
+                }
+            }
             System.out.println(kerja_tambah_total);
             // ResponseProyekDto res = new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proyek);
-            ResponseProyekDto<ProyekEntity> dto = new ResponseProyekDto<>(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proyek);
+            ResponseProyekDto<ProyekEntity> dto = new ResponseProyekDto<>(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total,  total_scurve,proyek);
             // System.out.println(total_bk);
             
             return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", dto)).build();
