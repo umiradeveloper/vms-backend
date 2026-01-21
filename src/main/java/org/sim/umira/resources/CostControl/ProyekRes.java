@@ -15,6 +15,7 @@ import org.sim.umira.entities.CostControl.MosEntity;
 import org.sim.umira.entities.CostControl.MosNewEntity;
 import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
+import org.sim.umira.entities.CostControl.ScurveEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
@@ -103,7 +104,12 @@ public class ProyekRes {
                 }
                 
             }
-            responseProyek.add(new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, proE));
+            BigInteger total_scurve = BigInteger.ZERO;
+            List<ScurveEntity> scurve = ScurveEntity.find("proyek = ?1", proE).list();
+            for(ScurveEntity se: scurve){
+                total_scurve = total_scurve.add(se.nominal_scurve);
+            }
+            responseProyek.add(new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, total_scurve, proE));
         }
         return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", responseProyek)).build();
     }
