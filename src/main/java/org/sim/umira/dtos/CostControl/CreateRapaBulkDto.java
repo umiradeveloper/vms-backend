@@ -15,37 +15,37 @@ public class CreateRapaBulkDto {
 
     @NotEmpty(message = "kategori must be required")
     @Size(min = 1, message = "kategori must contain at least one value")
-    public List<String> kategori;
+    public List<@NotBlank(message = "kategori must be required") String> kategori;
 
     @NotEmpty(message = "kode_rap must be required")
     @Size(min = 1, message = "kode_rap must contain at least one value")
-    public List<String> kode_rap;
+    public List<@NotBlank(message = "kode_rap must be required") String> kode_rap;
 
    @NotEmpty(message = "group must be required")
    @Size(min = 1, message = "group must contain at least one value")
-    public List<String> group;
+    public List<@NotBlank(message = "group must be required") String> group;
 
     @NotEmpty(message = "item_pekerjaan must be required")
     @Size(min = 1, message = "item_pekerjaan must contain at least one value")
-    public List<String> item_pekerjaan;
+    public List<@NotBlank(message = "item_pekerjaan must be required") String> item_pekerjaan;
 
     @NotEmpty(message = "spesifikasi must be required")
     @Size(min = 1, message = "spesifikasi must contain at least one value")
-    public List<String> spesifikasi;
+    public List<@NotBlank(message = "spesifikasi must be required") String> spesifikasi;
 
     @NotEmpty(message = "satuan must be required")
     @Size(min = 1, message = "satuan must contain at least one value")
-    public List<String> satuan;
+    public List<@NotBlank(message = "Satuan must be required") String> satuan;
 
     @NotEmpty(message = "volume must be required")
     @Size(min = 1, message = "volume must contain at least one value")
-    public List<BigDecimal> volume;
+    public List<@NotNull(message = "volume must be required") BigDecimal> volume;
 
     @NotEmpty(message = "harga_satuan must be required")
     @Size(min = 1, message = "harga_satuan must contain at least one value")
-    public List<Integer> harga_satuan;
+    public List<@NotNull(message = "harga_satuan must be required") Integer> harga_satuan;
 
     @NotEmpty(message = "harga_total must be required")
     @Size(min = 1, message = "harga_total must contain at least one value")
-    public List<BigDecimal> harga_total;
+    public List<@NotNull(message = "harga_total must be required") BigDecimal> harga_total;
 }
