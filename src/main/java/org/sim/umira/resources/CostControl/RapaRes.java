@@ -71,15 +71,15 @@ public class RapaRes {
     public Response createRapaBulk(
         @Valid @RequestBody CreateRapaBulkDto create
     ){
-        // for (int i = 0; i < create.kategori.size(); i++) {
-        //         final int index = i;
-        //         SatuanEntity satuan = SatuanEntity.find("nama_satuan = ?1", create.satuan.get(index)).firstResult();
-        //         KategoriEntity kategori = KategoriEntity.find("nama_kategori = ?1", create.kategori.get(index)).firstResult();
+        for (int i = 0; i < create.kategori.size(); i++) {
+                final int index = i;
+                SatuanEntity satuan = SatuanEntity.find("kode_satuan = ?1", create.satuan.get(index)).firstResult();
+                KategoriEntity kategori = KategoriEntity.find("kode_kategori = ?1", create.kategori.get(index)).firstResult();
                 
-        //         if(satuan == null && kategori == null){
-        //             throw new BadRequestException("Satuan dan kategori di baris "+index+ " Kategori "+create.kategori.get(index)+" atau Satuan "+create.satuan.get(index)+" tidak terdefinisi");
-        //         }
-        // }
+                if(satuan == null && kategori == null){
+                    throw new BadRequestException("Satuan dan kategori di baris "+index+ " Kategori "+create.kategori.get(index)+" atau Satuan "+create.satuan.get(index)+" tidak terdefinisi");
+                }
+        }
 
         try {
             ProyekEntity proyek = ProyekEntity.find("kode_proyek = ?1", create.kode_proyek).firstResult();
