@@ -77,7 +77,7 @@ public class RapaRes {
                 KategoriEntity kategori = KategoriEntity.find("kode_kategori = ?1", create.kategori.get(index)).firstResult();
                 
                 if(satuan == null && kategori == null){
-                    throw new BadRequestException("Satuan dan kategori di baris "+index+ " Kategori "+create.kategori.get(index)+" atau Satuan "+create.satuan.get(index)+" tidak terdefinisi");
+                    throw new BadRequestException("Satuan dan kategori di baris "+index+ " kode kategori "+create.kategori.get(index)+" atau kode satuan "+create.satuan.get(index)+" tidak terdefinisi");
                 }
         }
 
