@@ -1,6 +1,7 @@
 package org.sim.umira.entities.CostControl;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -29,7 +30,7 @@ public class PendapatanUsahaEntity extends PanacheEntityBase {
 
     public LocalDate tanggal_akhir;
 
-    public Integer nominal_pu;
+    public BigInteger nominal_pu;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proyek")

@@ -41,7 +41,7 @@ public class ProyekRes {
         @Valid @RequestBody CreateProyekDto create
     ){
         try {
-            System.out.println(create.tanggal_awal_kontrak);
+            // System.out.println(create.tanggal_awal_kontrak);
             ProyekEntity proyek = new ProyekEntity();
             proyek.nama_proyek = create.nama_proyek;
             proyek.kode_proyek = create.kode_proyek;
@@ -75,11 +75,14 @@ public class ProyekRes {
         ArrayList<ResponseProyekDto> responseProyek = new ArrayList<>();
         for(ProyekEntity proE: proyek){
             List<PendapatanUsahaEntity> pu = PendapatanUsahaEntity.find("proyek = ?1", proE).list();
+            
             Integer total_pu = 0;
             for (PendapatanUsahaEntity pendapatanUsahaEntity : pu) {
                 total_pu += pendapatanUsahaEntity.nominal_pu;
             }
+
             BigDecimal total_bk = BigDecimal.ZERO;
+            
             List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proE).list();
             for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
                 total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
