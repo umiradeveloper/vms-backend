@@ -76,9 +76,9 @@ public class ProyekRes {
         for(ProyekEntity proE: proyek){
             List<PendapatanUsahaEntity> pu = PendapatanUsahaEntity.find("proyek = ?1", proE).list();
             
-            Integer total_pu = 0;
+            BigInteger total_pu = BigInteger.ZERO;
             for (PendapatanUsahaEntity pendapatanUsahaEntity : pu) {
-                total_pu += pendapatanUsahaEntity.nominal_pu;
+                total_pu = total_pu.add(pendapatanUsahaEntity.nominal_pu);
             }
 
             BigDecimal total_bk = BigDecimal.ZERO;
@@ -135,9 +135,9 @@ public class ProyekRes {
              ProyekEntity proyek = ProyekEntity.findById(id);
 
             List<PendapatanUsahaEntity> pu = PendapatanUsahaEntity.find("proyek = ?1", proyek).list();
-            Integer total_pu = 0;
+            BigInteger total_pu = BigInteger.ZERO;
             for (PendapatanUsahaEntity pendapatanUsahaEntity : pu) {
-                total_pu += pendapatanUsahaEntity.nominal_pu;
+                total_pu = total_pu.add(pendapatanUsahaEntity.nominal_pu);
             }
             BigDecimal total_bk = BigDecimal.ZERO;
             List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proyek).list();
