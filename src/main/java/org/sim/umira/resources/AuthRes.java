@@ -67,7 +67,7 @@ public class AuthRes {
             return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("Password not match")).build();
         }
         
-        String token = js.generateToken(user.email, List.of(user.role.nama_role));
+        String token = js.generateToken(user.email, List.of(user.role.nama_role), null);
         // String id_role = user.role.id_role;
         List<MenuAccessEntity> mae = MenuAccessEntity.find("role = ?1 order by menu.code_menu asc", user.role).list();
 
@@ -134,7 +134,7 @@ public class AuthRes {
             return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("Password not match")).build();
         }
         
-        String token = js.generateToken(user.email, List.of(user.role.nama_role));
+        String token = js.generateToken(user.email, List.of(user.role.nama_role), 24 * 60 * 60 * 1000L);
         // String id_role = user.role.id_role;
         List<MenuAccessMobileEntity> mae = MenuAccessMobileEntity.find("role = ?1 order by menu.kode_menu asc", user.role).list();
 

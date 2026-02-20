@@ -227,4 +227,66 @@ public class ProyekRes {
         }
         
     }
+    // Mobile endpoint
+
+    @GET
+    @Path("/M/get-proyek-dashboard")
+    public Response getMProyekDashboard(
+        @QueryParam("search") String search
+    ){
+        List<ProyekEntity> proyek;
+
+        if(search != null && !search.isEmpty()){
+            proyek = ProyekEntity.find("nama_proyek like ?1 OR kode_proyek like ?1", "%"+search+"%").list();
+        }else{
+            proyek = ProyekEntity.listAll();
+        }
+
+        ArrayList<ResponseProyekDto> responseProyek = new ArrayList<>();
+        for(ProyekEntity proE: proyek){
+            List<PendapatanUsahaEntity> pu = PendapatanUsahaEntity.find("proyek = ?1", proE).list();
+            
+            BigInteger total_pu = BigInteger.ZERO;
+            for (PendapatanUsahaEntity pendapatanUsahaEntity : pu) {
+                total_pu = total_pu.add(pendapatanUsahaEntity.nominal_pu);
+            }
+
+            BigDecimal total_bk = BigDecimal.ZERO;
+            
+            List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("proyek = ?1", proE).list();
+            for (BiayaKontruksiEntity biayaKontruksiEntity : bk) {
+                total_bk = total_bk.add(biayaKontruksiEntity.harga_total);
+            }
+            List<MosNewEntity> mos = MosNewEntity.find("proyek = ?1", Sort.by("week").descending(), proE).list();
+            BigInteger currMos = BigInteger.ZERO;
+            if(mos.size() > 0){
+                currMos = mos.get(0).nominal_mos;
+            }
+            List<AdendumProyekEntity> adendumProyek = AdendumProyekEntity.find("proyek = ?1", proE).list();
+            BigInteger kerja_tambah_total = BigInteger.ZERO;
+            for (AdendumProyekEntity adendumPro : adendumProyek){
+                if(adendumPro.kerja_tambah != null){
+                    kerja_tambah_total = kerja_tambah_total.add(adendumPro.kerja_tambah);
+                }
+                
+            }
+            BigInteger kerja_kurang_total = BigInteger.ZERO;
+            for (AdendumProyekEntity adendumPro : adendumProyek){
+                if(adendumPro.kerja_kurang != null){
+                    kerja_kurang_total = kerja_kurang_total.add(adendumPro.kerja_kurang);
+                }
+                
+            }
+            BigInteger total_scurve = BigInteger.ZERO;
+            List<ScurveEntity> scurve = ScurveEntity.find("proyek = ?1", proE).list();
+            for(ScurveEntity se: scurve){
+                if(se.nominal_scurve != null){
+                    total_scurve = total_scurve.add(se.nominal_scurve);
+                }
+            }
+            responseProyek.add(new ResponseProyekDto(total_bk, total_pu, currMos, kerja_tambah_total, kerja_kurang_total, total_scurve, proE));
+        }
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Proyek Berhasil", responseProyek)).build();
+    }
+
 }

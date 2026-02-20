@@ -15,13 +15,16 @@ public class JwtService {
      
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-    public String generateToken(String username, List<String> role) {
+    public String generateToken(String username, List<String> role, Long expirationMillis) {
+         long exp = expirationMillis != null
+            ? expirationMillis
+            : 3600000L; 
         return Jwts.builder()
                 .setSubject(username)
                 .claim("role", role)
                 .setIssuer("quarkus-app")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600000)) // 1 jam
+                .setExpiration(new Date(System.currentTimeMillis() + exp)) // 1 jam
                 .signWith(key)
                 .compact();
     }
