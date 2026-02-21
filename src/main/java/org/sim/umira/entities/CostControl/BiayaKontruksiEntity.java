@@ -44,4 +44,10 @@ public class BiayaKontruksiEntity extends PanacheEntityBase {
     @JoinColumn(name = "id_rapa")
     @JsonBackReference
     public RapaEntity rapa;
+
+
+    public LocalDateTime created_at;
+
+    public String created_by;
+    
 }
