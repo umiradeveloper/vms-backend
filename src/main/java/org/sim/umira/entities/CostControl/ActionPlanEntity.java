@@ -2,6 +2,7 @@ package org.sim.umira.entities.CostControl;
 
 import java.math.BigInteger;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
@@ -36,6 +37,10 @@ public class ActionPlanEntity extends PanacheEntityBase {
     public String url_dokumen;
 
     public BigInteger nominal_action_plan;
+
+    public LocalDateTime created_at;
+
+    public String created_by;
 
 
 }

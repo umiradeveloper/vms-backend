@@ -3,10 +3,12 @@ package org.sim.umira.resources.CostControl;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreateScurveDto;
+import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.ScurveEntity;
@@ -23,8 +25,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/CostControl/Scurve")
 @Secured
@@ -36,9 +40,10 @@ public class ScurveRes {
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createScurve(
-        @Valid @MultipartForm CreateScurveDto create
+        @Valid @MultipartForm CreateScurveDto create, @Context SecurityContext ctx
     ){
         try {
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             ScurveEntity scurve = new ScurveEntity();
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
             scurve.week = create.week;
@@ -46,6 +51,8 @@ public class ScurveRes {
             scurve.tanggal_awal = create.tanggal_awal;
             scurve.tanggal_akhir = create.tanggal_akhir;
             scurve.proyek = proyek;
+            scurve.created_at = LocalDateTime.now();
+            scurve.created_by = ue.id_user;
             String ext = create.file_dokumen.fileName().substring(create.file_dokumen.fileName().lastIndexOf("."));
             String fileName = java.util.UUID.randomUUID() + ext;
             if (!Files.exists(UPLOAD_DIR)) {

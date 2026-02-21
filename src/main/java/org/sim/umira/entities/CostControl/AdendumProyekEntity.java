@@ -1,6 +1,7 @@
 package org.sim.umira.entities.CostControl;
 
 import java.math.BigInteger;
+import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
@@ -33,5 +34,9 @@ public class AdendumProyekEntity extends PanacheEntityBase {
     public BigInteger kerja_tambah;
 
     public BigInteger kerja_kurang;
+
+    public LocalDateTime created_at;
+
+    public String created_by;
 
 }

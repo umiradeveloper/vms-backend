@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.sql.PreparedStatement;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -14,6 +15,7 @@ import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreateAdendumProyekDto;
 import org.sim.umira.dtos.CostControl.CreateAdendumProyekNewDto;
 import org.sim.umira.dtos.CostControl.CreateKategoriDto;
+import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.AdendumProyekEntity;
 import org.sim.umira.entities.CostControl.KategoriEntity;
 import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
@@ -33,8 +35,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 
 @Path("/CostControl/AdendumProyek")
@@ -51,10 +55,11 @@ public class AdendumProyekRes {
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createAdendumBulk(
-        @Valid @MultipartForm CreateAdendumProyekDto create
+        @Valid @MultipartForm CreateAdendumProyekDto create, @Context SecurityContext ctx
     ){
         try {
             ProyekEntity proyek = ProyekEntity.find("id_proyek = ?1", create.id_proyek).firstResult();
+            
             Session session = em.unwrap(Session.class);
             int batch = create.dokumen_adendum.size();
             Files.createDirectories(UPLOAD_DIR);    
@@ -162,10 +167,12 @@ public class AdendumProyekRes {
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createAdendum(
-        @Valid @MultipartForm CreateAdendumProyekNewDto create
+        @Valid @MultipartForm CreateAdendumProyekNewDto create,
+        @Context SecurityContext ctx
     ){
         try {
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             AdendumProyekEntity cekAdendum = AdendumProyekEntity.find("proyek = ?1 and nomor_adendum = ?2", proyek, create.nomor_adendum).firstResult();
             if(cekAdendum != null){
                 throw new BadRequestException("nomor adendum exist");
@@ -175,6 +182,8 @@ public class AdendumProyekRes {
             adendum.kerja_tambah = create.kerja_tambah;
             adendum.kerja_kurang = create.kerja_kurang;
             adendum.nomor_adendum = create.nomor_adendum;
+            adendum.created_by = ue.id_user;
+            adendum.created_at = LocalDateTime.now();
             if (!Files.exists(UPLOAD_DIR)) {
                 Files.createDirectories(UPLOAD_DIR);
             }

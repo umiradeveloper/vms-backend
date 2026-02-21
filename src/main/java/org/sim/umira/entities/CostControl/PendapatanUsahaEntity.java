@@ -40,6 +40,11 @@ public class PendapatanUsahaEntity extends PanacheEntityBase {
 
     public String dokumen_pu;
 
+    public LocalDateTime created_at;
+
+
+    public String created_by;
+
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "id_rapa")
     // @JsonBackReference
