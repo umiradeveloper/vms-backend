@@ -1,4 +1,4 @@
-package org.sim.umira.dtos.CostControl;
+package org.sim.umira.dtos;
 
 import java.time.LocalDate;
 import org.jboss.resteasy.reactive.PartType;
