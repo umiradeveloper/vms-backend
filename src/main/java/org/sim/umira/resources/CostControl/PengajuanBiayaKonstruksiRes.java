@@ -246,5 +246,79 @@ public class PengajuanBiayaKonstruksiRes {
         }
 
     }
+    // Mobile Endpoint
+
+    @GET
+    @Path("/M/get-approve-pengajuan-bk")
+    public Response getMApprovePengajuanBk(
+        @Context SecurityContext ctx, @QueryParam("search") String search
+    ){
+        try {
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            System.out.println(search);
+            // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
+            List<PengajuanBiayaKonstruksiEntity> listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
+                SELECT DISTINCT p
+                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM PengajuanBiayaKonstruksiPersetujuanEntity ps
+                    WHERE ps.pengajuan_bk = p
+                    AND ps.id_user = ?1
+                    AND ps.tanggal_persetujuan IS NULL
+                    AND ps.urutan = (
+                        SELECT MIN(ps2.urutan)
+                        FROM PengajuanBiayaKonstruksiPersetujuanEntity ps2
+                        WHERE ps2.pengajuan_bk = p
+                            AND ps2.tanggal_persetujuan IS NULL
+                    )
+                )
+                AND (?2 IS NULL OR p.nama_vendor LIKE ?2 OR r.item_pekerjaan LIKE ?2 OR p.nama_penerima LIKE ?2)
+            """, ue.id_user, search == null ? null : "%" + search + "%").list();   
+            // List<PengajuanBiayaKonstruksiEntity> listPengajuan = PengajuanBiayaKonstruksiEntity.listAll();
+            
+            return Response.ok().entity(ResponseHandler.ok("Data Tersedia", listPengajuan)).build();
+
+            
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @GET
+    @Path("/M/get-monitoring-pengajuan-bk")
+    public Response getMMonitoringPengajuanBk(
+        @Context SecurityContext ctx, @QueryParam("search") String search
+    ){
+        try {
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
+            List<PengajuanBiayaKonstruksiEntity> listPengajuan;
+            if(ue.role.id_role == "99"){
+                listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r JOIN p.proyek pr").list(); 
+            }else{
+                listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
+                SELECT DISTINCT p
+                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r JOIN p.proyek pr
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM PengajuanBiayaKonstruksiPersetujuanEntity ps
+                    WHERE ps.pengajuan_bk = p
+                    AND ps.id_user = ?1
+                )
+                AND (?2 IS NULL OR p.nama_vendor LIKE ?2 OR r.item_pekerjaan LIKE ?2 OR p.nama_penerima LIKE ?2)
+            """, ue.id_user, search == null ? null : "%" + search + "%").list();  
+            }
+              
+            
+            return Response.ok().entity(ResponseHandler.ok("Data Tersedia", listPengajuan)).build();
+
+            
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
 
 }

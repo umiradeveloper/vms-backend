@@ -3,10 +3,12 @@ package org.sim.umira.resources.CostControl;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreateActionPlanDto;
+import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.ActionPlanEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.ScurveEntity;
@@ -23,8 +25,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/CostControl/ActionPlan")
 @Secured
@@ -37,10 +41,11 @@ public class ActionPlanRes {
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createActionPlan(
-        @Valid @MultipartForm CreateActionPlanDto create
+        @Valid @MultipartForm CreateActionPlanDto create, @Context SecurityContext ctx
     ){
         try {
             ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             ActionPlanEntity cekActionPlan = ActionPlanEntity.find("proyek = ?1 and week = ?2", proyek, create.week).firstResult();
             if(cekActionPlan != null){
                 throw new BadRequestException("Action Plan Week "+create.week+" exist");
@@ -51,6 +56,8 @@ public class ActionPlanRes {
             ap.tanggal_awal = create.tanggal_awal;
             ap.week = create.week;
             ap.proyek = proyek;
+            ap.created_by = ue.id_user;
+            ap.created_at = LocalDateTime.now();
             String ext = create.file_dokumen.fileName().substring(create.file_dokumen.fileName().lastIndexOf("."));
             String fileName = java.util.UUID.randomUUID() + ext;
             if (!Files.exists(UPLOAD_DIR)) {

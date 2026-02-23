@@ -1,6 +1,7 @@
 package org.sim.umira.resources.CostControl;
 
 import java.sql.PreparedStatement;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -8,6 +9,7 @@ import org.hibernate.Session;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
 import org.sim.umira.dtos.CostControl.CreateRapaBulkDto;
 import org.sim.umira.dtos.CostControl.CreateRapaDto;
+import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.KategoriEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.RapaEntity;
@@ -28,7 +30,9 @@ import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/CostControl/Rapa")
 @Secured
@@ -69,20 +73,22 @@ public class RapaRes {
     @Path("/create-rapa-bulk")
     @Transactional
     public Response createRapaBulk(
-        @Valid @RequestBody CreateRapaBulkDto create
+        @Valid @RequestBody CreateRapaBulkDto create, @Context SecurityContext ctx
     ){
-        // for (int i = 0; i < create.kategori.size(); i++) {
-        //         final int index = i;
-        //         SatuanEntity satuan = SatuanEntity.find("nama_satuan = ?1", create.satuan.get(index)).firstResult();
-        //         KategoriEntity kategori = KategoriEntity.find("nama_kategori = ?1", create.kategori.get(index)).firstResult();
+
+        for (int i = 0; i < create.kategori.size(); i++) {
+                final int index = i;
+                SatuanEntity satuan = SatuanEntity.find("kode_satuan = ?1", create.satuan.get(index)).firstResult();
+                KategoriEntity kategori = KategoriEntity.find("kode_kategori = ?1", create.kategori.get(index)).firstResult();
                 
-        //         if(satuan == null && kategori == null){
-        //             throw new BadRequestException("Satuan dan kategori di baris "+index+ " Kategori "+create.kategori.get(index)+" atau Satuan "+create.satuan.get(index)+" tidak terdefinisi");
-        //         }
-        // }
+                if(satuan == null && kategori == null){
+                    throw new BadRequestException("Satuan dan kategori di baris "+index+ " kode kategori "+create.kategori.get(index)+" atau kode satuan "+create.satuan.get(index)+" tidak terdefinisi");
+                }
+        }
 
         try {
             ProyekEntity proyek = ProyekEntity.find("kode_proyek = ?1", create.kode_proyek).firstResult();
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             Session session = em.unwrap(Session.class);
             int batch = create.kategori.size();
             // System.out.println(create);
@@ -93,7 +99,7 @@ public class RapaRes {
                 
                     session.doWork(connection -> {
                         try (PreparedStatement ps = connection.prepareStatement(
-                            "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                            "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
                         )) {
                             ps.setString(1, uuid);
                             ps.setString(2, proyek.id_proyek);
@@ -106,6 +112,8 @@ public class RapaRes {
                             ps.setBigDecimal(9, create.volume.get(idx));
                             ps.setInt(10, create.harga_satuan.get(idx));
                             ps.setBigDecimal(11, create.harga_total.get(idx));
+                            ps.setObject(12, LocalDateTime.now());
+                            ps.setString(13, ue.id_user);
                             // ps.setBigDecimal(2, p.nilai);
                             // ps.setObject(3, p.tanggal);
                             ps.addBatch();

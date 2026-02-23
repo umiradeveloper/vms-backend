@@ -1,11 +1,13 @@
 package org.sim.umira.resources.CostControl;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.CostControl.CreateBiayaBkDto;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
+import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.BiayaKontruksiEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.RapaEntity;
@@ -21,7 +23,9 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/CostControl/BiayaKonstruksi")
 @Secured
@@ -30,7 +34,7 @@ public class BiayaKonstruksiRes {
     @Path("/create-bk")
     @Transactional
      public Response createBk(
-        @Valid @RequestBody CreateBiayaBkDto create
+        @Valid @RequestBody CreateBiayaBkDto create, @Context SecurityContext ctx
     ){
         
             RapaEntity rapa = RapaEntity.findById(create.id_rapa);
@@ -38,6 +42,7 @@ public class BiayaKonstruksiRes {
             List <BiayaKontruksiEntity> listBk = BiayaKontruksiEntity.find("rapa = ?1", rapa).list();
             BigDecimal totalBk = create.harga_total;
             BigDecimal volumeBk = create.volume_bk;
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
 
             for (BiayaKontruksiEntity biayaKontruksiEntity : listBk) {
                 totalBk = totalBk.add(biayaKontruksiEntity.harga_total);
@@ -59,6 +64,8 @@ public class BiayaKonstruksiRes {
             bk.nama_penerima = create.nama_penerima;
             bk.harga_total = create.harga_total;
             bk.tanggal_penerima = create.tanggal_penerima;
+            bk.created_by = ue.id_user;
+            bk.created_at = LocalDateTime.now();
             bk.persist();
             return Response.ok().entity(ResponseHandler.ok("Create Bk Berhasil", null)).build();
         } catch (Exception e) {

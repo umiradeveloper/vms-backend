@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreatePuDto;
 import org.sim.umira.dtos.CostControl.ResponseRapaPendapatanUsahaDto;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
+import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.BiayaKontruksiEntity;
 import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
@@ -31,8 +33,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/CostControl/PendapatanUsaha")
 @Secured
@@ -45,11 +49,12 @@ public class PendapatanUsahaRes {
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createPu(
-            @Valid @MultipartForm CreatePuDto create) {
+            @Valid @MultipartForm CreatePuDto create, @Context SecurityContext ctx) {
 
         // System.out.println(create.dokumen_upload.fileName());
 
         ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         PendapatanUsahaEntity puCek = PendapatanUsahaEntity.find("proyek = ?1 and week_pu = ?2", proyek, create.week_pu)
                 .firstResult();
         if (puCek != null) {
@@ -73,6 +78,8 @@ public class PendapatanUsahaRes {
             pu.tanggal_akhir = create.tanggal_akhir;
             pu.nominal_pu = create.nominal_pu;
             pu.dokumen_pu = target.toString();
+            pu.created_at = LocalDateTime.now();
+            pu.created_by = ue.id_user;
             pu.persist();
             return Response.ok().entity(ResponseHandler.ok("Create Pu Berhasil", null)).build();
         } catch (Exception e) {

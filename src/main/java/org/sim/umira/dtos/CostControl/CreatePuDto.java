@@ -1,6 +1,7 @@
 package org.sim.umira.dtos.CostControl;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -42,7 +43,7 @@ public class CreatePuDto {
     @NotNull(message = "nominal pendapatan usaha must be required")
     @FormParam("nominal_pu")
     @PartType(MediaType.TEXT_PLAIN)
-    public Integer nominal_pu;
+    public BigInteger nominal_pu;
 
     // @NotNull(message = "file upload must be required")
     @FormParam("dokumen_upload")

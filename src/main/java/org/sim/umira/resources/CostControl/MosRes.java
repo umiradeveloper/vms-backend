@@ -8,14 +8,19 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreateMosDto;
 import org.sim.umira.dtos.CostControl.MosDto;
+import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.MosEntity;
 import org.sim.umira.entities.CostControl.MosNewEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.RapaEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+
+import com.aayushatharva.brotli4j.common.annotations.Local;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -28,8 +33,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/CostControl/MaterialOnSite")
 @Secured
@@ -42,10 +49,11 @@ public class MosRes {
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createMos(
-        @Valid @MultipartForm MosDto create
+        @Valid @MultipartForm MosDto create, @Context SecurityContext ctx
     ){
         ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
         MosNewEntity checkMos = MosNewEntity.find("proyek = ?1 and week =?2", proyek, create.week).firstResult();
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
 
         if(checkMos != null){
             throw new BadRequestException("mos dengan week "+create.week+" sudah ada");
@@ -58,6 +66,8 @@ public class MosRes {
             mos.proyek = proyek;
             mos.tanggal_awal = create.tanggal_awal;
             mos.tanggal_akhir = create.tanggal_akhir;
+            mos.created_at = LocalDateTime.now();
+            mos.created_by = ue.id_user;
             String ext = create.dokumen_upload.fileName().substring(create.dokumen_upload.fileName().lastIndexOf("."));
             String fileName = java.util.UUID.randomUUID() + ext;
             if (!Files.exists(UPLOAD_DIR)) {
