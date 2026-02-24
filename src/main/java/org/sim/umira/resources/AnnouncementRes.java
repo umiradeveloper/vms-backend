@@ -11,6 +11,7 @@ import java.util.List;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CreateAnnouncementDto;
+import org.sim.umira.entities.AccessAnnouncementEntity;
 import org.sim.umira.entities.AnnouncementEntity;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
@@ -69,9 +70,17 @@ public class AnnouncementRes {
             announcement.dokumenPath = filePath;
             announcement.created_at = LocalDateTime.now();
             announcement.created_by = ue.id_user;
-
+            // announcement.roleId = dto.role_id;
             announcement.persist();
-
+            String textRoleId = dto.role_id;
+            String[] roleId = textRoleId.split(",");
+            for(String role : roleId){
+                AccessAnnouncementEntity accessAnnouncement = new AccessAnnouncementEntity();
+                accessAnnouncement.announcement = announcement;
+                accessAnnouncement.kode_role = role;
+                accessAnnouncement.persist();
+            }
+            
             return Response.ok().entity(ResponseHandler.ok("Data Announcement Berhasil Di Simpan", null)).build();
 
         } catch (Exception e) {
@@ -81,8 +90,25 @@ public class AnnouncementRes {
 
     @GET
     @Path("/get-announcement")
-    public Response getAnnouncement() {
-        List<AnnouncementEntity> announcement = AnnouncementEntity.listAll();
+    public Response getAnnouncement(@Context SecurityContext ctx) {
+        
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+         List<AnnouncementEntity> announcement;
+        if(ue.role.kode_role.equals("99")){
+            announcement = AnnouncementEntity.listAll();
+        }else{
+            announcement = AnnouncementEntity.find("""
+                SELECT DISTINCT p
+                FROM AnnouncementEntity p
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM AccessAnnouncementEntity ps
+                    WHERE ps.announcement = p
+                    AND ps.kode_role = ?1
+                )
+            """, ue.role.kode_role).list();
+        }
+       
         return Response.ok().entity(ResponseHandler.ok("Inquiry Announcement Berhasil", announcement)).build();
     }
 

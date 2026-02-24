@@ -18,6 +18,10 @@ public class CreateAnnouncementDto {
     @FormParam("isi_announcement")
     public String isi_announcement;
 
+
+    @FormParam("role_id")
+    public String role_id;
+
     @FormParam("dokumen")
     @PartType(MediaType.APPLICATION_OCTET_STREAM)
     public FileUpload dokumen;

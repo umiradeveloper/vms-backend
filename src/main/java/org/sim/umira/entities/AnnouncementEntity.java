@@ -3,10 +3,15 @@ package org.sim.umira.entities;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+
+import org.sim.umira.entities.CostControl.RapaEntity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,6 +20,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -30,10 +36,17 @@ public class AnnouncementEntity extends PanacheEntityBase {
     
     public String isiAnnouncement;
 
+    public String roleId;
+
     
     public String dokumenPath;
 
     public LocalDateTime created_at;
 
     public String created_by;
+
+
+    @OneToMany(mappedBy = "announcement", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    public List<AccessAnnouncementEntity> accessAnnouncement;
 }
