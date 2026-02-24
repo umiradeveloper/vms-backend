@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.RapaEntity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -43,7 +44,10 @@ public class AnnouncementEntity extends PanacheEntityBase {
 
     public LocalDateTime created_at;
 
-    public String created_by;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    @JsonBackReference
+    public UserEntity created_by;
 
 
     @OneToMany(mappedBy = "announcement", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)

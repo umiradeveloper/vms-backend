@@ -69,7 +69,7 @@ public class AnnouncementRes {
             announcement.isiAnnouncement = dto.isi_announcement;
             announcement.dokumenPath = filePath;
             announcement.created_at = LocalDateTime.now();
-            announcement.created_by = ue.id_user;
+            announcement.created_by = ue;
             // announcement.roleId = dto.role_id;
             announcement.persist();
             String textRoleId = dto.role_id;
