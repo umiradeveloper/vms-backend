@@ -41,6 +41,8 @@ public class AnnouncementEntity extends PanacheEntityBase {
 
     
     public String dokumenPath;
+    
+    public String fotoPath;
 
     public LocalDateTime created_at;
 

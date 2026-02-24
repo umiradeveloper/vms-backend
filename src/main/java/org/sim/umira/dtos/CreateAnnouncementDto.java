@@ -26,6 +26,11 @@ public class CreateAnnouncementDto {
     @PartType(MediaType.APPLICATION_OCTET_STREAM)
     public FileUpload dokumen;
 
+
+    @FormParam("foto_pengumuman")
+    @PartType(MediaType.APPLICATION_OCTET_STREAM)
+    public FileUpload foto_pengumuman;
+
     // @NotNull(message = "file upload is required")
     // @FormParam("dokumen")
     // @PartType(MediaType.APPLICATION_OCTET_STREAM)
