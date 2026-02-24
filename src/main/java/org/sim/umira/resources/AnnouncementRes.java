@@ -99,7 +99,7 @@ public class AnnouncementRes {
         }else{
             announcement = AnnouncementEntity.find("""
                 SELECT DISTINCT p
-                FROM AnnouncementEntity p
+                FROM AnnouncementEntity p JOIN p.created_by u
                 WHERE EXISTS (
                     SELECT 1
                     FROM AccessAnnouncementEntity ps
