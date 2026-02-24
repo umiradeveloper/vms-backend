@@ -46,8 +46,7 @@ public class AnnouncementEntity extends PanacheEntityBase {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
-    @JsonBackReference
-    public UserEntity created_by;
+    public UserEntity userBy;
 
 
     @OneToMany(mappedBy = "announcement", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
