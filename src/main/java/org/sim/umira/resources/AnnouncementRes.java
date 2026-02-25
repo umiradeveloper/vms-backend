@@ -69,6 +69,9 @@ public class AnnouncementRes {
             String filePathFoto = null;
             if (dto.foto_pengumuman != null) {
                 String uploadFoto = "uploads/announcements/foto-pengumuman";
+                 File dirFoto = new File(uploadFoto);
+                if (!dirFoto.exists())
+                    dirFoto.mkdirs();
                 String ext = dto.foto_pengumuman.fileName().substring(dto.foto_pengumuman.fileName().lastIndexOf("."));
                 String randomFileName = UUID.randomUUID().toString() + ext;
                 java.nio.file.Path path = java.nio.file.Path.of(uploadFoto + "/" + randomFileName);
@@ -101,6 +104,7 @@ public class AnnouncementRes {
             return Response.ok().entity(ResponseHandler.ok("Data Announcement Berhasil Di Simpan", null)).build();
 
         } catch (Exception e) {
+            e.printStackTrace();
             return Response.serverError().entity("Upload gagal").build();
         }
     }
