@@ -129,23 +129,7 @@ public class AnnouncementRes {
         return Response.ok().entity(ResponseHandler.ok("Inquiry Announcement Berhasil", announcement)).build();
     }
 
-    // @PATCH
-    // @Path("/update-kategori")
-    // @Transactional
-    // public Response updateKategori(
-    // @Valid @RequestBody CreateKategoriDto create
-    // ){
-    // try {
-    // KategoriEntity kategori = KategoriEntity.findById(create.id_kategori);
-    // kategori.nama_kategori = create.nama_kategori;
-    // kategori.kode_kategori = create.kode_kategori;
-    // return Response.ok().entity(ResponseHandler.ok("Update Kategori Berhasil",
-    // null)).build();
-    // } catch (Exception e) {
-    // throw new InternalError(e.getMessage());
-    // }
-
-    // }
+   
 
     @DELETE
     @Path("/delete-announcement")

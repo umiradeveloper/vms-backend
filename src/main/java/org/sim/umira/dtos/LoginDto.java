@@ -11,4 +11,6 @@ public class LoginDto {
 
     @NotBlank(message = "Password is required")
     public String password;
+
+    public String token_mobile;
 }

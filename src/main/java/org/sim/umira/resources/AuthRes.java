@@ -123,6 +123,7 @@ public class AuthRes {
         // System.out.println(loginDto.email);
         UserEntity user = UserEntity.find("(email = ?1 OR no_hp = ?1)", loginDto.email).firstResult();
         
+        
         if(user == null) {
             return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("Invalid email or password")).build();
         }
@@ -140,7 +141,7 @@ public class AuthRes {
 
         // System.out.println(mae);
         try {
-           
+            user.token_mobile = loginDto.token_mobile;
             return Response.ok().entity(ResponseHandler.ok("Success", new ResponseLoginDto(token, user, mae))).build();
         } catch (Exception e) {
             e.printStackTrace();
