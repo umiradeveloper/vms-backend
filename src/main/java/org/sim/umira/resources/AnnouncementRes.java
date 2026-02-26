@@ -145,7 +145,7 @@ public class AnnouncementRes {
 
     @GET
     @Path("/get-announcement")
-    public Response getAnnouncement(@Context SecurityContext ctx) {
+    public Response getAnnouncement(@Context SecurityContext ctx, @QueryParam("search") String search) {
 
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         List<AnnouncementEntity> announcement;
@@ -154,15 +154,16 @@ public class AnnouncementRes {
         } else {
             announcement = AnnouncementEntity.find("""
                         SELECT DISTINCT p
-                        FROM AnnouncementEntity p JOIN p.created_by u
+                        FROM AnnouncementEntity p JOIN p.userBy u
                         WHERE EXISTS (
                             SELECT 1
                             FROM AccessAnnouncementEntity ps
                             WHERE ps.announcement = p
                             AND ps.kode_role = ?1
                         )
+                        AND (?2 IS NULL OR p.judulAnnouncement LIKE ?2 OR p.isiAnnouncement LIKE ?2)
                         ORDER BY FUNCTION('date', p.createdAt) DESC, p.createdAt DESC
-                    """, ue.role.kode_role).list();
+                    """, ue.role.kode_role, search == null ? null : "%" + search + "%").list();
         }
 
         return Response.ok().entity(ResponseHandler.ok("Inquiry Announcement Berhasil", announcement)).build();
