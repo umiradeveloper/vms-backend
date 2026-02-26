@@ -14,11 +14,14 @@ import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CreateAnnouncementDto;
 import org.sim.umira.entities.AccessAnnouncementEntity;
 import org.sim.umira.entities.AnnouncementEntity;
+import org.sim.umira.entities.RoleEntity;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.PendapatanUsahaEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.services.FcmService;
 
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
@@ -37,6 +40,9 @@ import jakarta.ws.rs.core.SecurityContext;
 @Path("/Announcement")
 @Secured
 public class AnnouncementRes {
+
+    @Inject
+    FcmService fcmService;
 
     @POST
     @Path("/create-announcement")
@@ -107,6 +113,31 @@ public class AnnouncementRes {
             e.printStackTrace();
             return Response.serverError().entity("Upload gagal").build();
         }
+    }
+
+    @GET
+    @Path("/publish-announcement")
+    public Response publishAnnouncement(@QueryParam("id") String id){
+        AnnouncementEntity announce = AnnouncementEntity.findById(id);
+        for (int i = 0; i < announce.accessAnnouncement.size(); i++) {
+            RoleEntity role = RoleEntity.find("kode_role = ?1", announce.accessAnnouncement.get(i).kode_role).firstResult();
+            List <UserEntity> user = UserEntity.find("role = ?1", role).list();
+            for (int j = 0; j < user.size(); j++) {
+                if(!user.get(j).token_mobile.isEmpty()){
+                    try {
+                        fcmService.sendToToken(user.get(j).token_mobile, "Pengumuman", announce.judulAnnouncement);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new InternalError(e.getMessage());
+                        // TODO: handle exception
+                    }
+                }
+            }
+        }
+
+        
+
+        return Response.ok().entity(ResponseHandler.ok("Data Announcement Berhasil Di Simpan", null)).build();
     }
 
     @GET
