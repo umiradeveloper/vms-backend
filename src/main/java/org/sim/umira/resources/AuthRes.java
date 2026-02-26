@@ -119,14 +119,18 @@ public class AuthRes {
     @POST
     @Path("/login-mobile")
     @PermitAll
+    // @Transactional
     public Response loginMobile(@Valid @RequestBody LoginDto loginDto) {
         // System.out.println(loginDto.email);
         UserEntity user = UserEntity.find("(email = ?1 OR no_hp = ?1)", loginDto.email).firstResult();
+        
+
         
         
         if(user == null) {
             return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("Invalid email or password")).build();
         }
+        // user.token_mobile = loginDto.token_mobile;
         if(user.isApproval == 0 ){
             return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("User Not Active")).build();
         }
@@ -141,7 +145,7 @@ public class AuthRes {
 
         // System.out.println(mae);
         try {
-            user.token_mobile = loginDto.token_mobile;
+            updateTokenMobile(loginDto.email, loginDto.token_mobile);
             return Response.ok().entity(ResponseHandler.ok("Success", new ResponseLoginDto(token, user, mae))).build();
         } catch (Exception e) {
             e.printStackTrace();
@@ -149,6 +153,19 @@ public class AuthRes {
         }
     }
 
+    @Transactional
+    public Boolean updateTokenMobile(String email, String token){
+        try {
+            UserEntity user = UserEntity.find("(email = ?1 OR no_hp = ?1)", email).firstResult();
+            user.token_mobile = token;
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+            // TODO: handle exception
+        }
+        
+    }
 
     @POST
     @Path("/register-vendor")
