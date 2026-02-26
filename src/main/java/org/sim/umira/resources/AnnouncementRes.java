@@ -162,7 +162,7 @@ public class AnnouncementRes {
                             AND ps.kode_role = ?1
                         )
                         AND (?2 IS NULL OR p.judulAnnouncement LIKE ?2 OR p.isiAnnouncement LIKE ?2)
-                        ORDER BY FUNCTION('date', p.createdAt) DESC, p.createdAt DESC
+                        ORDER BY FUNCTION('date', p.created_at) DESC, p.created_at DESC
                     """, ue.role.kode_role, search == null ? null : "%" + search + "%").list();
         }
 
