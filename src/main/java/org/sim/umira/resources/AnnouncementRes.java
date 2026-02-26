@@ -119,13 +119,16 @@ public class AnnouncementRes {
     @Path("/publish-announcement")
     public Response publishAnnouncement(@QueryParam("id") String id){
         AnnouncementEntity announce = AnnouncementEntity.findById(id);
+        // System.err.println(announce.accessAnnouncement.size());
         for (int i = 0; i < announce.accessAnnouncement.size(); i++) {
             RoleEntity role = RoleEntity.find("kode_role = ?1", announce.accessAnnouncement.get(i).kode_role).firstResult();
             List <UserEntity> user = UserEntity.find("role = ?1", role).list();
             for (int j = 0; j < user.size(); j++) {
-                if(!user.get(j).token_mobile.isEmpty()){
+                if(user.get(j).token_mobile != null){
+                    // System.out.println(user.get(j).token_mobile);
                     try {
-                        fcmService.sendToToken(user.get(j).token_mobile, "Pengumuman", announce.judulAnnouncement);
+                        
+                        fcmService.sendAsync(user.get(j).token_mobile, announce.judulAnnouncement, announce.isiAnnouncement);
                     } catch (Exception e) {
                         e.printStackTrace();
                         throw new InternalError(e.getMessage());
@@ -137,7 +140,7 @@ public class AnnouncementRes {
 
         
 
-        return Response.ok().entity(ResponseHandler.ok("Data Announcement Berhasil Di Simpan", null)).build();
+        return Response.ok().entity(ResponseHandler.ok("Publish Announcement berhasil", null)).build();
     }
 
     @GET
@@ -158,6 +161,7 @@ public class AnnouncementRes {
                             WHERE ps.announcement = p
                             AND ps.kode_role = ?1
                         )
+                        ORDER BY FUNCTION('date', p.createdAt) DESC, p.createdAt DESC
                     """, ue.role.kode_role).list();
         }
 
