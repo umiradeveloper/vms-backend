@@ -57,7 +57,7 @@ public class MRes {
                         StandardCopyOption.REPLACE_EXISTING);
                 ue.fotoPath = path.toString();
             }
-            if(update.password != null && !update.password.trim().isEmpty()){
+            if(update.password != null && !update.password.trim().isBlank()){
                 ue.password = BcryptUtil.bcryptHash(update.password);
             }
             return Response.ok().entity(ResponseHandler.ok("success update user", null)).build();
@@ -75,7 +75,14 @@ public class MRes {
             @QueryParam("id") String id) {
         try { // direktori saat jar dijalankan
             UserEntity user = UserEntity.findById(id);
-            InputStream imageStream = Files.newInputStream(Paths.get(user.fotoPath));
+            System.out.println(user);
+            InputStream imageStream;
+            if(user == null){
+                imageStream = Files.newInputStream(Paths.get("uploads/foto-default.jpg"));
+            }else{
+                imageStream = Files.newInputStream(Paths.get(user.fotoPath));
+            }
+            
             return Response.ok(imageStream).build();
         } catch (Exception e) {
             throw new InternalError("Cant get file");
