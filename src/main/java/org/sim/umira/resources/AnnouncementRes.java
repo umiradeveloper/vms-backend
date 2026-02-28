@@ -150,7 +150,13 @@ public class AnnouncementRes {
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         List<AnnouncementEntity> announcement;
         if (ue.role.kode_role.equals("99")) {
-            announcement = AnnouncementEntity.listAll();
+            // announcement = AnnouncementEntity.listAll();
+            announcement = AnnouncementEntity.find(
+                "(?1 IS NULL OR " +
+                "LOWER(judulAnnouncement) LIKE LOWER(CONCAT('%', ?1, '%')) OR " +
+                "LOWER(isiAnnouncement) LIKE LOWER(CONCAT('%', ?1, '%')))",
+                search
+            ).list();
         } else {
             announcement = AnnouncementEntity.find("""
                         SELECT DISTINCT p

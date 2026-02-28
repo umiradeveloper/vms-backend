@@ -1,7 +1,17 @@
 package org.sim.umira.resources;
 
+import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CreateMenuDto;
+import org.sim.umira.dtos.M.CreateMenuMDto;
+import org.sim.umira.entities.AnnouncementEntity;
 import org.sim.umira.entities.AppsEntity;
 import org.sim.umira.entities.MenuEntity;
 import org.sim.umira.entities.MenuMobileEntity;
@@ -10,10 +20,12 @@ import org.sim.umira.handlers.ResponseHandler;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -24,10 +36,11 @@ public class MenuRes {
     @POST
     @Path("/create-menu")
     @Transactional
-    public Response createMenu(@Valid @RequestBody CreateMenuDto cmd){
+    public Response createMenu(@Valid @RequestBody CreateMenuDto cmd) {
         AppsEntity ae = AppsEntity.find("code_apps = ?1", cmd.code_apps).firstResult();
-        if(ae.id_apps == null){
-            // return Response.ok().entity(ResponseHandler.ok("Apps not found", null)).build();
+        if (ae.id_apps == null) {
+            // return Response.ok().entity(ResponseHandler.ok("Apps not found",
+            // null)).build();
             throw new NotFoundException("Menu Not Found");
         }
         MenuEntity me = new MenuEntity();
@@ -44,24 +57,67 @@ public class MenuRes {
         return Response.ok().entity(ResponseHandler.ok("create menu successfull", null)).build();
     }
 
-
-
     @POST
     @Path("/create-menu-mobile")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Transactional
-    public Response createMenuMobile(@Valid @RequestBody CreateMenuDto cmd){
+    public Response createMenuMobile(@Valid @MultipartForm CreateMenuMDto cmd) {
         AppsEntity ae = AppsEntity.find("code_apps = ?1", cmd.code_apps).firstResult();
-        if(ae.id_apps == null){
-            // return Response.ok().entity(ResponseHandler.ok("Apps not found", null)).build();
+        if (ae.id_apps == null) {
+            // return Response.ok().entity(ResponseHandler.ok("Apps not found",
+            // null)).build();
             throw new NotFoundException("Apps Not Found");
         }
         MenuMobileEntity me = new MenuMobileEntity();
         me.kode_menu = cmd.code_menu;
         me.menu_name = cmd.nama_menu;
-        me.menu_icon = cmd.icon_menu;
+        // me.menu_icon = cmd.icon_menu;
+        if (cmd.icon_menu != null) {
+            // String fileName = dto.dokumen.fileName();
+            try {
+                String uploadDir = "uploads/icon_menu";
+                File dir = new File(uploadDir);
+                if (!dir.exists())
+                    dir.mkdirs();
+
+                String ext = cmd.icon_menu.fileName().substring(cmd.icon_menu.fileName().lastIndexOf("."));
+                String randomFileName = UUID.randomUUID().toString() + ext;
+                java.nio.file.Path path = java.nio.file.Path.of(uploadDir + "/" + randomFileName);
+
+                Files.copy(cmd.icon_menu.uploadedFile(),
+                        path,
+                        StandardCopyOption.REPLACE_EXISTING);
+
+                me.menu_icon = path.toString();
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new InternalError("Ada Kesalahan Server");
+                // TODO: handle exception
+            }
+
+        }
         me.menu_path = cmd.path_menu;
         me.apps = ae;
         me.persist();
         return Response.ok().entity(ResponseHandler.ok("create menu successfull", null)).build();
+    }
+
+    @GET
+    @Path("/foto-menu")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces({
+            "image/png",
+            "image/jpeg"
+    })
+    public Response getFotoMenu(
+            @QueryParam("id") String id) {
+        try { // direktori saat jar dijalankan
+            MenuMobileEntity menuFoto = MenuMobileEntity.findById(id);
+            InputStream imageStream = Files.newInputStream(Paths.get(menuFoto.menu_icon));
+            return Response.ok(imageStream).build();
+        } catch (Exception e) {
+            throw new InternalError("Cant get file");
+        }
+
     }
 }

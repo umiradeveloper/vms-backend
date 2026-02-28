@@ -39,7 +39,7 @@ public class MenuAccessRes {
     @Path("/create-menu-access-mobile")
     @Transactional
     public Response createMenuAccessMobile(@Valid @RequestBody CreateMenuAccessDto cma){
-        RoleEntity re = RoleEntity.findById(cma.id_role);
+        RoleEntity re = RoleEntity.find("kode_role = ?1", cma.id_role).firstResult();
         AppsEntity ae = AppsEntity.find("code_apps = ?1", cma.code_apps).firstResult();
         MenuMobileEntity me = MenuMobileEntity.find("kode_menu = ?1", cma.code_menu).firstResult();
         

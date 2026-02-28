@@ -34,6 +34,7 @@ public class UserEntity extends PanacheEntityBase {
     public LocalDateTime approvedAt;
     public String catatan;
     public String token_mobile;
+    public String fotoPath;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_branch")
