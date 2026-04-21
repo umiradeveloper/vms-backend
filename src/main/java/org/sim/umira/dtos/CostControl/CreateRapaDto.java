@@ -13,23 +13,23 @@ public class CreateRapaDto {
     // @NotBlank(message = "kode proyek must be required")
     public String kode_proyek;
 
-    @NotBlank(message = "kategori must be required")
-    public String kategori;
+    // @NotBlank(message = "kategori must be required")
+    // public String kategori;
 
-    @NotBlank(message = "kode rap must be required")
-    public String kode_rap;
+    // @NotBlank(message = "kode rap must be required")
+    // public String kode_rap;
 
-    @NotBlank(message = "group must be required")
-    public String group;
+    // @NotBlank(message = "group must be required")
+    // public String group;
 
-    @NotBlank(message = "item pekerjaan must be required")
-    public String item_pekerjaan;
+    // @NotBlank(message = "item pekerjaan must be required")
+    // public String item_pekerjaan;
 
-    @NotBlank(message = "spesifikasi must be required")
-    public String spesifikasi;
+    // @NotBlank(message = "spesifikasi must be required")
+    // public String spesifikasi;
 
-    @NotBlank(message = "satuan must be required")
-    public String satuan;
+    // @NotBlank(message = "satuan must be required")
+    // public String satuan;
 
     @NotNull(message = "volume must be required")
     public BigDecimal volume;

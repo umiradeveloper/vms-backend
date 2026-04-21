@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.CostControl.CreatePuDto;
+import org.sim.umira.dtos.CostControl.RapaDto;
 import org.sim.umira.dtos.CostControl.ResponseRapaPendapatanUsahaDto;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
 import org.sim.umira.entities.UserEntity;
@@ -22,6 +23,8 @@ import org.sim.umira.entities.CostControl.RapaEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
@@ -41,6 +44,9 @@ import jakarta.ws.rs.core.SecurityContext;
 @Path("/CostControl/PendapatanUsaha")
 @Secured
 public class PendapatanUsahaRes {
+
+    @Inject
+    EntityManager em;
 
     private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/dokumen-pendapatan-usaha");
 
@@ -124,17 +130,30 @@ public class PendapatanUsahaRes {
         try {
 
             ProyekEntity proyek = ProyekEntity.findById(id_proyek);
-            List<RapaEntity> rapa = RapaEntity.find("proyek = ?1", proyek).list();
+            // List<RapaEntity> rapa = RapaEntity.find("proyek = ?1", proyek).list();
+            List<RapaEntity> rapaOri = em.createQuery("""
+                SELECT r FROM RapaEntity r
+                JOIN FETCH r.costCodeRapa c
+                LEFT JOIN FETCH c.kategori
+                WHERE r.proyek = ?1
+            """, RapaEntity.class)
+            .setParameter(1, proyek)
+            .getResultList();
+
+            List<RapaDto> rapa = rapaOri.stream()
+            .map(RapaDto::new)
+            .toList();
             List<ResponseRapaPendapatanUsahaDto> rapaNew = new ArrayList<>();
-            for (RapaEntity rapaEntity : rapa) {
-                List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("rapa =?1 ", rapaEntity).list();
+            for (RapaDto rapaEntity : rapa) {
+                RapaEntity getRapa = RapaEntity.findById(rapaEntity.id_rapa);
+                List<BiayaKontruksiEntity> bk = BiayaKontruksiEntity.find("rapa =?1 ", getRapa).list();
                 BigDecimal total_bk_rapa = BigDecimal.ZERO;
                 for (BiayaKontruksiEntity bkArr : bk) {
                     total_bk_rapa = total_bk_rapa.add(bkArr.harga_total);
                 }
 
-                rapaNew.add(new ResponseRapaPendapatanUsahaDto(rapaEntity.id_rapa, rapaEntity.Kategori,
-                        rapaEntity.kode_rap, rapaEntity.group,
+                rapaNew.add(new ResponseRapaPendapatanUsahaDto(rapaEntity.id_rapa, rapaEntity.kategori,
+                        rapaEntity.kode_rap, null,
                         rapaEntity.item_pekerjaan, rapaEntity.spesifikasi, rapaEntity.satuan, rapaEntity.volume,
                         rapaEntity.harga_satuan,
                         rapaEntity.harga_total, total_bk_rapa));

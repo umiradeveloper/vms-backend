@@ -3,13 +3,17 @@ package org.sim.umira.resources.CostControl;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.hibernate.Session;
 import org.sim.umira.dtos.CostControl.CreateProyekDto;
 import org.sim.umira.dtos.CostControl.CreateRapaBulkDto;
 import org.sim.umira.dtos.CostControl.CreateRapaDto;
+import org.sim.umira.dtos.CostControl.GetCostCodeRapaDto;
+import org.sim.umira.dtos.CostControl.RapaDto;
 import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.CostControl.CostCodeEntity;
 import org.sim.umira.entities.CostControl.KategoriEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.RapaEntity;
@@ -53,11 +57,11 @@ public class RapaRes {
             ProyekEntity proyek = ProyekEntity.find("kode_proyek = ?1", create.kode_proyek).firstResult();
             RapaEntity rapa = new RapaEntity();
             rapa.proyek = proyek;
-            rapa.kode_rap = create.kode_rap;
-            rapa.Kategori = create.kategori;
-            rapa.spesifikasi = create.spesifikasi;
-            rapa.item_pekerjaan = create.item_pekerjaan;
-            rapa.satuan = create.satuan;
+            // rapa.kode_rap = create.kode_rap;
+            // rapa.Kategori = create.kategori;
+            // rapa.spesifikasi = create.spesifikasi;
+            // rapa.item_pekerjaan = create.item_pekerjaan;
+            // rapa.satuan = create.satuan;
             rapa.volume = create.volume;
             rapa.harga_satuan = create.harga_satuan;
             rapa.harga_total = create.harga_total;
@@ -76,13 +80,14 @@ public class RapaRes {
         @Valid @RequestBody CreateRapaBulkDto create, @Context SecurityContext ctx
     ){
 
-        for (int i = 0; i < create.kategori.size(); i++) {
+        for (int i = 0; i < create.cost_code.size(); i++) {
                 final int index = i;
-                SatuanEntity satuan = SatuanEntity.find("kode_satuan = ?1", create.satuan.get(index)).firstResult();
-                KategoriEntity kategori = KategoriEntity.find("kode_kategori = ?1", create.kategori.get(index)).firstResult();
+                CostCodeEntity costCodeEntity = CostCodeEntity.find("cost_code = ?1", create.cost_code.get(index)).firstResult();
+                // SatuanEntity satuan = SatuanEntity.find("kode_satuan = ?1", create.satuan.get(index)).firstResult();
+                // KategoriEntity kategori = KategoriEntity.find("kode_kategori = ?1", create.kategori.get(index)).firstResult();
                 
-                if(satuan == null && kategori == null){
-                    throw new BadRequestException("Satuan dan kategori di baris "+index+ " kode kategori "+create.kategori.get(index)+" atau kode satuan "+create.satuan.get(index)+" tidak terdefinisi");
+                if(costCodeEntity == null){
+                    throw new BadRequestException("Cost Code index ke "+index+ " cost code "+create.cost_code.get(index)+" tidak terdaftar");
                 }
         }
 
@@ -90,30 +95,34 @@ public class RapaRes {
             ProyekEntity proyek = ProyekEntity.find("kode_proyek = ?1", create.kode_proyek).firstResult();
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             Session session = em.unwrap(Session.class);
-            int batch = create.kategori.size();
+            int batch = create.cost_code.size();
             // System.out.println(create);
-            for (int i = 0; i < create.kategori.size(); i++) {
+            for (int i = 0; i < create.cost_code.size(); i++) {
                 String uuid = java.util.UUID.randomUUID().toString();
+                
                 final int idx = i;
+                CostCodeEntity costCodeEntity = CostCodeEntity.find("cost_code = ?1", create.cost_code.get(idx)).firstResult();
                 // System.out.println(create.kategori.get(idx));
                 
                     session.doWork(connection -> {
                         try (PreparedStatement ps = connection.prepareStatement(
-                            "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                            // "INSERT INTO cc_rapa (id_rapa, id_proyek, kategori, kode_rap, `group`, item_pekerjaan, spesifikasi, satuan, volume, harga_satuan, harga_total, created_at, created_by, id_cost_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                            "INSERT INTO cc_rapa (id_rapa, id_proyek, volume, harga_satuan, harga_total, created_at, created_by, id_cost_code) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                         )) {
                             ps.setString(1, uuid);
                             ps.setString(2, proyek.id_proyek);
-                            ps.setString(3, create.kategori.get(idx));
-                            ps.setString(4, create.kode_rap.get(idx));
-                            ps.setString(5, create.group.get(idx));
-                            ps.setString(6, create.item_pekerjaan.get(idx));
-                            ps.setString(7, create.spesifikasi.get(idx));
-                            ps.setString(8, create.satuan.get(idx));
-                            ps.setBigDecimal(9, create.volume.get(idx));
-                            ps.setInt(10, create.harga_satuan.get(idx));
-                            ps.setBigDecimal(11, create.harga_total.get(idx));
-                            ps.setObject(12, LocalDateTime.now());
-                            ps.setString(13, ue.id_user);
+                            // ps.setString(3, create.kategori.get(idx));
+                            // ps.setString(4, create.kode_rap.get(idx));
+                            // ps.setString(5, create.group.get(idx));
+                            // ps.setString(6, create.item_pekerjaan.get(idx));
+                            // ps.setString(7, create.spesifikasi.get(idx));
+                            // ps.setString(8, create.satuan.get(idx));
+                            ps.setBigDecimal(3, create.volume.get(idx));
+                            ps.setInt(4, create.harga_satuan.get(idx));
+                            ps.setBigDecimal(5, create.harga_total.get(idx));
+                            ps.setObject(6, LocalDateTime.now());
+                            ps.setString(7, ue.id_user);
+                            ps.setString(8, costCodeEntity.id_cost_code);
                             // ps.setBigDecimal(2, p.nilai);
                             // ps.setObject(3, p.tanggal);
                             ps.addBatch();
@@ -142,11 +151,24 @@ public class RapaRes {
         @QueryParam("id_proyek") String id_proyek
     ){
         try {
+            // System.out.println("test");
            
             ProyekEntity proyek = ProyekEntity.findById(id_proyek);
-            List<RapaEntity> rapa = RapaEntity.find("proyek = ?1", proyek).list();
+            // List<RapaEntity> rapa = RapaEntity.find("proyek = ?1", proyek).list();
+            List<RapaEntity> rapa = em.createQuery("""
+                SELECT r FROM RapaEntity r
+                JOIN FETCH r.costCodeRapa c
+                LEFT JOIN FETCH c.kategori
+                WHERE r.proyek = ?1
+            """, RapaEntity.class)
+            .setParameter(1, proyek)
+            .getResultList();
+
+            List<RapaDto> result = rapa.stream()
+            .map(RapaDto::new)
+            .toList();
    
-            return Response.ok().entity(ResponseHandler.ok("get Rapa by proyek Berhasil", rapa)).build();
+            return Response.ok().entity(ResponseHandler.ok("get Rapa by proyek Berhasil", result)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
         }
@@ -161,9 +183,22 @@ public class RapaRes {
     ){
         try {
            
-            RapaEntity rapa = RapaEntity.findById(id_rapa);
+            // RapaEntity rapa = RapaEntity.findById(id_rapa);
+            // List<RapaEntity> rapa = RapaEntity.find("proyek = ?1", proyek).list();
+            List<RapaEntity> rapa = em.createQuery("""
+                SELECT r FROM RapaEntity r
+                JOIN FETCH r.costCodeRapa c
+                LEFT JOIN FETCH c.kategori
+                WHERE r.id_rapa = ?1
+            """, RapaEntity.class)
+            .setParameter(1, id_rapa)
+            .getResultList();
+
+            Optional<RapaDto> result = rapa.stream()
+            .map(RapaDto::new)
+            .findFirst();
    
-            return Response.ok().entity(ResponseHandler.ok("get Rapa by Id Berhasil", rapa)).build();
+            return Response.ok().entity(ResponseHandler.ok("get Rapa by Id Berhasil", result)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
         }
@@ -178,9 +213,19 @@ public class RapaRes {
     ){
         try {
            
-            List<RapaEntity> rapa = RapaEntity.listAll();
+            // List<RapaEntity> rapa = RapaEntity.listAll();
+            List<RapaEntity> rapa = em.createQuery("""
+                SELECT r FROM RapaEntity r
+                JOIN FETCH r.costCodeRapa c
+                LEFT JOIN FETCH c.kategori
+            """, RapaEntity.class)
+            .getResultList();
+
+            List<RapaDto> result = rapa.stream()
+            .map(RapaDto::new)
+            .toList();
    
-            return Response.ok().entity(ResponseHandler.ok("get Rapa All Berhasil", rapa)).build();
+            return Response.ok().entity(ResponseHandler.ok("get Rapa All Berhasil", result)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
         }
@@ -195,11 +240,11 @@ public class RapaRes {
         try {
             // ProyekEntity proyek = ProyekEntity.find("kode_proyek = ?1", create.kode_proyek).firstResult();
             RapaEntity rapa = RapaEntity.findById(create.id_rapa);
-            rapa.kode_rap = create.kode_rap;
-            rapa.Kategori = create.kategori;
-            rapa.spesifikasi = create.spesifikasi;
-            rapa.item_pekerjaan = create.item_pekerjaan;
-            rapa.satuan = create.satuan;
+            // rapa.kode_rap = create.kode_rap;
+            // rapa.Kategori = create.kategori;
+            // rapa.spesifikasi = create.spesifikasi;
+            // rapa.item_pekerjaan = create.item_pekerjaan;
+            // rapa.satuan = create.satuan;
             rapa.volume = create.volume;
             rapa.harga_satuan = create.harga_satuan;
             rapa.harga_total = create.harga_total;
@@ -225,5 +270,29 @@ public class RapaRes {
             throw new InternalError(e.getMessage());
         }
         
+    }
+
+
+    @POST
+    @Path("/get-cost-code-rapa")
+    public Response getCostCodeRapa(@Valid @RequestBody GetCostCodeRapaDto get){
+        for (int i = 0; i < get.CostCode.size(); i++) {
+                final int index = i;
+                CostCodeEntity costCodeEntity = CostCodeEntity.find("cost_code = ?1", get.CostCode.get(index).trim()).firstResult();
+                // SatuanEntity satuan = SatuanEntity.find("kode_satuan = ?1", create.satuan.get(index)).firstResult();
+                // KategoriEntity kategori = KategoriEntity.find("kode_kategori = ?1", create.kategori.get(index)).firstResult();
+                
+                if(costCodeEntity == null){
+                    throw new BadRequestException("Cost Code index ke "+index+ " cost code "+get.CostCode.get(index).trim()+" tidak terdaftar");
+                }
+        }
+        try {
+            
+            List<CostCodeEntity> costCode = CostCodeEntity.find("cost_code in ?1", get.CostCode).list();
+            // rapa.persist();
+            return Response.ok().entity(ResponseHandler.ok("get cost code Berhasil", costCode)).build();
+        } catch (Exception e) {
+            throw new InternalError(e.getMessage());
+        }
     }
 }

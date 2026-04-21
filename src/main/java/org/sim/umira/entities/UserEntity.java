@@ -4,6 +4,7 @@ package org.sim.umira.entities;
 
 import java.time.LocalDateTime;
 
+import org.sim.umira.entities.HumanResources.EmployeeEntity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Entity;
@@ -13,6 +14,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -43,5 +45,8 @@ public class UserEntity extends PanacheEntityBase {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_role")
     public RoleEntity role;
+
+    // @OneToOne(mappedBy = "user")
+    // public EmployeeEntity employee;
     
 }

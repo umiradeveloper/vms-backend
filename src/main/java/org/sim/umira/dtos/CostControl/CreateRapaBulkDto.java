@@ -13,29 +13,33 @@ public class CreateRapaBulkDto {
     @NotBlank(message = "kode proyek must be required")
     public String kode_proyek;
 
-    @NotEmpty(message = "kategori must be required")
-    @Size(min = 1, message = "kategori must contain at least one value")
-    public List<@NotBlank(message = "kategori must be required") String> kategori;
+    @NotEmpty(message = "cost code must be required")
+    @Size(min = 1, message = "cost code must contain at least one value")
+    public List<@NotBlank(message = "cost code must be required") String> cost_code;
 
-    @NotEmpty(message = "kode_rap must be required")
-    @Size(min = 1, message = "kode_rap must contain at least one value")
-    public List<@NotBlank(message = "kode_rap must be required") String> kode_rap;
+//     @NotEmpty(message = "kategori must be required")
+//     @Size(min = 1, message = "kategori must contain at least one value")
+//     public List<@NotBlank(message = "kategori must be required") String> kategori;
 
-   @NotEmpty(message = "group must be required")
-   @Size(min = 1, message = "group must contain at least one value")
-    public List<@NotBlank(message = "group must be required") String> group;
+//     @NotEmpty(message = "kode_rap must be required")
+//     @Size(min = 1, message = "kode_rap must contain at least one value")
+//     public List<@NotBlank(message = "kode_rap must be required") String> kode_rap;
 
-    @NotEmpty(message = "item_pekerjaan must be required")
-    @Size(min = 1, message = "item_pekerjaan must contain at least one value")
-    public List<@NotBlank(message = "item_pekerjaan must be required") String> item_pekerjaan;
+//    @NotEmpty(message = "group must be required")
+//    @Size(min = 1, message = "group must contain at least one value")
+//     public List<@NotBlank(message = "group must be required") String> group;
 
-    @NotEmpty(message = "spesifikasi must be required")
-    @Size(min = 1, message = "spesifikasi must contain at least one value")
-    public List<@NotBlank(message = "spesifikasi must be required") String> spesifikasi;
+//     @NotEmpty(message = "item_pekerjaan must be required")
+//     @Size(min = 1, message = "item_pekerjaan must contain at least one value")
+//     public List<@NotBlank(message = "item_pekerjaan must be required") String> item_pekerjaan;
 
-    @NotEmpty(message = "satuan must be required")
-    @Size(min = 1, message = "satuan must contain at least one value")
-    public List<@NotBlank(message = "Satuan must be required") String> satuan;
+//     @NotEmpty(message = "spesifikasi must be required")
+//     @Size(min = 1, message = "spesifikasi must contain at least one value")
+//     public List<@NotBlank(message = "spesifikasi must be required") String> spesifikasi;
+
+//     @NotEmpty(message = "satuan must be required")
+//     @Size(min = 1, message = "satuan must contain at least one value")
+//     public List<@NotBlank(message = "Satuan must be required") String> satuan;
 
     @NotEmpty(message = "volume must be required")
     @Size(min = 1, message = "volume must contain at least one value")

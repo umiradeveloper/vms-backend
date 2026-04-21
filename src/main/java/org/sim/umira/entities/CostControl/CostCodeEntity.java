@@ -1,16 +1,13 @@
 package org.sim.umira.entities.CostControl;
 
-import java.math.BigDecimal;
 import java.util.List;
-
-import org.sim.umira.entities.VmsVendorEntity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -22,44 +19,39 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "cc_rapa")
-public class RapaEntity extends PanacheEntityBase {
+@Table(name = "cc_cost_code")
+public class CostCodeEntity extends PanacheEntityBase {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    public String id_rapa;
+    public String id_cost_code;
 
-    public String Kategori;
+    public String cost_code;
 
-    public String kode_rap;
+    public String nama;
 
-    @Column(name = "`group`")
-    public String group;
-
-    public String item_pekerjaan;
+    public String klasifikasi;
 
     public String spesifikasi;
 
     public String satuan;
 
+    public String kode_jenis;
+
+    public String jenis;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_cost_code")
+    @JoinColumn(name = "kode_kategori")
+    // @JsonIgnoreProperties({"costCodes"})
+    // @JsonIgnore
+    // @JsonBackReference
+    public KategoriEntity kategori;
+
+
+    @OneToMany(mappedBy = "costCodeRapa")
     // @JsonManagedReference
-    public CostCodeEntity costCodeRapa;
-     
-    
-
-    public BigDecimal volume;
-
-    public Integer harga_satuan;
-
-    public BigDecimal harga_total;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_proyek")
-    @JsonBackReference
-    public ProyekEntity proyek;
+    @JsonIgnore
+    public List<RapaEntity> rapa;
 
 
 
-    
 }
