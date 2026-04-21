@@ -14,6 +14,7 @@ import org.sim.umira.dtos.CreateUserDto;
 import org.sim.umira.entities.BranchEntity;
 import org.sim.umira.entities.RoleEntity;
 import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.Cuti.CutiEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
