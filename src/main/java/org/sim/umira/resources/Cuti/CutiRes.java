@@ -4,12 +4,15 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.Cuti.CreateCutiDto;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.Cuti.CutiEntity;
 import org.sim.umira.entities.Cuti.SaldoCutiEntity;
+import org.sim.umira.entities.HumanResources.EmployeeEntity;
+import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
@@ -44,17 +47,18 @@ public class CutiRes {
             @Valid @MultipartForm CreateCutiDto create, @Context SecurityContext ctx) {
 
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
-        
+        EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+
         if ("ANNUAL_LEAVE".equals(create.jenis_cuti)) {
             int tahun = java.time.LocalDate.now().getYear();
 
             SaldoCutiEntity balance = SaldoCutiEntity.findByUserAndTahun(ue.id_user, tahun);
             if (balance == null) {
                 balance = new SaldoCutiEntity();
-                balance.id_user    = ue.id_user;
-                balance.tahun      = tahun;
-                balance.sisa_cuti  = 12;
-                balance.used_cuti  = 0;
+                balance.id_user = ue.id_user;
+                balance.tahun = tahun;
+                balance.sisa_cuti = 12;
+                balance.used_cuti = 0;
                 balance.created_at = LocalDateTime.now();
                 balance.persist();
             }
@@ -66,8 +70,8 @@ public class CutiRes {
 
             if (balance.sisa_cuti < totalDays) {
                 throw new BadRequestException(
-                    "Sisa cuti tidak mencukupi. Sisa: " + balance.sisa_cuti + " hari, Dibutuhkan: " + totalDays + " hari"
-                );
+                        "Sisa cuti tidak mencukupi. Sisa: " + balance.sisa_cuti + " hari, Dibutuhkan: " + totalDays
+                                + " hari");
             }
         }
         try {
@@ -88,15 +92,15 @@ public class CutiRes {
                 cuti.dokumen_cuti = target.toString();
             }
 
-            cuti.user         = ue;
-            cuti.jenis_cuti   = create.jenis_cuti;
-            cuti.tanggal_mulai  = create.tanggal_mulai;
+            cuti.employee_pengajuan = emp;
+            cuti.jenis_cuti = create.jenis_cuti;
+            cuti.tanggal_mulai = create.tanggal_mulai;
             cuti.tanggal_selesai = create.tanggal_selesai;
-            cuti.alasan_cuti  = create.alasan_cuti;
-            cuti.id_delegasi  = create.id_delegasi;
-            cuti.status_cuti  = "PENDING";
-            cuti.created_at   = LocalDateTime.now();
-            cuti.created_by   = ue.id_user;
+            cuti.alasan_cuti = create.alasan_cuti;
+            cuti.id_delegasi = create.id_delegasi;
+            cuti.status_cuti = "PENDING";
+            cuti.created_at = LocalDateTime.now();
+            cuti.created_by = ue.id_user;
             cuti.id_approver = create.id_approver;
             cuti.persist();
 
@@ -116,16 +120,14 @@ public class CutiRes {
             int tahun = java.time.LocalDate.now().getYear();
             SaldoCutiEntity balance = SaldoCutiEntity.findByUserAndTahun(ue.id_user, tahun);
             if (balance == null) {
-                return Response.ok().entity(ResponseHandler.ok("Get Balance Berhasil", 
-                    java.util.Map.of("sisa_cuti", 12, "used_cuti", 0, "tahun", tahun)
-                )).build();
+                return Response.ok().entity(ResponseHandler.ok("Get Balance Berhasil",
+                        java.util.Map.of("sisa_cuti", 12, "used_cuti", 0, "tahun", tahun))).build();
             }
             return Response.ok().entity(ResponseHandler.ok("Get Balance Berhasil", balance)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
         }
     }
-    
 
     @GET
     @Path("/get-cuti-by-user")
@@ -152,13 +154,28 @@ public class CutiRes {
         }
     }
 
+    // @GET
+    // @Path("/get-all-cuti")
+    // @Transactional
+    // public Response getAllCuti() {
+    // try {
+    // var cutiList = CutiEntity.listAll();
+    // return Response.ok().entity(ResponseHandler.ok("Get All Cuti Berhasil",
+    // cutiList)).build();
+    // } catch (Exception e) {
+    // throw new InternalServerErrorException(e.getMessage());
+    // }
+    // }
+
     @GET
     @Path("/get-all-cuti")
     @Transactional
     public Response getAllCuti() {
         try {
-            var cutiList = CutiEntity.listAll();
-            return Response.ok().entity(ResponseHandler.ok("Get All Cuti Berhasil", cutiList)).build();
+            List<CutiEntity> list = CutiEntity
+                    .find("SELECT r FROM CutiEntity r LEFT JOIN FETCH r.employee_pengajuan")
+                    .list();
+            return Response.ok().entity(ResponseHandler.ok("Get All Cuti Berhasil", list)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
         }
@@ -172,11 +189,11 @@ public class CutiRes {
         try {
             CutiEntity cuti = CutiEntity.findById(create.id_cuti);
 
-            cuti.jenis_cuti    = create.jenis_cuti;
-            cuti.tanggal_mulai  = create.tanggal_mulai;
+            cuti.jenis_cuti = create.jenis_cuti;
+            cuti.tanggal_mulai = create.tanggal_mulai;
             cuti.tanggal_selesai = create.tanggal_selesai;
-            cuti.alasan_cuti   = create.alasan_cuti;
-            cuti.id_delegasi   = create.id_delegasi;
+            cuti.alasan_cuti = create.alasan_cuti;
+            cuti.id_delegasi = create.id_delegasi;
 
             if (create.dokumen_upload != null && create.dokumen_upload.size() > 0) {
                 if (!Files.exists(UPLOAD_DIR)) {

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -40,10 +41,24 @@ public class CutiEntity extends PanacheEntityBase {
 
     public String alasan_penolakan;
 
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "id_user")
+    // @JsonBackReference
+    // public UserEntity user;
+
+    // @ManyToOne
+    // @JoinColumn(name = "id_employee_pengajuan")
+    // public EmployeeEntity employee_pengajuan;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_user")
+    @JoinColumn(name = "id_employee_approval")
     @JsonBackReference
-    public UserEntity user;
+    public UserEntity employee_approval;
+
+    @ManyToOne
+    @JoinColumn(name = "id_employee_pengajuan")
+    public EmployeeEntity employee_pengajuan;
+    
 
     public LocalDateTime created_at;
 

@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Entity;
@@ -16,6 +17,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.HumanResources.EmployeeEntity;
+
 
 @Entity
 @Table(name = "hr_reimbursement")
@@ -42,10 +45,14 @@ public class ReimbursementEntity extends PanacheEntityBase {
     public String alasan_penolakan;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_user")
+    @JoinColumn(name = "id_employee_approval")
     @JsonBackReference
-    public UserEntity user;
+    public UserEntity employee_approval;
 
+    @ManyToOne
+    @JoinColumn(name = "id_employee_pengajuan")
+    public EmployeeEntity employee_pengajuan;
+    
     public LocalDateTime created_at;
 
     public String created_by;

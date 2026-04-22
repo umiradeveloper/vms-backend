@@ -4,10 +4,12 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.Reimbursement.CreateReimbursementDto;
 import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
@@ -42,6 +44,7 @@ public class ReimbursementRes {
             @Valid @MultipartForm CreateReimbursementDto create, @Context SecurityContext ctx) {
 
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
 
         try {
             ReimbursementEntity reimbursement = new ReimbursementEntity();
@@ -61,15 +64,15 @@ public class ReimbursementRes {
                 reimbursement.dokumen_reimbursement = target.toString();
             }
 
-            reimbursement.user                  = ue;
-            reimbursement.jenis_reimbursement   = create.jenis_reimbursement;
+            reimbursement.employee_pengajuan = emp;
+            reimbursement.jenis_reimbursement = create.jenis_reimbursement;
             reimbursement.tanggal_reimbursement = create.tanggal_reimbursement;
-            reimbursement.jumlah                = create.jumlah;
-            reimbursement.keterangan            = create.keterangan;
-            // reimbursement.id_approver           = create.id_approver;
-            reimbursement.status_reimbursement  = "PENDING";
-            reimbursement.created_at            = LocalDateTime.now();
-            reimbursement.created_by            = ue.id_user;
+            reimbursement.jumlah = create.jumlah;
+            reimbursement.keterangan = create.keterangan;
+            // reimbursement.id_approver = create.id_approver;
+            reimbursement.status_reimbursement = "PENDING";
+            reimbursement.created_at = LocalDateTime.now();
+            reimbursement.created_by = ue.id_user;
             reimbursement.persist();
 
             return Response.ok().entity(ResponseHandler.ok("Create Reimbursement Berhasil", null)).build();
@@ -79,12 +82,27 @@ public class ReimbursementRes {
         }
     }
 
+    // @GET
+    // @Path("/get-all-reimbursement")
+    // @Transactional
+    // public Response getAllReimbursement() {
+    // try {
+    // List<ReimbursementEntity> list = ReimbursementEntity.listAll();
+    // return Response.ok().entity(ResponseHandler.ok("Get All Reimbursement
+    // Berhasil", list)).build();
+    // } catch (Exception e) {
+    // throw new InternalServerErrorException(e.getMessage());
+    // }
+    // }
+
     @GET
     @Path("/get-all-reimbursement")
     @Transactional
     public Response getAllReimbursement() {
         try {
-            var list = ReimbursementEntity.listAll();
+            List<ReimbursementEntity> list = ReimbursementEntity
+                    .find("SELECT r FROM ReimbursementEntity r LEFT JOIN FETCH r.employee_pengajuan")
+                    .list();
             return Response.ok().entity(ResponseHandler.ok("Get All Reimbursement Berhasil", list)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
@@ -97,6 +115,7 @@ public class ReimbursementRes {
     public Response getReimbursementByUser(@Context SecurityContext ctx) {
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+
             var list = ReimbursementEntity.find("user = ?1", ue).list();
             return Response.ok().entity(ResponseHandler.ok("Get Reimbursement Berhasil", list)).build();
         } catch (Exception e) {
@@ -124,11 +143,11 @@ public class ReimbursementRes {
         try {
             ReimbursementEntity reimbursement = ReimbursementEntity.findById(create.id_reimbursement);
 
-            reimbursement.jenis_reimbursement   = create.jenis_reimbursement;
+            reimbursement.jenis_reimbursement = create.jenis_reimbursement;
             reimbursement.tanggal_reimbursement = create.tanggal_reimbursement;
-            reimbursement.jumlah                = create.jumlah;
-            reimbursement.keterangan            = create.keterangan;
-            // reimbursement.id_approver           = create.id_approver;
+            reimbursement.jumlah = create.jumlah;
+            reimbursement.keterangan = create.keterangan;
+            // reimbursement.id_approver = create.id_approver;
 
             if (create.dokumen_reimbursement != null && create.dokumen_reimbursement.size() > 0) {
                 if (!Files.exists(UPLOAD_DIR)) {
