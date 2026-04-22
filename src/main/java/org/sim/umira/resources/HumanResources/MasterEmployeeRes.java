@@ -90,4 +90,15 @@ public class MasterEmployeeRes {
             // TODO: handle exception
         }
     }
+    @GET
+    @Path("/get-master-level-approval")
+    public Response getLevelApproval(){
+        try {
+            List<String> datas = List.of("1|Checker", "2|Signer");
+            return Response.ok().entity(ResponseHandler.ok("Inquiry level approval", datas)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
 }
