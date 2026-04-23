@@ -103,6 +103,7 @@ public class AttendanceRes {
             pengajuanAttendance.jam_masuk = pengajuan.jam_masuk;
             pengajuanAttendance.status_absensi = pengajuan.status;
             pengajuanAttendance.keterangan = pengajuan.keterangan;
+            pengajuanAttendance.tanggal = pengajuan.tanggal;
             pengajuanAttendance.persist();
             for (int i = 0; i < pengajuan.id_employee_approval.size(); i++) {
                 EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(i));
@@ -220,7 +221,7 @@ public class AttendanceRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity employeeApproval = EmployeeEntity.find("user = ?1", ue).firstResult();
             List<PengajuanAttendanceEntity> listPengajuan;
-            // System.out.println(ue.id_user);
+            // System.out.println(ue.id_user); 
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             if(ue.role.kode_role == "99"){
                 listPengajuan = PengajuanAttendanceEntity.find("SELECT DISTINCT p FROM PengajuanAttendanceEntity p JOIN p.approval r JOIN p.employee pr").list();
