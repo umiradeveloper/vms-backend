@@ -50,8 +50,8 @@ public class CreateCutiDto {
     @PartType(MediaType.APPLICATION_OCTET_STREAM)
     public FileUpload dokumen_upload;
 
-    @FormParam("id_approver")
-    @PartType(MediaType.TEXT_PLAIN)
-    public String id_approver;
+    // @FormParam("id_approver")
+    // @PartType(MediaType.TEXT_PLAIN)
+    // public String id_approver;
 
 }

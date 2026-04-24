@@ -64,5 +64,5 @@ public class CutiEntity extends PanacheEntityBase {
 
     public String created_by;
 
-    public String id_approver;
+    // public String id_approver;
 }

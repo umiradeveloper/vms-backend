@@ -47,6 +47,7 @@ public class CutiRes {
             @Valid @MultipartForm CreateCutiDto create, @Context SecurityContext ctx) {
 
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        // EmployeeEntity emp = EmployeeEntity.find("id_user = ?1", ue.id_user).firstResult();
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
 
         if ("ANNUAL_LEAVE".equals(create.jenis_cuti)) {
@@ -56,6 +57,7 @@ public class CutiRes {
             if (balance == null) {
                 balance = new SaldoCutiEntity();
                 balance.id_user = ue.id_user;
+                // balance.employee_pengajuan = emp;
                 balance.tahun = tahun;
                 balance.sisa_cuti = 12;
                 balance.used_cuti = 0;
@@ -101,7 +103,7 @@ public class CutiRes {
             cuti.status_cuti = "PENDING";
             cuti.created_at = LocalDateTime.now();
             cuti.created_by = ue.id_user;
-            cuti.id_approver = create.id_approver;
+            // cuti.id_approver = create.id_approver;
             cuti.persist();
 
             return Response.ok().entity(ResponseHandler.ok("Create Cuti Berhasil", null)).build();
