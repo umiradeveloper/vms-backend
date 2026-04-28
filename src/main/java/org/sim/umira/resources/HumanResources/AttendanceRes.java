@@ -105,6 +105,13 @@ public class AttendanceRes {
             pengajuanAttendance.keterangan = pengajuan.keterangan;
             pengajuanAttendance.tanggal = pengajuan.tanggal;
             pengajuanAttendance.persist();
+            PengajuanApprovalAttendanceEntity pengajuanApprovalMaker = new PengajuanApprovalAttendanceEntity();
+            pengajuanApprovalMaker.employee = employeeE;
+            pengajuanApprovalMaker.level_approval = "Maker";
+            pengajuanApprovalMaker.urutan = 0;
+            pengajuanApprovalMaker.status_approval = "Pengajuan";
+            pengajuanApprovalMaker.tanggal_approval = LocalDateTime.now();
+            pengajuanApprovalMaker.persist();
             for (int i = 0; i < pengajuan.id_employee_approval.size(); i++) {
                 EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(i));
                 PengajuanApprovalAttendanceEntity pengajuanApproval = new PengajuanApprovalAttendanceEntity();
