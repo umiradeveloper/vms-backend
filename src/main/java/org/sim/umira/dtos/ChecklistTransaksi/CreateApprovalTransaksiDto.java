@@ -10,7 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 public class CreateApprovalTransaksiDto {
     @FormParam("upload_bukti_bayar")
     @PartType(MediaType.APPLICATION_OCTET_STREAM)
-    @NotBlank(message = "upload_bukti_bayar must be required")
+    // @NotBlank(message = "upload_bukti_bayar must be required")
     public FileUpload bukti_bayar;
 
     
