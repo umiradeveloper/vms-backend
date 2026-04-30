@@ -28,6 +28,7 @@ public class JenisTransaksiRes {
             jenisTrans.jenis_transaksi = jenis.jenis_transaksi;
             jenisTrans.no_urut = jenis.no_urut;
             jenisTrans.tipe = jenis.tipe;
+            jenisTrans.nilai_value = jenis.nilai_value;
             jenisTrans.persist();
             return Response.ok().entity(ResponseHandler.ok("Create Jenis Transaksi", null)).build();
         } catch (Exception e) {

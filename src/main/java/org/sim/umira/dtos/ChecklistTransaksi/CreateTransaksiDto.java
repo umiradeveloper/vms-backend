@@ -24,10 +24,19 @@ public class CreateTransaksiDto {
     @NotBlank(message = "jenis_transaksi must be required")
     public String proyek;
 
-    @FormParam("catatan")
+
+    @FormParam("tempo_pembayaran_after_verified")
     @PartType(MediaType.TEXT_PLAIN)
     // @NotBlank(message = "jenis_transaksi must be required")
+    public String tempo_pembayaran_after_verified;
+
+    @FormParam("catatan")
+    @PartType(MediaType.TEXT_PLAIN)
     public String catatan;
+
+    @FormParam("kode_transaksi")
+    @PartType(MediaType.TEXT_PLAIN)
+    public String kode_transaksi;
 
     @FormParam("nama_transaksi")
     @PartType(MediaType.TEXT_PLAIN)
@@ -40,4 +49,10 @@ public class CreateTransaksiDto {
     @NotNull(message = "dokumen files must be required")
     @NotEmpty(message = "dokumen files must be required")
     public List<FileUpload> files; 
+
+    @FormParam("nilai")
+    @PartType(MediaType.TEXT_PLAIN)
+    @NotNull(message = "nilai_value must be required")
+    @NotEmpty(message = "nilai_value must be required")
+    public List<Integer> nilai_value;
 }

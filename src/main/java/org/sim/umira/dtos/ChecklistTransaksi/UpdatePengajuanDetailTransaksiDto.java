@@ -13,6 +13,12 @@ public class UpdatePengajuanDetailTransaksiDto {
     @NotBlank(message = "upload_bukti_bayar must be required")
     public FileUpload upload_dokumen_transaksi;
 
+
+    @FormParam("nilai_transaksi")
+    @PartType(MediaType.TEXT_PLAIN)
+    @NotBlank(message = "nilai_transaksi must be required")
+    public Integer nilai_transaksi;
+
     
     // @FormParam("id_detail_transaksi")
     // @PartType(MediaType.TEXT_PLAIN)

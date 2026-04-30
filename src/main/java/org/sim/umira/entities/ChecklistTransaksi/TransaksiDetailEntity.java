@@ -31,6 +31,8 @@ public class TransaksiDetailEntity extends PanacheEntityBase {
     public Integer checklist;
 
     public String catatan;
+    
+    public Integer nilai;
 
     public LocalDateTime verified_at;
 

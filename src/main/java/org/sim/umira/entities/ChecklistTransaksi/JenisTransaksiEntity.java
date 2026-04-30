@@ -23,5 +23,9 @@ public class JenisTransaksiEntity extends PanacheEntityBase {
     
     public String tipe;
 
+    public String kode_jenis;
+
+    public Integer nilai_value;
+
 
 }

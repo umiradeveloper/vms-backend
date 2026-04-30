@@ -43,6 +43,23 @@ public class TransaksiEntity extends PanacheEntityBase {
 
     public String upload_bukti_pembayaran;
 
+    public String catatan_verified;
+
+    public String kode_transaksi;
+
+    public LocalDateTime payment_at;
+     public LocalDateTime approved_at;
+
+    public String catatan_payment;
+
+    public String tempo_pembayaran_after_verified;
+
+    public LocalDate tanggal_jatuh_tempo_after_verified;
+
+    @ManyToOne
+    @JoinColumn(name = "payment_by")
+    public UserEntity paymentBy;
+
     @ManyToOne
     @JoinColumn(name = "user_pengajuan")
     public UserEntity user_pengajuan;

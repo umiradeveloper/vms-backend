@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +19,7 @@ import org.sim.umira.dtos.ChecklistTransaksi.CreateApprovalTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.CreateTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.UpdatePengajuanDetailTransaksiDto;
 import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.ChecklistTransaksi.CountTransaksiEntity;
 import org.sim.umira.entities.ChecklistTransaksi.TransaksiDetailEntity;
 import org.sim.umira.entities.ChecklistTransaksi.TransaksiEntity;
 import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
@@ -50,12 +52,29 @@ public class TransaksiRes {
     @Path("/create-transaksi")
     @Transactional
     public Response createTransaksi(@MultipartForm CreateTransaksiDto form, @Context SecurityContext ctx) {
+        CountTransaksiEntity countTrx = CountTransaksiEntity.find("kode_transaksi", form.kode_transaksi).firstResult();
+        String kode_trx;
+        if(countTrx == null){
+            CountTransaksiEntity countSave = new CountTransaksiEntity();
+            countSave.kode_transaksi = form.kode_transaksi;
+            countSave.jumlah = 1;
+            countSave.persist();
+            kode_trx = form.kode_transaksi+ LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"))+"001";
+        }else{
+            // countSave.kode_transaksi = form.kode_transaksi;
+            countTrx.jumlah = countTrx.jumlah + 1;
+            countTrx.persist();
+            kode_trx = form.kode_transaksi+ LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"))+String.format("%03d", countTrx.jumlah);
+        }
         try {
             List<CompletableFuture<TransaksiDetailEntity>> tasks = new ArrayList<>();
+
             TransaksiEntity transaksiParent = new TransaksiEntity();
             UserEntity userPengaju = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             transaksiParent.jenis_transaksi = form.jenis_transaksi;
+            transaksiParent.kode_transaksi = kode_trx;
             transaksiParent.tanggal_pengajuan = LocalDate.now();
+            transaksiParent.tempo_pembayaran_after_verified = form.tempo_pembayaran_after_verified;
             transaksiParent.keterangan = form.catatan;
             transaksiParent.user_pengajuan = userPengaju;
             transaksiParent.updatedBy = userPengaju;
@@ -86,6 +105,7 @@ public class TransaksiRes {
                         entity.transaksi = transaksiParent;
                         entity.pertanyaan = form.nama_transaksi.get(idx);
                         entity.jawaban = target.toString();
+                        entity.nilai = form.nilai_value.get(idx);
                         return entity;
 
                     } catch (Exception e) {
@@ -123,6 +143,17 @@ public class TransaksiRes {
             // TODO: handle exception
         }
     }
+    @GET
+    @Path("/get-transaksi-by-status")
+    public Response getTransaksiByStatus(@QueryParam("status") String status) {
+        try {
+            List<TransaksiEntity> transaksi = TransaksiEntity.find("status_pengajuan = ?1", status).list();
+            return Response.ok().entity(ResponseHandler.ok("Get Transaksi By Status", transaksi)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
 
     @GET
     @Path("/get-transaksi-by-id")
@@ -140,7 +171,7 @@ public class TransaksiRes {
     @Path("/get-master-status-approval")
     public Response getMasterStatusPengajuan() {
         try {
-            List<String> masterPengajuan = List.of("Approved", "Reject");
+            List<String> masterPengajuan = List.of("Verified", "Reject");
             return Response.ok().entity(ResponseHandler.ok("Get Master Status", masterPengajuan)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
@@ -206,6 +237,7 @@ public class TransaksiRes {
             // List<TransaksiEntity> transaksi = TransaksiEntity.listAll();
             TransaksiDetailEntity detail = TransaksiDetailEntity.findById(id);
             if(update.upload_dokumen_transaksi != null){
+                Files.deleteIfExists(java.nio.file.Path.of(detail.jawaban));
                 String ext = update.upload_dokumen_transaksi.fileName()
                         .substring(update.upload_dokumen_transaksi.fileName().lastIndexOf("."));
                 String fileName = java.util.UUID.randomUUID() + ext;
@@ -219,6 +251,10 @@ public class TransaksiRes {
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
                 detail.jawaban = target.toString();
             }
+            if(update.nilai_transaksi != null){
+                detail.nilai = update.nilai_transaksi;
+            }
+            
             detail.checklist = null;
             
             return Response.ok().entity(ResponseHandler.ok("Update Detail Transaksi", detail)).build();
@@ -231,7 +267,7 @@ public class TransaksiRes {
     @POST
     @Path("/update-status-pengajuan")
     @Transactional
-    public Response updateStatusPengajuan(@MultipartForm CreateApprovalTransaksiDto create, @QueryParam("id") String id, @Context SecurityContext ctx) {
+    public Response updateStatusPengajuan(@MultipartForm CreateApprovalTransaksiDto create, @QueryParam("id") String id, @Context SecurityContext ctx, @QueryParam("catatan_verified") String catatan_verified, @QueryParam("catatan_payment") String catatan_payment) {
         try {
             TransaksiEntity trx = TransaksiEntity.findById(id);
             UserEntity userApproved = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
@@ -250,10 +286,38 @@ public class TransaksiRes {
                 trx.upload_bukti_pembayaran = target.toString();
             }
             trx.status_pengajuan = create.status_approval;
-            trx.approvedBy = userApproved;
+            switch (create.status_approval) {
+                case "Verified":
+                    trx.approvedBy = userApproved;
+                    trx.approved_at = LocalDateTime.now();
+                    trx.tanggal_jatuh_tempo_after_verified = LocalDate.now().plusDays(Long.valueOf(trx.tempo_pembayaran_after_verified));
+                    break;
+                case "Reject":
+                    trx.approvedBy = userApproved;
+                    break;
+                case "Payment":
+                    trx.paymentBy = userApproved;
+                    trx.payment_at = LocalDateTime.now();
+                    break;
+                default:
+                    trx.approvedBy = null;
+                    trx.paymentBy = null;
+                    break;
+            }
+            
             trx.updatedBy = userApproved;
             trx.last_updated = LocalDateTime.now();
-            trx.layak_bayar = create.layak_bayar;
+            if(create.layak_bayar != null){
+                trx.layak_bayar = create.layak_bayar;
+            }
+            
+            if(catatan_verified != null){
+                trx.catatan_verified = catatan_verified;
+            }
+            if(catatan_payment != null){
+                trx.catatan_payment = catatan_payment;
+            }
+            
         
             return Response.ok().entity(ResponseHandler.ok("Update Detail Transaksi", null)).build();
         } catch (Exception e) {

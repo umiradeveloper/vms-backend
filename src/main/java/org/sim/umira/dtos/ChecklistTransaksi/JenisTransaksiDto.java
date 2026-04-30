@@ -9,4 +9,8 @@ public class JenisTransaksiDto {
     public Integer no_urut;
 
     public String tipe;
+
+    public String kode_jenis;
+
+    public Integer nilai_value;
 }
