@@ -16,7 +16,7 @@ public class CreateApprovalTransaksiDto {
     
     @FormParam("layak_bayar")
     @PartType(MediaType.TEXT_PLAIN)
-    @NotBlank(message = "status_approval must be required")
+    // @NotBlank(message = "status_approval must be required")
     public String layak_bayar;
 
     @FormParam("status_approval")
