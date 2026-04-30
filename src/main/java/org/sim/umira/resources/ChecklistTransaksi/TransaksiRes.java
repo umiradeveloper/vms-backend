@@ -29,6 +29,7 @@ import org.sim.umira.services.SuperappsExecutor;
 
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.POST;
@@ -51,7 +52,7 @@ public class TransaksiRes {
     @POST
     @Path("/create-transaksi")
     @Transactional
-    public Response createTransaksi(@MultipartForm CreateTransaksiDto form, @Context SecurityContext ctx) {
+    public Response createTransaksi(@Valid @MultipartForm CreateTransaksiDto form, @Context SecurityContext ctx) {
         CountTransaksiEntity countTrx = CountTransaksiEntity.find("kode_transaksi", form.kode_transaksi).firstResult();
         String kode_trx;
         if(countTrx == null){
@@ -134,10 +135,17 @@ public class TransaksiRes {
 
     @GET
     @Path("/get-transaksi")
-    public Response getTransaksi() {
+    public Response getTransaksi(@Context SecurityContext ctx) {
+        UserEntity user = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         try {
-            List<TransaksiEntity> transaksi = TransaksiEntity.listAll();
-            return Response.ok().entity(ResponseHandler.ok("Get Transaksi", transaksi)).build();
+            List<TransaksiEntity> trx;
+            if(user.role.kode_role == "99"){
+                trx = TransaksiEntity.listAll();
+            }else{
+                trx = TransaksiEntity.find("user_pengajuan = ?1 OR approvedBy = ?1 OR paymentBy = ?1", user).list();
+            }
+            
+            return Response.ok().entity(ResponseHandler.ok("Get Transaksi", trx)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
@@ -231,7 +239,7 @@ public class TransaksiRes {
     @POST
     @Path("/update-detail-transaksi-pengajuan")
     @Transactional
-    public Response updateDetailTransaksiPengajuan(@MultipartForm UpdatePengajuanDetailTransaksiDto update, @QueryParam("id") String id, @Context SecurityContext ctx) {
+    public Response updateDetailTransaksiPengajuan(@Valid @MultipartForm UpdatePengajuanDetailTransaksiDto update, @QueryParam("id") String id, @Context SecurityContext ctx) {
         try {
             UserEntity userVerified = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             // List<TransaksiEntity> transaksi = TransaksiEntity.listAll();
@@ -267,7 +275,7 @@ public class TransaksiRes {
     @POST
     @Path("/update-status-pengajuan")
     @Transactional
-    public Response updateStatusPengajuan(@MultipartForm CreateApprovalTransaksiDto create, @QueryParam("id") String id, @Context SecurityContext ctx, @QueryParam("catatan_verified") String catatan_verified, @QueryParam("catatan_payment") String catatan_payment) {
+    public Response updateStatusPengajuan(@Valid @MultipartForm CreateApprovalTransaksiDto create, @QueryParam("id") String id, @Context SecurityContext ctx, @QueryParam("catatan_verified") String catatan_verified, @QueryParam("catatan_payment") String catatan_payment) {
         try {
             TransaksiEntity trx = TransaksiEntity.findById(id);
             UserEntity userApproved = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
@@ -307,14 +315,14 @@ public class TransaksiRes {
             
             trx.updatedBy = userApproved;
             trx.last_updated = LocalDateTime.now();
-            if(create.layak_bayar != null){
+            if(create.layak_bayar != null || create.layak_bayar != ""){
                 trx.layak_bayar = create.layak_bayar;
             }
             
-            if(catatan_verified != null){
+            if(catatan_verified != null ||catatan_verified != "" ){
                 trx.catatan_verified = catatan_verified;
             }
-            if(catatan_payment != null){
+            if(catatan_payment != null || catatan_payment != ""){
                 trx.catatan_payment = catatan_payment;
             }
             
