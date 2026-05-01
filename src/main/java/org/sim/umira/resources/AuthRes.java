@@ -5,12 +5,15 @@ package org.sim.umira.resources;
 
 
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.configs.ConfigHttpService;
 import org.sim.umira.configs.ConfigService;
 import org.sim.umira.dtos.LoginDto;
 import org.sim.umira.dtos.RegisterDto;
+import org.sim.umira.dtos.ResetPasswordDto;
 import org.sim.umira.dtos.ResponseLoginDto;
 import org.sim.umira.entities.BranchEntity;
 import org.sim.umira.entities.MenuAccessEntity;
@@ -19,6 +22,7 @@ import org.sim.umira.entities.RoleEntity;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.JwtService;
+import org.sim.umira.services.AESUtils;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
 
@@ -29,9 +33,11 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -195,5 +201,74 @@ public class AuthRes {
        
         return Response.ok().entity(ResponseHandler.ok("success register", null)).build();
     }
+
+
+    @GET
+    @Path("/forgot-password")
+    @PermitAll
+    public Response ForgotPasswordEmail(@QueryParam("email") String email){
+        UserEntity ue = UserEntity.find("email = ?1 OR no_hp = ?1", email).firstResult();
+        if(ue == null){
+            throw new BadRequestException("Email atau no handphone tidak terdaftar");
+        }
+        try {
+            String enc = AESUtils.encrypt(email+"|"+LocalDateTime.now().plusHours(2));
+            
+            httpService.sendEmail(ue.email.trim(), "Berikut link untuk reset password : http://localhost:3001/apps/VerifyPassword?token="+enc, "Reset Password");
+            return Response.ok().entity(ResponseHandler.ok("Reset password berhasil di kirim ke email ", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @GET
+    @Path("/verify-token")
+    @PermitAll
+    public Response VerifyToken(@QueryParam("token") String token){
+       
+        
+        try {
+            String dec = AESUtils.decrypt(token);
+            String[] decrypt = dec.split("\\|");
+            // System.out.println(decrypt[1]);
+            LocalDateTime perbandinganWaktu = LocalDateTime.parse(decrypt[1]);
+            if(LocalDateTime.now().isBefore(perbandinganWaktu)){
+                return Response.ok().entity(ResponseHandler.ok("Masih Berlaku", false)).build();
+            }else{
+                return Response.ok().entity(ResponseHandler.ok("Expired ", true)).build();
+            }
+            // httpService.sendEmail(ue.email.trim(), "Berikut link untuk reset password : https://localhost:3001/apps/VerifyPassword/token="+enc, "Reset Password");
+            // return Response.ok().entity(ResponseHandler.ok("Reset password berhasil di kirim ke email ", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @POST
+    @Path("reset-password")
+    @PermitAll
+    @Transactional
+    public Response ResetPassword(@Valid @RequestBody ResetPasswordDto reset){
+        String dec = AESUtils.decrypt(reset.token);
+        String[] decrypt = dec.split("\\|");
+        // System.out.println(decrypt[1]);
+        LocalDateTime perbandinganWaktu = LocalDateTime.parse(decrypt[1]);
+        if(LocalDateTime.now().isAfter(perbandinganWaktu)){
+            // return Response.ok().entity(ResponseHandler.ok("Masih Berlaku", false)).build();
+            throw new BadRequestException("Link Sudah Expired");
+        }
+        try {
+            UserEntity ue = UserEntity.find("email = ?1", decrypt[0]).firstResult();
+            ue.password = BcryptUtil.bcryptHash(reset.password);
+            return Response.ok().entity(ResponseHandler.ok("Reset Password Berhasil", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+
    
 }
