@@ -214,7 +214,7 @@ public class AuthRes {
         try {
             String enc = AESUtils.encrypt(email+"|"+LocalDateTime.now().plusHours(2));
             
-            httpService.sendEmail(ue.email.trim(), "Berikut link untuk reset password : http://localhost:3001/apps/VerifyPassword?token="+enc, "Reset Password");
+            httpService.sendEmail(ue.email.trim(), "Berikut link untuk reset password : https://superapps.simumira.com/apps/VerifyPassword?token="+enc, "Reset Password");
             return Response.ok().entity(ResponseHandler.ok("Reset password berhasil di kirim ke email ", null)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
