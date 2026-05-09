@@ -1,5 +1,6 @@
 package org.sim.umira.resources.CostControl;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -79,20 +80,32 @@ public class RapaRes {
     public Response createRapaBulk(
         @Valid @RequestBody CreateRapaBulkDto create, @Context SecurityContext ctx
     ){
-
+        BigDecimal total_rapa = BigDecimal.ZERO;
+        ProyekEntity proyek = ProyekEntity.find("kode_proyek = ?1", create.kode_proyek).firstResult();
         for (int i = 0; i < create.cost_code.size(); i++) {
                 final int index = i;
                 CostCodeEntity costCodeEntity = CostCodeEntity.find("cost_code = ?1", create.cost_code.get(index)).firstResult();
+                RapaEntity rapaCheck = RapaEntity.find("costCodeRapa = ?1 AND proyek = ?2", costCodeEntity, proyek).firstResult();
+                if(rapaCheck != null){
+                    throw new BadRequestException("Cost Code index ke "+index+ " cost code "+create.cost_code.get(index)+" Sudah Terdaftar Di RAPA");
+                }
                 // SatuanEntity satuan = SatuanEntity.find("kode_satuan = ?1", create.satuan.get(index)).firstResult();
                 // KategoriEntity kategori = KategoriEntity.find("kode_kategori = ?1", create.kategori.get(index)).firstResult();
                 
                 if(costCodeEntity == null){
                     throw new BadRequestException("Cost Code index ke "+index+ " cost code "+create.cost_code.get(index)+" tidak terdaftar");
                 }
+
+                total_rapa = total_rapa.add(create.harga_total.get(index));
+
+        }
+        
+        if(total_rapa.toBigInteger().compareTo(proyek.biaya_rap) > 0){
+            throw new BadRequestException("Biaya RAPA melebihi dari RAP yang sudah di definisikan Proyek");
         }
 
         try {
-            ProyekEntity proyek = ProyekEntity.find("kode_proyek = ?1", create.kode_proyek).firstResult();
+            
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             Session session = em.unwrap(Session.class);
             int batch = create.cost_code.size();

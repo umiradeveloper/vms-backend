@@ -47,22 +47,22 @@ public class MasterRes {
         try {
             ProyekEntity pe = ProyekEntity.findById(id_project);
             List<WeekData> result = new ArrayList<>();
-            LocalDate start = pe.tanggal_awal_kontrak;
-            LocalDate end = pe.tanggal_akhir_kontrak;
+            LocalDate start = pe.periode_awal_progress;
+            LocalDate end = pe.periode_akhir_progress;
             LocalDate currentStart = start;
             int weekNumber = 1;
 
-        while (!currentStart.isAfter(end)) {
-            LocalDate currentEnd = currentStart.plusDays(6);
-            if (currentEnd.isAfter(end)) {
-                currentEnd = end;
+            while (!currentStart.isAfter(end)) {
+                LocalDate currentEnd = currentStart.plusDays(6);
+                if (currentEnd.isAfter(end)) {
+                    currentEnd = end;
+                }
+
+                result.add(new WeekData(weekNumber, currentStart, currentEnd));
+
+                weekNumber++;
+                currentStart = currentStart.plusDays(7);
             }
-
-            result.add(new WeekData(weekNumber, currentStart, currentEnd));
-
-            weekNumber++;
-            currentStart = currentStart.plusDays(7);
-        }
 
             return Response.ok().entity(ResponseHandler.ok("Inquiry Role Success", result.stream().sorted(Comparator.comparing(WeekData::week)).toList())).build();
         } catch (Exception e) {

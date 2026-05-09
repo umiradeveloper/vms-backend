@@ -5,10 +5,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.sim.umira.dtos.CostControl.CreatePengajuanBkBulkDto;
 import org.sim.umira.dtos.CostControl.CreatePengajuanBkDto;
 import org.sim.umira.dtos.CostControl.ResponseApprovePengajuanBkDto;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.CostControl.BiayaKontruksiEntity;
+import org.sim.umira.entities.CostControl.CostCodeEntity;
+import org.sim.umira.entities.CostControl.PengajuanBiayaKonstruksiDetailEntity;
 import org.sim.umira.entities.CostControl.PengajuanBiayaKonstruksiEntity;
 import org.sim.umira.entities.CostControl.PengajuanBiayaKonstruksiPersetujuanEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
@@ -73,11 +76,11 @@ public class PengajuanBiayaKonstruksiRes {
             
 
             PengajuanBiayaKonstruksiEntity pengajuanBk = new PengajuanBiayaKonstruksiEntity();
-            pengajuanBk.nama_penerima = create.nama_penerima;
-            pengajuanBk.nama_vendor = create.nama_vendor;
+            // pengajuanBk.nama_penerima = create.nama_penerima;
+            // pengajuanBk.nama_vendor = create.nama_vendor;
             pengajuanBk.volume_bk = create.volume_bk;
             pengajuanBk.proyek = proyek;
-            pengajuanBk.rapa = rapa;
+            // pengajuanBk.rapa = rapa;
             pengajuanBk.harga_total = create.harga_total;
             pengajuanBk.tanggal_penerima = create.tanggal_penerima;
             pengajuanBk.persist();
@@ -116,6 +119,108 @@ public class PengajuanBiayaKonstruksiRes {
         
     }
 
+    @POST
+    @Path("/create-pengajuan-bk-bulk")
+    @Transactional
+    public Response createPengajuanBkBulk(
+        @Valid CreatePengajuanBkBulkDto create, @Context SecurityContext ctx
+    ){
+        ProyekEntity proyek = ProyekEntity.findById(create.id_proyek);
+        // RapaEntity rapa = RapaEntity.findById(create.id_rapa);
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        if(proyek == null){
+            throw new BadRequestException("Id Proyek tidak di temukan");
+        }
+         for(int i = 0; i < create.cost_code.size(); i++){
+            final int idx = i;
+            CostCodeEntity costCode = CostCodeEntity.find("cost_code = ?1", create.cost_code.get(idx)).firstResult();
+            if(costCode == null){
+                throw new BadRequestException("Cost Code dengan "+create.cost_code.get(idx)+" tidak terdaftar");
+            }
+            RapaEntity rapaE = RapaEntity.find("costCodeRapa = ?1 AND proyek = ?2", costCode, proyek).firstResult();
+            if(rapaE == null){
+                throw new BadRequestException("Cost Code dengan "+create.cost_code.get(idx)+" tidak terdaftar di RAPA");
+            }
+        }
+        
+
+        if(ue == null){
+            throw new BadRequestException("User tidak di temukan");
+        }
+        for (int i = 0; i < create.id_user.size(); i++) {
+
+            if(create.id_user.get(i) == null){
+                throw new BadRequestException("id_user index "+ i +" null");
+            }
+            UserEntity userId = UserEntity.findById(create.id_user.get(i));
+            if(userId == null){
+                throw new BadRequestException("user index "+ i +" tidak di temukan");
+            }
+        }
+        try {
+            
+
+            PengajuanBiayaKonstruksiEntity pengajuanBk = new PengajuanBiayaKonstruksiEntity();
+           
+            pengajuanBk.proyek = proyek;
+        
+            pengajuanBk.catatan = create.catatan;
+            pengajuanBk.persist();
+              
+            // System.out.println(pengajuanBk);
+            if(pengajuanBk != null){
+               PengajuanBiayaKonstruksiPersetujuanEntity persetujuan = new PengajuanBiayaKonstruksiPersetujuanEntity();
+                persetujuan.pengajuan_bk = pengajuanBk;
+                persetujuan.nama_persetujuan = ue.username;
+                persetujuan.id_user = ue.id_user;
+                persetujuan.status_approver = "Pengajuan";
+                persetujuan.urutan = 0;
+                persetujuan.tanggal_persetujuan = LocalDateTime.now();
+                persetujuan.persist();
+
+                for (int i = 0; i < create.id_user.size(); i++) {
+                    
+                    UserEntity userId = UserEntity.findById(create.id_user.get(i));
+                    PengajuanBiayaKonstruksiPersetujuanEntity persetujuanBk = new PengajuanBiayaKonstruksiPersetujuanEntity();
+                    persetujuanBk.id_user = create.id_user.get(i);
+                    persetujuanBk.pengajuan_bk = pengajuanBk;
+                    persetujuanBk.status_approver = "Waiting";
+                    persetujuanBk.urutan = create.urutan.get(i);
+                    persetujuanBk.nama_persetujuan = userId.nama;
+                    persetujuanBk.jabatan_persetujuan = userId.role.nama_role;
+                    persetujuanBk.persist();
+                } 
+
+               for(int j = 0; j < create.cost_code.size(); j++){
+                    final int jac = j;
+                    ProyekEntity peDetail = ProyekEntity.findById(create.id_proyek);
+                    CostCodeEntity costCodeE = CostCodeEntity.find("cost_code = ?1", create.cost_code.get(jac)).firstResult();
+                    RapaEntity rapaEntity = RapaEntity.find("costCodeRapa = ?1 AND proyek = ?2", costCodeE, peDetail).firstResult();
+                    LocalDateTime tanggal_penerima_time = create.tanggal_penerima.get(jac).atStartOfDay();
+                    PengajuanBiayaKonstruksiDetailEntity pDetail = new PengajuanBiayaKonstruksiDetailEntity();
+                    pDetail.rapa = rapaEntity;
+                    pDetail.harga_total = create.harga_total.get(jac);
+                    pDetail.created_at = LocalDateTime.now();
+                    pDetail.created_by = ue.id_user;
+                    pDetail.invoice_nota = create.invoice_nota.get(jac);
+                    pDetail.no_po = create.no_po.get(jac);
+                    pDetail.pengajuanBk = pengajuanBk;
+                    pDetail.proyek = proyek;
+                    pDetail.tanggal_penerima = tanggal_penerima_time;
+                    pDetail.volume_bk = create.volume_bk.get(jac);
+                    pDetail.persist();
+               }
+            }
+            
+
+            return Response.ok().entity(ResponseHandler.ok("Create Pengajuan Biaya Konstruksi Berhasil Di Buat", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+        
+    }
+
     @GET
     @Path("/get-approve-pengajuan-bk")
     public Response getApprovePengajuanBk(
@@ -127,7 +232,7 @@ public class PengajuanBiayaKonstruksiRes {
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanBiayaKonstruksiEntity> listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
                 SELECT DISTINCT p
-                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r
+                FROM PengajuanBiayaKonstruksiEntity p
                 WHERE EXISTS (
                     SELECT 1
                     FROM PengajuanBiayaKonstruksiPersetujuanEntity ps
@@ -162,11 +267,11 @@ public class PengajuanBiayaKonstruksiRes {
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanBiayaKonstruksiEntity> listPengajuan;
             if(ue.role.id_role == "99"){
-                listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r JOIN p.proyek pr").list(); 
+                listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p  JOIN p.proyek pr").list(); 
             }else{
                 listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
                 SELECT DISTINCT p
-                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r JOIN p.proyek pr
+                FROM PengajuanBiayaKonstruksiEntity p JOIN p.proyek pr
                 WHERE EXISTS (
                     SELECT 1
                     FROM PengajuanBiayaKonstruksiPersetujuanEntity ps
@@ -213,16 +318,25 @@ public class PengajuanBiayaKonstruksiRes {
                     // System.out.println(status_approver);
                     List<PengajuanBiayaKonstruksiPersetujuanEntity> pengajuanList = PengajuanBiayaKonstruksiPersetujuanEntity.find("tanggal_persetujuan IS NULL AND pengajuan_bk = ?1", pengajuanBk).list();
                     if(pengajuanList.size() == 0){
-                        BiayaKontruksiEntity bk = new BiayaKontruksiEntity();
-                        bk.nama_penerima = pengajuanBk.nama_penerima;
-                        bk.nama_vendor = pengajuanBk.nama_vendor;
-                        bk.harga_total = pengajuanBk.harga_total;
-                        bk.proyek = pengajuanBk.proyek;
-                        bk.rapa = pengajuanBk.rapa;
-                        bk.volume_bk = pengajuanBk.volume_bk;
-                        bk.tanggal_penerima = pengajuanBk.tanggal_penerima;
-                        bk.reference_id_pengajuan = pengajuanBk.id_pengajuan_bk;
-                        bk.persist();
+                        List<PengajuanBiayaKonstruksiDetailEntity> pDetail = PengajuanBiayaKonstruksiDetailEntity.find("pengajuanBk = ?1", pengajuanBk).list();
+
+                        for(PengajuanBiayaKonstruksiDetailEntity pengajuanDetail: pDetail){
+                            BiayaKontruksiEntity bk = new BiayaKontruksiEntity();
+                            // bk.nama_penerima = pengajuanBk.nama_penerima;
+                            // bk.nama_vendor = pengajuanBk.nama_vendor;
+                            bk.harga_total = pengajuanDetail.harga_total;
+                            bk.proyek = pengajuanDetail.proyek;
+                            bk.rapa = pengajuanDetail.rapa;
+                            bk.invoice_nota = pengajuanDetail.invoice_nota;
+                            bk.no_po = pengajuanDetail.no_po;
+                            bk.created_at = pengajuanDetail.created_at;
+                            bk.created_by = pengajuanDetail.created_by;
+                            bk.volume_bk = pengajuanDetail.volume_bk;
+                            bk.tanggal_penerima = pengajuanDetail.tanggal_penerima;
+                            bk.reference_id_pengajuan = pengajuanBk.id_pengajuan_bk;
+                            bk.persist();
+                        }
+                        
                     }
                 }else if(status_approver.equals("Reject")){
                     List<PengajuanBiayaKonstruksiPersetujuanEntity> getPersetujuanReject = PengajuanBiayaKonstruksiPersetujuanEntity.find("pengajuan_bk = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC", pengajuanBk).list();
@@ -296,11 +410,11 @@ public class PengajuanBiayaKonstruksiRes {
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanBiayaKonstruksiEntity> listPengajuan;
             if(ue.role.id_role == "99"){
-                listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r JOIN p.proyek pr").list(); 
+                listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p JOIN p.proyek pr").list(); 
             }else{
                 listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
                 SELECT DISTINCT p
-                FROM PengajuanBiayaKonstruksiEntity p JOIN p.rapa r JOIN p.proyek pr
+                FROM PengajuanBiayaKonstruksiEntity p JOIN p.proyek pr
                 WHERE EXISTS (
                     SELECT 1
                     FROM PengajuanBiayaKonstruksiPersetujuanEntity ps

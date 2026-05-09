@@ -616,18 +616,16 @@ public class VendorRes {
         @Context SecurityContext ctx
     ){
         
-        List<VmsVendorEntity> vv = VmsVendorEntity.find("isApproval = ?1 GROUP BY nama_perusahaan ORDER BY tanggal_pengajuan DESC", 1).list();
+        // List<VmsVendorEntity> vv = VmsVendorEntity.find("isApproval = ?1 GROUP BY nama_perusahaan ORDER BY tanggal_pengajuan DESC", 1).list();
         // List<VmsVendorEntity> ve = getEntity
-        // List<VmsVendorEntity> vv = VmsVendorEntity.find(
-        //         "FROM VmsVendorEntity v " +
-        //         "WHERE v.isApproval = ?1 " +
-        //         "AND v.tanggal_pengajuan = (" +
-        //         "   SELECT MAX(v2.tanggal_pengajuan) " +
-        //         "   FROM VmsVendorEntity v2 " +
-        //         "   WHERE v2.nama_perusahaan = v.nama_perusahaan" +
-        //         ")",
-        //         1
-        //     ).list();
+       List<VmsVendorEntity> vv = VmsVendorEntity.find(
+            "id IN (" +
+            "SELECT MAX(id) FROM VmsVendorEntity " +
+            "WHERE isApproval = ?1 " +
+            "GROUP BY nama_perusahaan" +
+            ") ORDER BY tanggal_pengajuan DESC",
+            1
+        ).list();
         
 
         return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();

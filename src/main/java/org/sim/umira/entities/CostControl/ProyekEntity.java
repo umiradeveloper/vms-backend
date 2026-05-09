@@ -48,8 +48,12 @@ public class ProyekEntity extends PanacheEntityBase {
     // @Column(columnDefinition = "DATE", name = "tanggal_awal_kontrak", nullable = false)
     public LocalDate tanggal_awal_kontrak;
 
+    public LocalDate periode_awal_progress;
+
     // @Column(columnDefinition = "DATE", name = "tanggal_akhir_kontrak", nullable = false)
     public LocalDate tanggal_akhir_kontrak;
+
+    public LocalDate periode_akhir_progress;
 
     public LocalDateTime created_at;
 

@@ -38,4 +38,10 @@ public class CreateProyekDto {
 
     @NotNull(message = "tanggal akhir kontrak is required")
     public LocalDate tanggal_akhir_kontrak;
+
+    @NotNull(message = "Periode Awal Progress is required")
+    public LocalDate periode_awal_progress;
+
+    @NotNull(message = "Periode Akhir Progress is required")
+    public LocalDate periode_akhir_progress;
 }

@@ -28,24 +28,27 @@ public class PengajuanBiayaKonstruksiEntity extends PanacheEntityBase {
     @GeneratedValue(strategy = GenerationType.UUID)
     public String id_pengajuan_bk;
     
-    public String nama_vendor;
+
 
     public BigDecimal volume_bk;
 
     public BigDecimal harga_total;
 
-    public String nama_penerima;
+
 
     public LocalDateTime tanggal_penerima;
+
+
+    public String catatan;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proyek")
     public ProyekEntity proyek;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_rapa")
-    // @JsonBackReference
-    public RapaEntity rapa;
+    @OrderBy("created_at ASC")
+    @OneToMany(mappedBy = "pengajuanBk", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    public List<PengajuanBiayaKonstruksiDetailEntity> pengajuan_bk_detail;
 
 
     @OrderBy("urutan ASC")

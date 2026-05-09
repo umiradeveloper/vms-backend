@@ -1,7 +1,6 @@
 package org.sim.umira.entities.CostControl;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -16,24 +15,21 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+
 @Entity
-@Table(name = "cc_biaya_kontruksi")
-public class BiayaKontruksiEntity extends PanacheEntityBase {
+@Table(name = "cc_pengajuan_bk_detail")
+public class PengajuanBiayaKonstruksiDetailEntity extends PanacheEntityBase {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    public String id_biaya_kontruksi;
-
-    public String nama_vendor;
+    public String id_pengajuan_bk_detail;
 
     public BigDecimal volume_bk;
 
     public BigDecimal harga_total;
 
-    public String nama_penerima;
 
     public LocalDateTime tanggal_penerima;
 
-    public String reference_id_pengajuan;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proyek")
@@ -42,8 +38,14 @@ public class BiayaKontruksiEntity extends PanacheEntityBase {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_rapa")
-    @JsonBackReference
+    // @JsonBackReference
     public RapaEntity rapa;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_pengajuan_bk")
+    @JsonBackReference
+    public PengajuanBiayaKonstruksiEntity pengajuanBk;
 
 
     public LocalDateTime created_at;
@@ -53,5 +55,4 @@ public class BiayaKontruksiEntity extends PanacheEntityBase {
     public String invoice_nota;
 
     public String no_po;
-    
 }

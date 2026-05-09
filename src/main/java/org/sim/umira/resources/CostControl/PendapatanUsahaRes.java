@@ -109,6 +109,20 @@ public class PendapatanUsahaRes {
         }
     }
 
+     @GET
+    @Path("/get-pu-by-proyek-tanggal")
+    @Transactional
+    public Response getPuByProyekTanggal(
+            @QueryParam("id_proyek") String id_proyek, @QueryParam("tanggal_awal") String tanggal_awal, @QueryParam("tanggal_akhir") String tanggal_akhir) {
+        try {
+            ProyekEntity proyek = ProyekEntity.findById(id_proyek);
+            List<PendapatanUsahaEntity> puList = PendapatanUsahaEntity.find("proyek = ?1", proyek).list();
+            return Response.ok().entity(ResponseHandler.ok("get Pu Berhasil", puList)).build();
+        } catch (Exception e) {
+            throw new InternalError(e.getMessage());
+        }
+    }
+
     @GET
     @Path("/get-pu-by-id")
     @Transactional

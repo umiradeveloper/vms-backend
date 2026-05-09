@@ -3,14 +3,19 @@ package org.sim.umira.resources.CostControl;
 
 
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.hibernate.Session;
 import org.sim.umira.dtos.CostControl.CreateCostCodeDto;
 import org.sim.umira.dtos.CostControl.CreateSingleCostCodeDto;
+import org.sim.umira.dtos.CostControl.ProjectCostCodeDto;
+import org.sim.umira.dtos.CostControl.RapaDto;
+import org.sim.umira.dtos.CostControl.ResponseCostCodeDto;
 import org.sim.umira.entities.CostControl.CostCodeEntity;
 import org.sim.umira.entities.CostControl.KategoriEntity;
+import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.entities.CostControl.SatuanEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
@@ -23,6 +28,7 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 
 
@@ -46,6 +52,18 @@ public class CostCodeRes {
             if(kategori_check == null){
                 throw new BadRequestException("Kode kategori dengan "+create.kode_kategori.get(idy).trim()+" tidak terdaftar");
             }
+        }
+         for (int i = 0; i < create.kode.size(); i++) { 
+            final int idy = i;
+            CostCodeEntity costCodeCheck = CostCodeEntity.find("cost_code = ?1", create.kode.get(idy).trim()).firstResult();
+            if(costCodeCheck != null){
+                throw new BadRequestException("Cost Code dengan kode "+create.kode.get(idy).trim()+" sudah terdaftar");
+            }
+            CostCodeEntity costCodeNameCheck = CostCodeEntity.find("LOWER(REPLACE(TRIM(nama), ' ', '')) = ?1", create.nama.get(idy).trim().replace(" ", "").toLowerCase()).firstResult();
+            if(costCodeNameCheck != null){
+                throw new BadRequestException("Cost Code dengan nama "+create.nama.get(idy).trim()+" sudah terdaftar");
+            }
+            
         }
         // for (int i = 0; i < create.satuan.size(); i++) { 
         //     final int idz = i;
@@ -113,7 +131,24 @@ public class CostCodeRes {
             List<CostCodeEntity> costCode = CostCodeEntity.find(
                 "SELECT c FROM CostCodeEntity c JOIN FETCH c.kategori"
             ).list();
-            return Response.ok().entity(ResponseHandler.ok("get Cost Code Berhasil", costCode)).build();
+            List<ResponseCostCodeDto> response = new ArrayList<>();
+            for (CostCodeEntity costCodeE : costCode) {
+                List<ProjectCostCodeDto> proyek = ProyekEntity.find("SELECT p.nama_proyek as nama_proyek, SUM(b.volume_bk) as volume, SUM(b.harga_total) as harga_total FROM ProyekEntity p JOIN p.bk b JOIN b.rapa r JOIN r.costCodeRapa c WHERE c.cost_code = ?1 GROUP BY p.nama_proyek",costCodeE.cost_code).project(ProjectCostCodeDto.class).list();
+                response.add(new ResponseCostCodeDto(costCodeE.id_cost_code, costCodeE.cost_code, costCodeE.nama, costCodeE.klasifikasi, costCodeE.spesifikasi, costCodeE.satuan, costCodeE.kode_jenis, costCodeE.kategori.nama_kategori, costCodeE.kategori.kode_kategori,costCodeE.jenis, proyek));
+            }
+            return Response.ok().entity(ResponseHandler.ok("get Cost Code Berhasil", response)).build();
+        } catch (Exception e) {
+            throw new InternalError(e.getMessage());
+        }
+    }
+    @GET
+    @Path("/get-cost-code-by-proyek")
+    @Transactional
+    public Response getCostCodeByProyek(@QueryParam("cost_code") String costCode){
+        try{
+  
+            List<ProjectCostCodeDto> proyek = ProyekEntity.find("SELECT p.nama_proyek as nama_proyek, SUM(b.volume_bk) as volume, SUM(b.harga_total) as harga_total FROM ProyekEntity p JOIN p.bk b JOIN b.rapa r JOIN r.costCodeRapa c WHERE c.cost_code = ?1 GROUP BY p.nama_proyek",costCode).project(ProjectCostCodeDto.class).list();
+            return Response.ok().entity(ResponseHandler.ok("get Cost Code Proyek Berhasil", proyek)).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
         }
