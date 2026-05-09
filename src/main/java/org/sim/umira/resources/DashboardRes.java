@@ -58,6 +58,7 @@ public class DashboardRes {
                 boolean hasPengajuan = !vendorList.isEmpty();
 
                 boolean isApproved = vendorList.stream()
+                        .filter(v -> v.isApproval != null)
                         .anyMatch(v -> v.isApproval == 1);
 
                 if (isApproved) {
