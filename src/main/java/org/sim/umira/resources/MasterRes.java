@@ -13,6 +13,7 @@ import org.sim.umira.entities.RoleEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
 
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -44,8 +45,18 @@ public class MasterRes {
     public Response getWeekByProject(
         @QueryParam("id_project") String id_project
     ){
+         ProyekEntity pe = ProyekEntity.findById(id_project);
+        // for(ProyekEntity proj: pe){
+            if(pe.periode_awal_progress == null){
+                throw new BadRequestException("Periode Awal Progress Harus Di Isi");
+            }
+             if(pe.periode_akhir_progress == null){
+                throw new BadRequestException("Periode Akhir Progress Harus Di Isi");
+            }
+        // }
+
         try {
-            ProyekEntity pe = ProyekEntity.findById(id_project);
+            
             List<WeekData> result = new ArrayList<>();
             LocalDate start = pe.periode_awal_progress;
             LocalDate end = pe.periode_akhir_progress;

@@ -19,6 +19,7 @@ import org.sim.umira.entities.CostControl.ScurveEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.POST;
@@ -188,13 +189,25 @@ public class DashboardRes {
     @GET
     @Path("/get-data/get-chart-proyek")
     public Response getChartProyek(){
+        
+        List<ProyekEntity> pe = ProyekEntity.listAll();
+        for(ProyekEntity proj: pe){
+            if(proj.periode_awal_progress == null){
+                throw new BadRequestException("Periode Awal Progress Harus Di Isi");
+            }
+             if(proj.periode_akhir_progress == null){
+                throw new BadRequestException("Periode Akhir Progress Harus Di Isi");
+            }
+        }
+
+
         try {
-            List<ProyekEntity> pe = ProyekEntity.listAll();
+            
             List<ResChart> resChart = new ArrayList<>();
             for(ProyekEntity proE: pe){
                 List<SeriesChart> result = new ArrayList<>();
-                LocalDate start = proE.tanggal_awal_kontrak;
-                LocalDate end = proE.tanggal_akhir_kontrak;
+                LocalDate start = proE.periode_awal_progress;
+                LocalDate end = proE.periode_akhir_progress;
                 LocalDate currentStart = start;
                 int weekNumber = 1;
 
