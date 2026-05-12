@@ -8,14 +8,18 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.sim.umira.dtos.CostControl.ReportProyekDto;
 import org.sim.umira.entities.BranchEntity;
 import org.sim.umira.entities.RoleEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
+import org.sim.umira.services.PdfService;
 
+import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -26,6 +30,10 @@ import jakarta.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class MasterRes {
+
+    @Inject
+    PdfService pdfService;
+
     @GET
     @Path("/get-branch")
     public Response getBranch(){
@@ -82,6 +90,34 @@ public class MasterRes {
         }
         
     }
+
+
+    @GET
+    @Path("/get-pdf")
+    public Response getPdf(){
+        try {
+         ReportProyekDto project = new ReportProyekDto(
+                "Pembangunan Gedung A",
+                "PT Maju Mundur",
+                LocalDate.now(),
+                LocalDate.now().plusMonths(6),
+                75
+        );
+
+        byte[] pdf = pdfService.generatePdf(project);
+
+        return Response.ok(pdf)
+                .header(
+                        "Content-Disposition",
+                        "attachment; filename=report.pdf"
+                )
+                .build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
 
     public record WeekData(int week, LocalDate startDate, LocalDate endDate) {}
 
