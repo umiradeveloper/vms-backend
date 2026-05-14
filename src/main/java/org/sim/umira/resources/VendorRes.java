@@ -190,7 +190,9 @@ public class VendorRes {
                 throw new RuntimeException(e);
             }
         }
-        List<UserEntity> userNotifikasi = UserEntity.find("role.kode_role <> ?1 ", "01").list();
+
+        List<String> kode_role_notifikasi = List.of("02","03","04","16","32");
+        List<UserEntity> userNotifikasi = UserEntity.find("role.kode_role IN ?1 ", kode_role_notifikasi).list();
         for(UserEntity us: userNotifikasi){
             httpService.sendEmail(us.email.trim(), "Pengajuan pendaftaran rekanan vendor ID Pengajuan "+pengajuan+" dengan nama "+create.nama_perusahaan+" dengan email "+create.email_pic+" dan "+create.email_direktur+" sedang menunggu approval silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini", "Approval Daftar Rekanan");
         }

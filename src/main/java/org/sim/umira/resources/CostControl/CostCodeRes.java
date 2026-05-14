@@ -2,6 +2,7 @@ package org.sim.umira.resources.CostControl;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
@@ -44,46 +46,18 @@ public class CostCodeRes {
     public Response createCostCode(
             @Valid @RequestBody CreateCostCodeDto create) {
 
-        // for (int i = 0; i < create.kode_kategori.size(); i++) {
-        // final int idy = i;
-        // KategoriEntity kategori_check = KategoriEntity.find("kode_kategori = ?1",
-        // create.kode_kategori.get(idy).trim()).firstResult();
-        // if(kategori_check == null){
-        // throw new BadRequestException("Kode kategori dengan
-        // "+create.kode_kategori.get(idy).trim()+" tidak terdaftar");
-        // }
-        // }
-        // for (int i = 0; i < create.kode.size(); i++) {
-        // final int idy = i;
-        // CostCodeEntity costCodeCheck = CostCodeEntity.find("cost_code = ?1",
-        // create.kode.get(idy).trim()).firstResult();
-        // if(costCodeCheck != null){
-        // throw new BadRequestException("Cost Code dengan kode
-        // "+create.kode.get(idy).trim()+" sudah terdaftar");
-        // }
-        // CostCodeEntity costCodeNameCheck =
-        // CostCodeEntity.find("LOWER(REPLACE(TRIM(nama), ' ', '')) = ?1",
-        // create.nama.get(idy).trim().replace(" ", "").toLowerCase()).firstResult();
-        // if(costCodeNameCheck != null){
-        // throw new BadRequestException("Cost Code dengan nama
-        // "+create.nama.get(idy).trim()+" sudah terdaftar");
-        // }
 
-        // }
-        // for (int i = 0; i < create.satuan.size(); i++) {
-        // final int idz = i;
-        // SatuanEntity satuan_check = SatuanEntity.find("nama_satuan = ?1",
-        // create.satuan.get(idz).trim()).firstResult();
-        // if(satuan_check == null){
-        // throw new BadRequestException("Nama satuan dengan
-        // "+create.satuan.get(idz).trim()+" tidak terdaftar");
-        // }
-        // }
+        if (hasDuplicate(create.kode)) {
+            throw new BadRequestException("kode duplikat");
+        }  
+        
         try {
 
             Session session = em.unwrap(Session.class);
 
             int batchSize = 100;
+
+
 
             /*
              * PRELOAD KATEGORI
@@ -201,69 +175,9 @@ public class CostCodeRes {
             throw new InternalError(e.getMessage());
         }
 
-        // try {
-        // Session session = em.unwrap(Session.class);
-        // int batch = create.kode.size();
-        // System.out.println(create.kode_kategori.size());
-        // for (int i = 0; i < create.kode.size(); i++) {
-        // final int idx = i;
-        // KategoriEntity kategori = KategoriEntity
-        // .find("kode_kategori = ?1",
-        // create.kode_kategori.get(idx).trim()).firstResult();
-
-        // CostCodeEntity costCode = CostCodeEntity.find("cost_code = ?1",
-        // create.kode.get(idx)).firstResult();
-        // if (costCode != null) {
-        // costCode.cost_code = create.kode.get(idx);
-        // costCode.jenis = create.jenis.get(idx);
-        // costCode.kategori = kategori;
-        // costCode.kode_jenis = create.kode_jenis.get(idx);
-        // costCode.klasifikasi = create.klasifikasi.get(idx);
-        // costCode.satuan = create.satuan.get(idx);
-        // costCode.spesifikasi = create.spesifikasi.get(idx);
-        // } else {
-
-        // // System.out.println(create.kode.get(idx));
-        // String uuid = java.util.UUID.randomUUID().toString();
-        // // System.out.println(create.kode_kategori.get(idx));
-
-        // // System.out.println(kategori);
-
-        // session.doWork(connection -> {
-        // try (PreparedStatement ps = connection.prepareStatement(
-        // "INSERT INTO cc_cost_code (id_cost_code, cost_code, nama, klasifikasi,
-        // satuan, spesifikasi, kode_jenis, jenis, kode_kategori) VALUES (?, ?, ?, ?, ?,
-        // ?, ?, ?, ?)")) {
-        // ps.setString(1, uuid);
-        // ps.setString(2, create.kode.get(idx));
-        // ps.setString(3, create.nama.get(idx));
-        // ps.setString(4, create.klasifikasi.get(idx));
-        // ps.setString(5, create.satuan.get(idx));
-        // ps.setString(6, create.spesifikasi.get(idx));
-        // ps.setString(7, create.kode_jenis.get(idx));
-        // ps.setString(8, create.jenis.get(idx));
-        // ps.setString(9, kategori.id_kategori);
-
-        // // ps.setBigDecimal(2, p.nilai);
-        // // ps.setObject(3, p.tanggal);
-        // ps.addBatch();
-        // ps.executeBatch();
-        // }
-
-        // });
-        // if (i % batch == 0) {
-        // session.flush();
-        // session.clear();
-        // }
-        // }
-
-        // }
-        // return Response.ok().entity(ResponseHandler.ok("Create Cost Code Berhasil",
-        // null)).build();
-        // } catch (Exception e) {
-        // throw new InternalError(e.getMessage());
-        // }
-
+    }
+    public static boolean hasDuplicate(List<String> list) {
+        return list.size() != new HashSet<>(list).size();
     }
 
     @GET
