@@ -198,7 +198,7 @@ public class AuthRes {
 
         httpService.SendWhatsapp(registerDto.no_hp.trim(), "Terima Kasih telah register \n tunggu approval dari administrator");
         httpService.sendEmail(ue.email.trim(), "Terima kasih telah register \n tunggu approval dari administrator", "Registrasi");
-        List<UserEntity> userNotifikasi = UserEntity.find("role.kode_role = ?1 ", "99").list();
+        List<UserEntity> userNotifikasi = UserEntity.find("role.kode_role = ?1 ", "32").list();
         for(UserEntity us: userNotifikasi){
             httpService.sendEmail(us.email.trim(), "Pengajuan pendaftaran Akun vendor dengan email "+registerDto.email+" dan nama "+registerDto.nama_perusahaan+" sedang menunggu approval akun silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini", "Approval Akun Vendor");
         }
