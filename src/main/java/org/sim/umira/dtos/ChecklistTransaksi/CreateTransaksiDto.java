@@ -61,13 +61,13 @@ public class CreateTransaksiDto {
     > files;
 
 
-    @FormParam("nilai")
-    @PartType(MediaType.TEXT_PLAIN)
-    @NotNull(message = "nilai wajib ada")
-    @Size(min = 1, message = "nilai minimal 1 item")
-    public List<
-        @NotNull(message = "nilai tidak boleh null")
-        @Positive(message = "nilai harus lebih dari 0")
-        Integer
-    > nilai_value;
+    // @FormParam("nilai")
+    // @PartType(MediaType.TEXT_PLAIN)
+    // @NotNull(message = "nilai wajib ada")
+    // @Size(min = 1, message = "nilai minimal 1 item")
+    // public List<
+    //     @NotNull(message = "nilai tidak boleh null")
+    //     @Positive(message = "nilai harus lebih dari 0")
+    //     Integer
+    // > nilai_value;
 }

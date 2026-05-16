@@ -2,9 +2,11 @@ package org.sim.umira.resources.CostControl;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,9 +49,18 @@ public class CostCodeRes {
             @Valid @RequestBody CreateCostCodeDto create) {
 
 
-        if (hasDuplicate(create.kode)) {
-            throw new BadRequestException("cost code duplikat");
-        }  
+        Set<String> unique = new HashSet<>();
+        Set<String> duplicates = new HashSet<>();
+
+        for (String item : create.kode) {
+            if (!unique.add(item.trim())) {
+                duplicates.add(item.trim());
+            }
+        }
+        if(duplicates.size() > 0){
+            String arrDuplicate = String.join(",", duplicates);
+            throw new BadRequestException("Duplikat Kode "+arrDuplicate+"");
+        }
 
         try {
 

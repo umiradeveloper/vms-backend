@@ -106,7 +106,7 @@ public class TransaksiRes {
                         entity.transaksi = transaksiParent;
                         entity.pertanyaan = form.nama_transaksi.get(idx);
                         entity.jawaban = target.toString();
-                        entity.nilai = form.nilai_value.get(idx);
+                        // entity.nilai = form.nilai_value.get(idx);
                         return entity;
 
                     } catch (Exception e) {
