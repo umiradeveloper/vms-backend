@@ -48,9 +48,9 @@ public class CostCodeRes {
 
 
         if (hasDuplicate(create.kode)) {
-            throw new BadRequestException("kode duplikat");
+            throw new BadRequestException("cost code duplikat");
         }  
-        
+
         try {
 
             Session session = em.unwrap(Session.class);
