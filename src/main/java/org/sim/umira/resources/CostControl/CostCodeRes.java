@@ -3,6 +3,7 @@ package org.sim.umira.resources.CostControl;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import org.hibernate.Session;
 import org.sim.umira.dtos.CostControl.CreateCostCodeDto;
 import org.sim.umira.dtos.CostControl.CreateSingleCostCodeDto;
 import org.sim.umira.dtos.CostControl.ProjectCostCodeDto;
+import org.sim.umira.dtos.CostControl.ProjectFlatDto;
 import org.sim.umira.dtos.CostControl.RapaDto;
 import org.sim.umira.dtos.CostControl.ResponseCostCodeDto;
 import org.sim.umira.entities.CostControl.CostCodeEntity;
@@ -197,23 +199,89 @@ public class CostCodeRes {
     @Path("/get-cost-code")
     @Transactional
     public Response getCostCode() {
+        // try {
+        //     // List<CostCodeEntity> costCode = CostCodeEntity.findAll().list();
+        //     List<CostCodeEntity> costCode = CostCodeEntity.find(
+        //             "SELECT c FROM CostCodeEntity c JOIN FETCH c.kategori").list();
+        //     List<ResponseCostCodeDto> response = new ArrayList<>();
+        //     for (CostCodeEntity costCodeE : costCode) {
+        //         List<ProjectCostCodeDto> proyek = ProyekEntity.find(
+        //                 "SELECT p.nama_proyek as nama_proyek, SUM(b.volume_bk) as volume, SUM(b.harga_total) as harga_total FROM ProyekEntity p JOIN p.bk b JOIN b.rapa r JOIN r.costCodeRapa c WHERE c.cost_code = ?1 GROUP BY p.nama_proyek",
+        //                 costCodeE.cost_code).project(ProjectCostCodeDto.class).list();
+        //         response.add(new ResponseCostCodeDto(costCodeE.id_cost_code, costCodeE.cost_code, costCodeE.nama,
+        //                 costCodeE.klasifikasi, costCodeE.spesifikasi, costCodeE.satuan, costCodeE.kode_jenis,
+        //                 costCodeE.kategori.nama_kategori, costCodeE.kategori.kode_kategori, costCodeE.jenis, proyek));
+        //     }
+        //     return Response.ok().entity(ResponseHandler.ok("get Cost Code Berhasil", response)).build();
+        // } catch (Exception e) {
+        //     throw new InternalError(e.getMessage());
+        // }
+
         try {
-            // List<CostCodeEntity> costCode = CostCodeEntity.findAll().list();
-            List<CostCodeEntity> costCode = CostCodeEntity.find(
-                    "SELECT c FROM CostCodeEntity c JOIN FETCH c.kategori").list();
-            List<ResponseCostCodeDto> response = new ArrayList<>();
-            for (CostCodeEntity costCodeE : costCode) {
-                List<ProjectCostCodeDto> proyek = ProyekEntity.find(
-                        "SELECT p.nama_proyek as nama_proyek, SUM(b.volume_bk) as volume, SUM(b.harga_total) as harga_total FROM ProyekEntity p JOIN p.bk b JOIN b.rapa r JOIN r.costCodeRapa c WHERE c.cost_code = ?1 GROUP BY p.nama_proyek",
-                        costCodeE.cost_code).project(ProjectCostCodeDto.class).list();
-                response.add(new ResponseCostCodeDto(costCodeE.id_cost_code, costCodeE.cost_code, costCodeE.nama,
-                        costCodeE.klasifikasi, costCodeE.spesifikasi, costCodeE.satuan, costCodeE.kode_jenis,
-                        costCodeE.kategori.nama_kategori, costCodeE.kategori.kode_kategori, costCodeE.jenis, proyek));
-            }
-            return Response.ok().entity(ResponseHandler.ok("get Cost Code Berhasil", response)).build();
-        } catch (Exception e) {
-            throw new InternalError(e.getMessage());
-        }
+
+    List<CostCodeEntity> costCodes =
+            CostCodeEntity.find("""
+                SELECT DISTINCT c
+                FROM CostCodeEntity c
+                JOIN FETCH c.kategori
+            """).list();
+
+    List<ProjectFlatDto> proyekFlat =
+            ProyekEntity.find("""
+                SELECT
+                    c.cost_code as costCode,
+                    p.nama_proyek as nama_proyek,
+                    SUM(b.volume_bk) as volume,
+                    SUM(b.harga_total) as harga_total
+                FROM ProyekEntity p
+                JOIN p.bk b
+                JOIN b.rapa r
+                JOIN r.costCodeRapa c
+                GROUP BY
+                    c.cost_code,
+                    p.nama_proyek
+            """)
+            .project(ProjectFlatDto.class)
+            .list();
+
+    Map<String, List<ProjectCostCodeDto>> proyekMap =
+            proyekFlat.stream()
+                    .collect(Collectors.groupingBy(
+                            ProjectFlatDto::getCostCode,
+                            Collectors.mapping(
+                                    p -> new ProjectCostCodeDto(
+                                            p.getNamaProyek(),
+                                            p.getVolume(),
+                                            p.getHargaTotal()),
+                                    Collectors.toList())));
+
+    List<ResponseCostCodeDto> response =
+            costCodes.stream()
+                    .map(c -> new ResponseCostCodeDto(
+                            c.id_cost_code,
+                            c.cost_code,
+                            c.nama,
+                            c.klasifikasi,
+                            c.spesifikasi,
+                            c.satuan,
+                            c.kode_jenis,
+                            c.kategori.nama_kategori,
+                            c.kategori.kode_kategori,
+                            c.jenis,
+                            proyekMap.getOrDefault(
+                                    c.cost_code,
+                                    Collections.emptyList())))
+                    .toList();
+
+    return Response.ok()
+            .entity(ResponseHandler.ok(
+                    "get Cost Code Berhasil",
+                    response))
+            .build();
+
+} catch (Exception e) {
+    throw new InternalError(e.getMessage());
+}
     }
 
     @GET
