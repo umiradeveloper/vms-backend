@@ -86,7 +86,9 @@ public class CostCodeRes {
                     .stream()
                     .collect(Collectors.toMap(
                             c -> c.cost_code,
-                            c -> c));
+                            c -> c,
+                            (existing, replacement) -> existing
+                        ));
 
             session.doWork(connection -> {
 
