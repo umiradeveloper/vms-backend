@@ -197,7 +197,6 @@ public class CostCodeRes {
 
     @GET
     @Path("/get-cost-code")
-    @Transactional
     public Response getCostCode() {
         // try {
         //     // List<CostCodeEntity> costCode = CostCodeEntity.findAll().list();
@@ -219,69 +218,69 @@ public class CostCodeRes {
 
         try {
 
-    List<CostCodeEntity> costCodes =
-            CostCodeEntity.find("""
-                SELECT DISTINCT c
-                FROM CostCodeEntity c
-                JOIN FETCH c.kategori
-            """).list();
+            List<CostCodeEntity> costCodes =
+                    CostCodeEntity.find("""
+                        SELECT DISTINCT c
+                        FROM CostCodeEntity c
+                        JOIN FETCH c.kategori
+                    """).list();
 
-    List<ProjectFlatDto> proyekFlat =
-            ProyekEntity.find("""
-                SELECT
-                    c.cost_code as costCode,
-                    p.nama_proyek as nama_proyek,
-                    SUM(b.volume_bk) as volume,
-                    SUM(b.harga_total) as harga_total
-                FROM ProyekEntity p
-                JOIN p.bk b
-                JOIN b.rapa r
-                JOIN r.costCodeRapa c
-                GROUP BY
-                    c.cost_code,
-                    p.nama_proyek
-            """)
-            .project(ProjectFlatDto.class)
-            .list();
-
-    Map<String, List<ProjectCostCodeDto>> proyekMap =
-            proyekFlat.stream()
-                    .collect(Collectors.groupingBy(
-                            ProjectFlatDto::getCostCode,
-                            Collectors.mapping(
-                                    p -> new ProjectCostCodeDto(
-                                            p.getNamaProyek(),
-                                            p.getVolume(),
-                                            p.getHargaTotal()),
-                                    Collectors.toList())));
-
-    List<ResponseCostCodeDto> response =
-            costCodes.stream()
-                    .map(c -> new ResponseCostCodeDto(
-                            c.id_cost_code,
+            List<ProjectFlatDto> proyekFlat =
+                    ProyekEntity.find("""
+                        SELECT
+                            c.cost_code as costCode,
+                            p.nama_proyek as nama_proyek,
+                            SUM(b.volume_bk) as volume,
+                            SUM(b.harga_total) as harga_total
+                        FROM ProyekEntity p
+                        JOIN p.bk b
+                        JOIN b.rapa r
+                        JOIN r.costCodeRapa c
+                        GROUP BY
                             c.cost_code,
-                            c.nama,
-                            c.klasifikasi,
-                            c.spesifikasi,
-                            c.satuan,
-                            c.kode_jenis,
-                            c.kategori.nama_kategori,
-                            c.kategori.kode_kategori,
-                            c.jenis,
-                            proyekMap.getOrDefault(
+                            p.nama_proyek
+                    """)
+                    .project(ProjectFlatDto.class)
+                    .list();
+
+            Map<String, List<ProjectCostCodeDto>> proyekMap =
+                    proyekFlat.stream()
+                            .collect(Collectors.groupingBy(
+                                    ProjectFlatDto::getCostCode,
+                                    Collectors.mapping(
+                                            p -> new ProjectCostCodeDto(
+                                                    p.getNamaProyek(),
+                                                    p.getVolume(),
+                                                    p.getHargaTotal()),
+                                            Collectors.toList())));
+
+            List<ResponseCostCodeDto> response =
+                    costCodes.stream()
+                            .map(c -> new ResponseCostCodeDto(
+                                    c.id_cost_code,
                                     c.cost_code,
-                                    Collections.emptyList())))
-                    .toList();
+                                    c.nama,
+                                    c.klasifikasi,
+                                    c.spesifikasi,
+                                    c.satuan,
+                                    c.kode_jenis,
+                                    c.kategori.nama_kategori,
+                                    c.kategori.kode_kategori,
+                                    c.jenis,
+                                    proyekMap.getOrDefault(
+                                            c.cost_code,
+                                            Collections.emptyList())))
+                            .toList();
 
-    return Response.ok()
-            .entity(ResponseHandler.ok(
-                    "get Cost Code Berhasil",
-                    response))
-            .build();
+            return Response.ok()
+                    .entity(ResponseHandler.ok(
+                            "get Cost Code Berhasil",
+                            response))
+                    .build();
 
-} catch (Exception e) {
-    throw new InternalError(e.getMessage());
-}
+        } catch (Exception e) {
+            throw new InternalError(e.getMessage());
+        }
     }
 
     @GET
