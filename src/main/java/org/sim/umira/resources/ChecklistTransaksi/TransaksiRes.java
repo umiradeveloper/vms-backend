@@ -595,18 +595,13 @@ public class TransaksiRes {
             }
             if(create.status_approval.equals("Verified")){
                 byte[] DokumenMerge = getDokumenDisposisi(trx.id_transaksi);
-                // List<String> role = List.of("");
-                // List<UserEntity> userApproval = UserEntity.find("role.kode_role IN ")
-                configHttpService.sendWhatsappDokumenNew("+6287826246455", trx.kode_transaksi, DokumenMerge, trx.kode_transaksi).subscribe().with(
-                        response -> {
-                            System.out.println(response);
-                        },
-                        failure -> {
-                            failure.printStackTrace();
-                        }
-                    );
-                // System.out.println(test);
-                configHttpService.sendEmailWithAttach("hafidhanafid@gmail.com", "Dokumen", "Dokumen Transaksi", "transaksi-"+trx.kode_transaksi, DokumenMerge);
+                List<String> role = List.of("18","09","35");
+                List<UserEntity> user = UserEntity.find("role.kode_role IN ?1", role).list();
+                for(UserEntity get: user){
+                    configHttpService.sendEmailWithAttach(get.email.trim(), "Pengajuan Payment Checklist Pembayaran", "Dokumen Transaksi", "transaksi-"+trx.kode_transaksi, DokumenMerge);
+                    configHttpService.SendWhatsapp(get.no_hp.trim(), "Pengajuan Payment Checklist Pembayaran Dengan kode transaksi "+trx.kode_transaksi);
+                }
+                
             }
             return Response.ok().entity(ResponseHandler.ok("Update Detail Transaksi", null)).build();
         } catch (Exception e) {
