@@ -1,7 +1,5 @@
 package org.sim.umira.dtos.ChecklistTransaksi;
 
-import java.math.BigInteger;
-
 import org.jboss.resteasy.reactive.PartType;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
@@ -9,7 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.core.MediaType;
 
-public class CreateApprovalTransaksiDto {
+public class CreateApprovalTransaksiProyekDto {
+
     @FormParam("upload_bukti_bayar")
     @PartType(MediaType.APPLICATION_OCTET_STREAM)
     // @NotBlank(message = "upload_bukti_bayar must be required")
@@ -25,11 +24,5 @@ public class CreateApprovalTransaksiDto {
     @PartType(MediaType.TEXT_PLAIN)
     @NotBlank(message = "status_approval must be required")
     public String status_approval;
-
-
-    @FormParam("nilai_bayar")
-    @PartType(MediaType.TEXT_PLAIN)
-    public BigInteger nilai_bayar;
-
     
 }

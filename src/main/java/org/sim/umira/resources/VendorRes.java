@@ -195,6 +195,7 @@ public class VendorRes {
         List<UserEntity> userNotifikasi = UserEntity.find("role.kode_role IN ?1 ", kode_role_notifikasi).list();
         for(UserEntity us: userNotifikasi){
             httpService.sendEmail(us.email.trim(), "Pengajuan pendaftaran rekanan vendor ID Pengajuan "+pengajuan+" dengan nama "+create.nama_perusahaan+" dengan email "+create.email_pic+" dan "+create.email_direktur+" sedang menunggu approval silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini", "Approval Daftar Rekanan");
+            httpService.SendWhatsapp(us.no_hp.trim(), "Pengajuan pendaftaran rekanan vendor ID Pengajuan "+pengajuan+" dengan nama "+create.nama_perusahaan+" dengan email "+create.email_pic+" dan "+create.email_direktur+" sedang menunggu approval silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini");
         }
         
         return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();

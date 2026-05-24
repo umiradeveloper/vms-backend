@@ -11,6 +11,8 @@ import java.util.List;
 import org.sim.umira.dtos.CostControl.ReportProyekDto;
 import org.sim.umira.entities.BranchEntity;
 import org.sim.umira.entities.RoleEntity;
+import org.sim.umira.entities.VmsVendorEntity;
+import org.sim.umira.entities.CostControl.KategoriEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.services.PdfService;
@@ -90,6 +92,35 @@ public class MasterRes {
         }
         
     }
+
+    @GET
+    @Path("/kategori")
+    public Response getKategori(){
+         List<KategoriEntity> kategori = KategoriEntity.listAll();
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Kategori Success", kategori)).build();
+    }
+
+    @GET
+    @Path("/all-vendor")
+    public Response getVendor(){
+        try {
+            List<VmsVendorEntity> vv = VmsVendorEntity.find(
+                "id IN (" +
+                "SELECT MAX(id) FROM VmsVendorEntity " +
+                "WHERE isApproval = ?1 " +
+                "GROUP BY nama_perusahaan" +
+                ") ORDER BY tanggal_pengajuan DESC",
+                1
+            ).list();
+            
+
+            return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+        }
+         
+    }
+
 
 
     @GET

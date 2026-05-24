@@ -3,7 +3,6 @@ package org.sim.umira.entities.ChecklistTransaksi;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.sim.umira.entities.UserEntity;
@@ -21,9 +20,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
+
 @Entity
-@Table(name = "checklist_transaksi")
-public class TransaksiEntity extends PanacheEntityBase {
+@Table(name = "checklist_transaksi_proyek")
+public class TransaksiProyekEntity extends PanacheEntityBase {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     public String id_transaksi;
@@ -49,7 +49,7 @@ public class TransaksiEntity extends PanacheEntityBase {
     public String kode_transaksi;
 
     public LocalDateTime payment_at;
-     public LocalDateTime approved_at;
+    public LocalDateTime approved_at;
 
     public String catatan_payment;
 
@@ -57,13 +57,12 @@ public class TransaksiEntity extends PanacheEntityBase {
 
     public LocalDate tanggal_jatuh_tempo_after_verified;
 
-    public String transaksi_via;
-
     public BigInteger nilai_invoice;
 
     public BigInteger pph;
 
     public BigInteger ppn;
+
     public BigInteger retensi;
 
     public BigInteger kasbon;
@@ -71,8 +70,6 @@ public class TransaksiEntity extends PanacheEntityBase {
     public BigInteger nilai_invoice_bersih;
 
     public BigInteger biaya_potongan_lainnya;
-
-    public String reference_id_transaksi_proyek;
 
     public String nomor_invoice;
 
@@ -101,9 +98,12 @@ public class TransaksiEntity extends PanacheEntityBase {
     @JoinColumn(name = "updated_by")
     public UserEntity updatedBy;
 
-
-
     @OneToMany(mappedBy = "transaksi", cascade = CascadeType.ALL)
     @JsonManagedReference
-    public List<TransaksiDetailEntity> detailTransaksi;
-}   
+    public List<TransaksiDetailProyekEntity> detailTransaksi;
+
+    @OneToMany(mappedBy = "transaksiPersetujuanProyek", cascade = CascadeType.ALL)
+    @JsonManagedReference
+    public List<TransaksiProyekDetailPersetujuanEntity> pengajuanTransaksi;
+
+}

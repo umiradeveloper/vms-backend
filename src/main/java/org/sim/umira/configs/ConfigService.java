@@ -23,6 +23,13 @@ public class ConfigService {
     @ConfigProperty(name = "vms.urlWhatsapp")
     public String urlWa;
 
+
+    @ConfigProperty(name = "superapps.WhatsappUrl")
+    public String WhatsappUrl;
+
+    @ConfigProperty(name = "superapps.WhatsappSecretKey")
+    public String WhatsappSecretKey;
+
     // public ConfigService() {
     // }
 
