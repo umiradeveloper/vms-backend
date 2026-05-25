@@ -72,14 +72,17 @@ public class ConfigHttpService {
             body.phone = no_hp;
             body.message = message;
             String jsonBody = mapper.writeValueAsString(body);
-
-            return client.postAbs(config.WhatsappUrl)
+            String result = client.postAbs(config.WhatsappUrl)
                     .putHeader("X-Secret-Key", config.WhatsappSecretKey)
                     .putHeader("Content-Type", "application/json")
                     .sendBuffer(Buffer.buffer(jsonBody))
                     .onItem()
                     .transform(response -> response.bodyAsString()).await()
                     .indefinitely();
+
+            System.out.println(result);
+            return result;
+
 
         } catch (Exception e) {
             return "";
