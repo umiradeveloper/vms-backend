@@ -65,9 +65,13 @@ public class ConfigHttpService {
         try {
 
             WhatsappRequestDto body = new WhatsappRequestDto();
-            body.phone = phone;
+            String no_hp = phone;
+            if (no_hp.startsWith("0")) {
+                no_hp = "+62" + no_hp.substring(1);
+            }
+            body.phone = no_hp;
             body.message = message;
-             String jsonBody = mapper.writeValueAsString(body);
+            String jsonBody = mapper.writeValueAsString(body);
 
             return client.postAbs(config.WhatsappUrl)
                     .putHeader("X-Secret-Key", config.WhatsappSecretKey)

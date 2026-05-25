@@ -599,6 +599,7 @@ public class TransaksiRes {
                 List<UserEntity> user = UserEntity.find("role.kode_role IN ?1", role).list();
                 for(UserEntity get: user){
                     configHttpService.sendEmailWithAttach(get.email.trim(), "Pengajuan Payment Checklist Pembayaran", "Dokumen Transaksi", "transaksi-"+trx.kode_transaksi, DokumenMerge);
+                    
                     configHttpService.SendWhatsapp(get.no_hp.trim(), "Pengajuan Payment Checklist Pembayaran Dengan kode transaksi "+trx.kode_transaksi);
                 }
                 
