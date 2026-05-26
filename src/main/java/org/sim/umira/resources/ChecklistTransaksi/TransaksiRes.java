@@ -22,6 +22,7 @@ import org.sim.umira.dtos.ChecklistTransaksi.CreateApprovalTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.CreateTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.ResponseApprovalTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.UpdatePengajuanDetailTransaksiDto;
+import org.sim.umira.dtos.ChecklistTransaksi.UpdateTransaksiDto;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.ChecklistTransaksi.CountTransaksiEntity;
 import org.sim.umira.entities.ChecklistTransaksi.JenisTransaksiEntity;
@@ -69,8 +70,6 @@ public class TransaksiRes {
 
     @Inject
     ConfigHttpService configHttpService;
-
-
 
     @POST
     @Path("/create-transaksi")
@@ -170,6 +169,104 @@ public class TransaksiRes {
         }
     }
 
+    @POST
+    @Path("/update-transaksi")
+    @Transactional
+    public Response updateTransaksi(@Valid @MultipartForm UpdateTransaksiDto form, @Context SecurityContext ctx) {
+
+        try {
+            TransaksiEntity transaksiParent = TransaksiEntity.findById(form.id_transaksi);
+            UserEntity userPengaju = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            transaksiParent.jenis_transaksi = form.jenis_transaksi;
+            transaksiParent.kode_transaksi = form.kode_transaksi;
+            // transaksiParent.tanggal_pengajuan = LocalDate.now();
+            transaksiParent.tempo_pembayaran_after_verified = form.tempo_pembayaran_after_verified;
+            transaksiParent.keterangan = form.catatan;
+            // transaksiParent.user_pengajuan = userPengaju;
+            // transaksiParent.updatedBy = userPengaju;
+            transaksiParent.nilai_invoice = form.nilai_invoice;
+            transaksiParent.ppn = form.ppn;
+            transaksiParent.pph = form.pph;
+            transaksiParent.retensi = form.retensi;
+            transaksiParent.kasbon = form.kasbon;
+            transaksiParent.nilai_invoice_bersih = form.nilai_invoice_bersih;
+            transaksiParent.biaya_potongan_lainnya = form.biaya_potongan_lainnya;
+            transaksiParent.last_updated = LocalDateTime.now();
+            // transaksiParent.status_pengajuan = "Pengajuan";
+            transaksiParent.proyek = form.proyek;
+            // transaksiParent.transaksi_via = "HO";
+            transaksiParent.nama_vendor = form.nama_vendor;
+            transaksiParent.kategori = form.kategori;
+            transaksiParent.nomor_invoice = form.nomor_invoice;
+            transaksiParent.no_po_kontrak = form.no_po_kontrak;
+            transaksiParent.tanggal_invoice = form.tanggal_invoice;
+            // transaksiParent.persist();
+
+            List<TransaksiDetailEntity> trxDetail = TransaksiDetailEntity.find("transaksi = ?1", transaksiParent)
+                    .list();
+            if (form.files.size() > 0) {
+                List<CompletableFuture<TransaksiDetailEntity>> tasks = new ArrayList<>();
+                for (TransaksiDetailEntity trD : trxDetail) {
+                    Boolean deleteFiles = Files.deleteIfExists(java.nio.file.Path.of(trD.jawaban));
+                    if (deleteFiles) {
+                        TransaksiDetailEntity.deleteById(trD.id_detail_transaksi);
+                    }
+
+                }
+                for (int i = 0; i < form.files.size(); i++) {
+                    final int idx = i;
+                    // System.out.println(form.nama_transaksi.get(idx));
+                    CompletableFuture<TransaksiDetailEntity> task = CompletableFuture.supplyAsync(() -> {
+                        try {
+
+                            String ext = form.files.get(idx).fileName()
+                                    .substring(form.files.get(idx).fileName().lastIndexOf("."));
+                            String fileName = java.util.UUID.randomUUID() + ext;
+                            if (!Files.exists(UPLOAD_DIR)) {
+                                Files.createDirectories(UPLOAD_DIR);
+                            }
+                            java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
+                            Files.copy(
+                                    form.files.get(idx).uploadedFile(),
+                                    target,
+                                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            
+                            TransaksiDetailEntity entity = new TransaksiDetailEntity();
+                            entity.transaksi = transaksiParent;
+                            entity.pertanyaan = form.nama_transaksi.get(idx);
+                            entity.jawaban = target.toString();
+                            entity.checklist = 1;
+                            entity.user_verified = userPengaju;
+                            entity.verified_at = LocalDateTime.now();
+                            return entity;
+
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }, executor);
+
+                    tasks.add(task);
+                }
+
+                // ⏳ Tunggu semua upload selesai
+                List<TransaksiDetailEntity> entities = tasks.stream()
+                        .map(CompletableFuture::join)
+                        .toList();
+
+                // // 💾 Simpan ke database (HARUS di thread utama)
+                for (TransaksiDetailEntity entity : entities) {
+                    entity.persist();
+                }
+
+            }
+
+            return Response.ok().entity(ResponseHandler.ok("Update Jenis Transaksi", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
     @GET
     @Path("/get-transaksi")
     public Response getTransaksi(@Context SecurityContext ctx) {
@@ -179,7 +276,10 @@ public class TransaksiRes {
             if (user.role.kode_role == "99") {
                 trxE = TransaksiEntity.listAll();
             } else {
-                trxE = TransaksiEntity.find("(user_pengajuan = ?1 OR approvedBy = ?1 OR paymentBy = ?1) AND transaksi_via = ?2", user, "HO").list();
+                trxE = TransaksiEntity
+                        .find("(user_pengajuan = ?1 OR approvedBy = ?1 OR paymentBy = ?1) AND transaksi_via = ?2", user,
+                                "HO")
+                        .list();
             }
 
             List<ResponseApprovalTransaksiDto> result = new ArrayList<>();
@@ -213,9 +313,53 @@ public class TransaksiRes {
                         trx.nomor_invoice, trxPersetujuan, trx.tanggal_invoice, trx.no_po_kontrak));
             }
             return Response.ok().entity(ResponseHandler.ok("Get Transaksi", result)).build();
-       
 
-            
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @GET
+    @Path("/get-manajemen-transaksi")
+    public Response getManajemenTransaksi(@Context SecurityContext ctx) {
+        // UserEntity user = UserEntity.find("email = ?1",
+        // ctx.getUserPrincipal().getName()).firstResult();
+        try {
+            List<TransaksiEntity> trxE = TransaksiEntity.listAll();
+
+            List<ResponseApprovalTransaksiDto> result = new ArrayList<>();
+            for (TransaksiEntity trx : trxE) {
+                List<TransaksiPaymentEntity> trxPayment = TransaksiPaymentEntity
+                        .find("id_transaksi = ?1", trx.id_transaksi).list();
+                // List<TransaksiProyekDetailPersetujuanEntity> trxPersetujuan =
+                // TransaksiProyekDetailPersetujuanEntity.find("id_transaksi = ?1",
+                // trx.reference_id_transaksi_proyek).list();
+                List<TransaksiProyekDetailPersetujuanEntity> trxPersetujuan;
+
+                if (trx.reference_id_transaksi_proyek != null) {
+                    TransaksiProyekEntity trxProyek = TransaksiProyekEntity.findById(trx.reference_id_transaksi_proyek);
+                    if (trxProyek != null) {
+                        trxPersetujuan = trxProyek.pengajuanTransaksi;
+                    } else {
+                        trxPersetujuan = null;
+                    }
+                } else {
+                    trxPersetujuan = null;
+                }
+
+                result.add(new ResponseApprovalTransaksiDto(trx.id_transaksi, trx.jenis_transaksi,
+                        trx.tanggal_pengajuan, trx.keterangan, trx.proyek, trx.layak_bayar, trx.status_pengajuan,
+                        trx.last_updated, trx.upload_bukti_pembayaran, trx.catatan_verified, trx.kode_transaksi,
+                        trx.payment_at, trx.approved_at, trx.catatan_payment, trx.tempo_pembayaran_after_verified,
+                        trx.tanggal_jatuh_tempo_after_verified, trx.transaksi_via, trx.nilai_invoice, trx.pph, trx.ppn,
+                        trx.retensi, trx.kasbon, trx.nilai_invoice_bersih, trx.biaya_potongan_lainnya,
+                        trx.reference_id_transaksi_proyek, trx.paymentBy, trx.user_pengajuan, trx.approvedBy,
+                        trx.updatedBy, trx.detailTransaksi, trxPayment, trx.nama_vendor, trx.kategori,
+                        trx.nomor_invoice, trxPersetujuan, trx.tanggal_invoice, trx.no_po_kontrak));
+            }
+            return Response.ok().entity(ResponseHandler.ok("Get Transaksi", result)).build();
+
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
@@ -292,7 +436,8 @@ public class TransaksiRes {
                             trx.transaksi_via, trx.nilai_invoice, trx.pph, trx.ppn, trx.retensi, trx.kasbon,
                             trx.nilai_invoice_bersih, trx.biaya_potongan_lainnya, trx.reference_id_transaksi_proyek,
                             trx.paymentBy, trx.user_pengajuan, trx.approvedBy, trx.updatedBy, trx.detailTransaksi,
-                            trxPayment, trx.nama_vendor, trx.kategori, trx.nomor_invoice, trxPersetujuan, trx.tanggal_invoice, trx.no_po_kontrak)))
+                            trxPayment, trx.nama_vendor, trx.kategori, trx.nomor_invoice, trxPersetujuan,
+                            trx.tanggal_invoice, trx.no_po_kontrak)))
                     .build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
@@ -516,9 +661,6 @@ public class TransaksiRes {
                     trx.tanggal_jatuh_tempo_after_verified = LocalDate.now()
                             .plusDays(Long.valueOf(trx.tempo_pembayaran_after_verified));
 
-
-                    
-                   
                     break;
                 case "Reject":
                     if (trx.transaksi_via.equals("Proyek")) {
@@ -531,20 +673,7 @@ public class TransaksiRes {
                     }
                     trx.approvedBy = userApproved;
                     break;
-                // case "Payment":
-                // if(trx.transaksi_via.equals("Proyek")){
-                // if(trx.reference_id_transaksi_proyek != null ||
-                // trx.reference_id_transaksi_proyek != ""){
-                // TransaksiProyekEntity trxProyek = TransaksiProyekEntity.find("id_transaksi =
-                // ?1", trx.reference_id_transaksi_proyek).firstResult();
-                // trxProyek.paymentBy = userApproved;
-                // trxProyek.payment_at = LocalDateTime.now();
-                // trxProyek.status_pengajuan = "Telah Di Payment HO";
-                // }
-                // }
-                // trx.paymentBy = userApproved;
-                // trx.payment_at = LocalDateTime.now();
-                // break;
+
                 default:
                     trx.approvedBy = null;
                     trx.paymentBy = null;
@@ -593,16 +722,20 @@ public class TransaksiRes {
                     }
                 }
             }
-            if(create.status_approval.equals("Verified")){
+            if (create.status_approval.equals("Verified")) {
                 byte[] DokumenMerge = getDokumenDisposisi(trx.id_transaksi);
-                List<String> role = List.of("18","09","35");
+                List<String> role = List.of("18", "09", "35");
                 List<UserEntity> user = UserEntity.find("role.kode_role IN ?1", role).list();
-                for(UserEntity get: user){
-                    configHttpService.sendEmailWithAttach(get.email.trim(), "Pengajuan Payment Checklist Pembayaran", "Dokumen Transaksi", "transaksi-"+trx.kode_transaksi, DokumenMerge);
-                    
-                    configHttpService.SendWhatsapp(get.no_hp.trim(), "Pengajuan Payment Checklist Pembayaran Dengan kode transaksi "+trx.kode_transaksi);
+                for (UserEntity get : user) {
+                    configHttpService.sendEmailWithAttach(get.email.trim(), "Pengajuan Payment Checklist Pembayaran",
+                            "Dokumen Transaksi", "transaksi-" + trx.kode_transaksi, DokumenMerge);
+
+                    // configHttpService.SendWhatsapp("081384456729", "Pengajuan Payment Checklist
+                    // Pembayaran Dengan kode transaksi "+trx.kode_transaksi);
                 }
-                
+                // configHttpService.SendWhatsapp("081384456729", "Pengajuan Payment Checklist
+                // Pembayaran Dengan kode transaksi ");
+
             }
             return Response.ok().entity(ResponseHandler.ok("Update Detail Transaksi", null)).build();
         } catch (Exception e) {
@@ -644,12 +777,14 @@ public class TransaksiRes {
         try {
             TransaksiEntity trx = TransaksiEntity.findById(id);
             List<TransaksiDetailEntity> trxDetail = TransaksiDetailEntity.find("transaksi = ?1", trx).list();
-            List<JenisTransaksiEntity> jenisTrx = JenisTransaksiEntity.find("jenis_transaksi = ?1", trx.jenis_transaksi).list();
+            List<JenisTransaksiEntity> jenisTrx = JenisTransaksiEntity.find("jenis_transaksi = ?1", trx.jenis_transaksi)
+                    .list();
             TransaksiProyekEntity trxProyek = null;
-            if(trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isBlank()){
+            if (trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isBlank()) {
                 trxProyek = TransaksiProyekEntity.findById(trx.reference_id_transaksi_proyek);
             }
-            // TransaksiProyekEntity trxProyek = TransaksiProyekEntity.findById(trx.reference_id_transaksi_proyek);
+            // TransaksiProyekEntity trxProyek =
+            // TransaksiProyekEntity.findById(trx.reference_id_transaksi_proyek);
             List<String> urls = trxDetail.stream().map(x -> x.jawaban).toList();
             byte[] cover = pdfService.generateFormDisposisi(trx, jenisTrx, trxProyek);
 
@@ -693,16 +828,17 @@ public class TransaksiRes {
         }
     }
 
-    private byte[] getDokumenDisposisi(String id){
+    private byte[] getDokumenDisposisi(String id) {
         try {
-             TransaksiEntity trx = TransaksiEntity.findById(id);
+            TransaksiEntity trx = TransaksiEntity.findById(id);
             List<TransaksiDetailEntity> trxDetail = TransaksiDetailEntity.find("transaksi = ?1", trx).list();
-            List<JenisTransaksiEntity> jenisTrx = JenisTransaksiEntity.find("jenis_transaksi = ?1", trx.jenis_transaksi).list();
+            List<JenisTransaksiEntity> jenisTrx = JenisTransaksiEntity.find("jenis_transaksi = ?1", trx.jenis_transaksi)
+                    .list();
             TransaksiProyekEntity trxProyek = null;
-            if(trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isBlank()){
+            if (trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isBlank()) {
                 trxProyek = TransaksiProyekEntity.findById(trx.reference_id_transaksi_proyek);
             }
-            
+
             List<String> urls = trxDetail.stream().map(x -> x.jawaban).toList();
             byte[] cover = pdfService.generateFormDisposisi(trx, jenisTrx, trxProyek);
 

@@ -8,15 +8,12 @@ import org.jboss.resteasy.reactive.PartType;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.core.MediaType;
 
-public class CreateTransaksiDto {
-
+public class UpdateTransaksiDto {
 
     @FormParam("id_transaksi")
     @PartType(MediaType.TEXT_PLAIN)
@@ -111,31 +108,21 @@ public class CreateTransaksiDto {
 
     @FormParam("nama_transaksi")
     @PartType(MediaType.TEXT_PLAIN)
-    @NotNull(message = "nama_transaksi wajib ada")
-    @Size(min = 1, message = "nama_transaksi minimal 1 item")
+    // @NotNull(message = "nama_transaksi wajib ada")
+    // @Size(min = 1, message = "nama_transaksi minimal 1 item")
     public List<
-        @NotBlank(message = "nama_transaksi tidak boleh kosong")
+       
         String
     > nama_transaksi;
 
 
     @FormParam("files")
     @PartType(MediaType.APPLICATION_OCTET_STREAM)
-    @NotNull(message = "files wajib ada")
-    @Size(min = 1, message = "files minimal 1 item")
+    // @NotNull(message = "files wajib ada")
+    // @Size(min = 1, message = "files minimal 1 item")
     public List<
-        @NotNull(message = "file tidak boleh null")
         FileUpload
     > files;
 
-
-    // @FormParam("nilai")
-    // @PartType(MediaType.TEXT_PLAIN)
-    // @NotNull(message = "nilai wajib ada")
-    // @Size(min = 1, message = "nilai minimal 1 item")
-    // public List<
-    //     @NotNull(message = "nilai tidak boleh null")
-    //     @Positive(message = "nilai harus lebih dari 0")
-    //     Integer
-    // > nilai_value;
+    
 }

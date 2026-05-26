@@ -66,9 +66,15 @@ public class ConfigHttpService {
 
             WhatsappRequestDto body = new WhatsappRequestDto();
             String no_hp = phone;
-            if (no_hp.startsWith("0")) {
-                no_hp = "+62" + no_hp.substring(1);
+
+            if (no_hp != null && !no_hp.isBlank()) {
+
+                if (no_hp.startsWith("0")) {
+
+                    no_hp = "+62" + no_hp.substring(1);
+                }
             }
+            
             body.phone = no_hp;
             body.message = message;
             String jsonBody = mapper.writeValueAsString(body);
