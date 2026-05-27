@@ -86,6 +86,11 @@ public class UpdateTransaksiDto {
     @NotBlank(message = "Nama Vendor must be required")
     public String nama_vendor;
 
+    @FormParam("status_pengajuan")
+    @PartType(MediaType.TEXT_PLAIN)
+    @NotBlank(message = "status_pengajuan must be required")
+    public String status_pengajuan;
+
     @FormParam("tanggal_invoice")
     @PartType(MediaType.TEXT_PLAIN)
     @NotNull(message = "Nama Vendor must be required")

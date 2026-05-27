@@ -21,8 +21,10 @@ import org.sim.umira.configs.ConfigHttpService;
 import org.sim.umira.dtos.ChecklistTransaksi.CreateApprovalTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.CreateTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.ResponseApprovalTransaksiDto;
+import org.sim.umira.dtos.ChecklistTransaksi.UpdateDetailTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.UpdatePengajuanDetailTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.UpdateTransaksiDto;
+import org.sim.umira.dtos.ChecklistTransaksi.UpdateTransaksiPaymentDto;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.ChecklistTransaksi.CountTransaksiEntity;
 import org.sim.umira.entities.ChecklistTransaksi.JenisTransaksiEntity;
@@ -192,7 +194,7 @@ public class TransaksiRes {
             transaksiParent.nilai_invoice_bersih = form.nilai_invoice_bersih;
             transaksiParent.biaya_potongan_lainnya = form.biaya_potongan_lainnya;
             transaksiParent.last_updated = LocalDateTime.now();
-            // transaksiParent.status_pengajuan = "Pengajuan";
+            transaksiParent.status_pengajuan = form.status_pengajuan;
             transaksiParent.proyek = form.proyek;
             // transaksiParent.transaksi_via = "HO";
             transaksiParent.nama_vendor = form.nama_vendor;
@@ -204,19 +206,71 @@ public class TransaksiRes {
 
             List<TransaksiDetailEntity> trxDetail = TransaksiDetailEntity.find("transaksi = ?1", transaksiParent)
                     .list();
+
+            if (transaksiParent.reference_id_transaksi_proyek != null
+                    && !transaksiParent.reference_id_transaksi_proyek.isBlank()) {
+                TransaksiProyekEntity trxProyek = TransaksiProyekEntity
+                        .findById(transaksiParent.reference_id_transaksi_proyek);
+                if (trxProyek != null) {
+                    trxProyek.jenis_transaksi = form.jenis_transaksi;
+                    trxProyek.kode_transaksi = form.kode_transaksi;
+                    // transaksiParent.tanggal_pengajuan = LocalDate.now();
+                    trxProyek.tempo_pembayaran_after_verified = form.tempo_pembayaran_after_verified;
+                    transaksiParent.keterangan = form.catatan;
+                    // transaksiParent.user_pengajuan = userPengaju;
+                    // transaksiParent.updatedBy = userPengaju;
+                    trxProyek.nilai_invoice = form.nilai_invoice;
+                    trxProyek.ppn = form.ppn;
+                    trxProyek.pph = form.pph;
+                    trxProyek.retensi = form.retensi;
+                    trxProyek.kasbon = form.kasbon;
+                    trxProyek.nilai_invoice_bersih = form.nilai_invoice_bersih;
+                    trxProyek.biaya_potongan_lainnya = form.biaya_potongan_lainnya;
+                    trxProyek.last_updated = LocalDateTime.now();
+                    trxProyek.status_pengajuan = form.status_pengajuan;
+                    trxProyek.proyek = form.proyek;
+                    // transaksiParent.transaksi_via = "HO";
+                    trxProyek.nama_vendor = form.nama_vendor;
+                    trxProyek.kategori = form.kategori;
+                    trxProyek.nomor_invoice = form.nomor_invoice;
+                    trxProyek.no_po_kontrak = form.no_po_kontrak;
+                    trxProyek.tanggal_invoice = form.tanggal_invoice;
+
+                }
+            }
             if (form.files.size() > 0) {
-                List<CompletableFuture<TransaksiDetailEntity>> tasks = new ArrayList<>();
+
                 for (TransaksiDetailEntity trD : trxDetail) {
                     Boolean deleteFiles = Files.deleteIfExists(java.nio.file.Path.of(trD.jawaban));
+
                     if (deleteFiles) {
+
                         TransaksiDetailEntity.deleteById(trD.id_detail_transaksi);
                     }
 
                 }
+                if (transaksiParent.reference_id_transaksi_proyek != null
+                        && !transaksiParent.reference_id_transaksi_proyek.isBlank()) {
+                    TransaksiProyekEntity trxProy = TransaksiProyekEntity
+                            .findById(transaksiParent.reference_id_transaksi_proyek);
+                    List<TransaksiDetailProyekEntity> trxDetailpro = TransaksiDetailProyekEntity
+                            .find("transaksi = ?1", trxProy).list();
+                    for (TransaksiDetailProyekEntity trDP : trxDetailpro) {
+                        Boolean deleteFiles = Files.deleteIfExists(java.nio.file.Path.of(trDP.jawaban));
+
+                        if (deleteFiles) {
+
+                            TransaksiDetailProyekEntity.deleteById(trDP.id_detail_transaksi);
+                        }
+
+                    }
+
+                }
+                List<CompletableFuture<UpdateDetailTransaksiDto>> tasks = new ArrayList<>();
                 for (int i = 0; i < form.files.size(); i++) {
                     final int idx = i;
                     // System.out.println(form.nama_transaksi.get(idx));
-                    CompletableFuture<TransaksiDetailEntity> task = CompletableFuture.supplyAsync(() -> {
+                    CompletableFuture<UpdateDetailTransaksiDto> task = CompletableFuture.supplyAsync(() -> {
                         try {
 
                             String ext = form.files.get(idx).fileName()
@@ -230,7 +284,9 @@ public class TransaksiRes {
                                     form.files.get(idx).uploadedFile(),
                                     target,
                                     java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                            
+
+                            UpdateDetailTransaksiDto resUpdate = new UpdateDetailTransaksiDto();
+
                             TransaksiDetailEntity entity = new TransaksiDetailEntity();
                             entity.transaksi = transaksiParent;
                             entity.pertanyaan = form.nama_transaksi.get(idx);
@@ -238,7 +294,30 @@ public class TransaksiRes {
                             entity.checklist = 1;
                             entity.user_verified = userPengaju;
                             entity.verified_at = LocalDateTime.now();
-                            return entity;
+                            // resUpdate.trxDetailProyek = null;
+                            TransaksiDetailProyekEntity entityProyek = null;
+                            if (transaksiParent.reference_id_transaksi_proyek != null
+                                    && !transaksiParent.reference_id_transaksi_proyek.isBlank()) {
+                                TransaksiProyekEntity trxProy = TransaksiProyekEntity
+                                        .findById(transaksiParent.reference_id_transaksi_proyek);
+                                if (trxProy != null) {
+                                    entityProyek = new TransaksiDetailProyekEntity();
+                                    entityProyek.transaksi = trxProy;
+                                    entityProyek.pertanyaan = form.nama_transaksi.get(idx);
+                                    entityProyek.jawaban = target.toString();
+                                    entityProyek.checklist = 1;
+                                    entityProyek.user_verified = userPengaju;
+                                    entityProyek.verified_at = LocalDateTime.now();
+                                }
+
+                                // resUpdate.trxDetailProyek = entityProyek;
+
+                            }
+                            resUpdate.trxDetailProyek = entityProyek;
+                            resUpdate.trxDetail = entity;
+                            return resUpdate;
+
+                            // return entity;
 
                         } catch (Exception e) {
                             throw new RuntimeException(e);
@@ -249,18 +328,156 @@ public class TransaksiRes {
                 }
 
                 // ⏳ Tunggu semua upload selesai
-                List<TransaksiDetailEntity> entities = tasks.stream()
+                List<UpdateDetailTransaksiDto> entities = tasks.stream()
                         .map(CompletableFuture::join)
                         .toList();
 
                 // // 💾 Simpan ke database (HARUS di thread utama)
-                for (TransaksiDetailEntity entity : entities) {
-                    entity.persist();
+                for (UpdateDetailTransaksiDto entity : entities) {
+
+                    entity.trxDetail.persist();
+                    if (entity.trxDetailProyek != null) {
+                        entity.trxDetailProyek.persist();
+                    }
                 }
 
             }
 
             return Response.ok().entity(ResponseHandler.ok("Update Jenis Transaksi", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @GET
+    @Path("/delete-transaksi")
+    @Transactional
+    public Response deleteTransaksi(@QueryParam("id") String id) {
+        try {
+            // ExecutorService executor = Executors.newFixedThreadPool(5);
+
+            List<CompletableFuture<Void>> tasks = new ArrayList<>();
+
+            TransaksiEntity trx = TransaksiEntity.findById(id);
+
+            if (trx.detailTransaksi != null &&
+                    !trx.detailTransaksi.isEmpty()) {
+
+                for (TransaksiDetailEntity trxD : trx.detailTransaksi) {
+
+                    CompletableFuture<Void> task = CompletableFuture.runAsync(() -> {
+
+                        try {
+
+                            if (trxD.jawaban != null &&
+                                    !trxD.jawaban.isBlank()) {
+
+                                Files.deleteIfExists(
+                                        java.nio.file.Path.of(trxD.jawaban));
+                            }
+
+                        } catch (Exception e) {
+
+                            e.printStackTrace();
+                        }
+
+                    }, executor);
+
+                    tasks.add(task);
+                }
+            }
+
+            List<TransaksiPaymentEntity> trxPayment = TransaksiPaymentEntity.find("id_transaksi = ?1", trx.id_transaksi).list();
+            if(trxPayment.size() > 0){
+                for (TransaksiPaymentEntity trxP : trxPayment) {
+
+                    CompletableFuture<Void> task = CompletableFuture.runAsync(() -> {
+
+                        try {
+
+                            if (trxP.bukti_bayar != null &&
+                                    !trxP.bukti_bayar.isBlank()) {
+
+                                Files.deleteIfExists(
+                                        java.nio.file.Path.of(trxP.bukti_bayar));
+                            }
+
+                        } catch (Exception e) {
+
+                            e.printStackTrace();
+                        }
+
+                    }, executor);
+
+                    tasks.add(task);
+                }
+            }
+
+            
+
+            if (trx.reference_id_transaksi_proyek != null &&
+                    !trx.reference_id_transaksi_proyek.isBlank()) {
+
+                TransaksiProyekEntity trxProyek = TransaksiProyekEntity.findById(
+                        trx.reference_id_transaksi_proyek);
+
+                if (trxProyek != null &&
+                        trxProyek.detailTransaksi != null &&
+                        !trxProyek.detailTransaksi.isEmpty()) {
+
+                    for (TransaksiDetailProyekEntity trxD : trxProyek.detailTransaksi) {
+
+                        CompletableFuture<Void> task = CompletableFuture.runAsync(() -> {
+
+                            try {
+
+                                if (trxD.jawaban != null &&
+                                        !trxD.jawaban.isBlank()) {
+
+                                    Files.deleteIfExists(
+                                            java.nio.file.Path.of(trxD.jawaban));
+                                }
+
+                            } catch (Exception e) {
+
+                                e.printStackTrace();
+                            }
+
+                        }, executor);
+
+                        tasks.add(task);
+                    }
+                }
+            }
+
+            // tunggu semua selesai
+            CompletableFuture.allOf(
+                    tasks.toArray(
+                            new CompletableFuture[0]))
+                    .join();
+
+            // executor.shutdown();
+
+
+            if(trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isBlank()){
+                TransaksiProyekEntity trxProyekDelete = TransaksiProyekEntity.findById(trx.reference_id_transaksi_proyek);
+                if(trxProyekDelete != null){
+                    // TransaksiDetailProyekEntity.delete("transaksi = ?1", trxProyekDelete);
+                    // TransaksiProyekDetailPersetujuanEntity.delete("transaksiPersetujuanProyek = ?1", trxProyekDelete);
+                    trxProyekDelete.delete();;
+                }
+            }
+            
+            if(trx != null){
+                // TransaksiDetailEntity.delete("transaksi = ?1", trx);
+                TransaksiPaymentEntity.delete("id_transaksi = ?1", trx.id_transaksi);
+                trx.delete();
+            }
+
+
+            return Response.ok().entity(ResponseHandler.ok("Delete Data Berhasil", null)).build();
+
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
@@ -462,6 +679,18 @@ public class TransaksiRes {
     public Response getMasterStatusLayakBayar() {
         try {
             List<String> list = List.of("Layak Bayar", "Tidak Layak Bayar");
+            return Response.ok().entity(ResponseHandler.ok("Get Data", list)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @GET
+    @Path("/get-master-status-pengajuan")
+    public Response getStatusPengajuan() {
+        try {
+            List<String> list = List.of("Pengajuan", "Verified", "Payment", "Paid");
             return Response.ok().entity(ResponseHandler.ok("Get Data", list)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
@@ -753,6 +982,57 @@ public class TransaksiRes {
             return Response.ok(fileStream).build();
         } catch (Exception e) {
             throw new InternalServerErrorException("Cant get file");
+        }
+    }
+
+    @GET
+    @Path("/delete-bukti-bayar")
+    @Transactional
+    public Response deleteBuktiBayar(@QueryParam("id") String id) {
+        System.out.println(id);
+        try {
+            TransaksiPaymentEntity trxPayment = TransaksiPaymentEntity.findById(id);
+            if (trxPayment != null) {
+                Files.deleteIfExists(java.nio.file.Path.of(trxPayment.bukti_bayar));
+                TransaksiPaymentEntity.deleteById(id);
+            }
+            return Response.ok().entity(ResponseHandler.ok("Delete Transaksi Berhasil", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+        }
+    }
+
+    @POST
+    @Path("/update-bukti-bayar")
+    @Transactional
+    public Response updateBuktiBayar(@Valid @MultipartForm UpdateTransaksiPaymentDto update,
+            @QueryParam("id") String id) {
+        System.out.println(id);
+        try {
+            TransaksiPaymentEntity trxPayment = TransaksiPaymentEntity.findById(id);
+            if (trxPayment != null) {
+                if (update.upload_dokumen_transaksi != null) {
+                    Files.deleteIfExists(java.nio.file.Path.of(trxPayment.bukti_bayar));
+                    String ext = update.upload_dokumen_transaksi.fileName()
+                            .substring(update.upload_dokumen_transaksi.fileName().lastIndexOf("."));
+                    String fileName = java.util.UUID.randomUUID() + ext;
+                    if (!Files.exists(UPLOAD_DIR)) {
+                        Files.createDirectories(UPLOAD_DIR);
+                    }
+                    java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
+                    Files.copy(
+                            update.upload_dokumen_transaksi.uploadedFile(),
+                            target,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    // trx.upload_bukti_pembayaran = target.toString();
+                    // bb = target.toString();
+                    trxPayment.bukti_bayar = target.toString();
+                }
+                trxPayment.nominal_bayar = update.nilai_bayar;
+            }
+            return Response.ok().entity(ResponseHandler.ok("Update Transaksi Bayar Berhasil", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
         }
     }
 
