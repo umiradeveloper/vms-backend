@@ -19,7 +19,6 @@ import org.sim.umira.entities.UmiraTest.ExamEntity;
 import org.sim.umira.entities.UmiraTest.ExamQuestionEntity;
 import org.sim.umira.entities.UmiraTest.ExamResultEntity;
 import org.sim.umira.entities.UmiraTest.ExamResultQuestionEntity;
-import org.sim.umira.entities.UmiraTest.ExamSessionEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
