@@ -17,6 +17,8 @@ import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.services.PdfService;
 
+import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
@@ -35,6 +37,9 @@ public class MasterRes {
 
     @Inject
     PdfService pdfService;
+
+    @Inject
+    RedisDataSource redis;
 
     @GET
     @Path("/get-branch")
@@ -119,6 +124,20 @@ public class MasterRes {
             throw new InternalServerErrorException(e.getMessage());
         }
          
+    }
+
+    
+
+    @GET
+    @Path("/check")
+    public String checkRedis() {
+
+        ValueCommands<String, String> value =
+                redis.value(String.class);
+
+        value.set("test", "hello redis");
+
+        return value.get("test");
     }
 
 
