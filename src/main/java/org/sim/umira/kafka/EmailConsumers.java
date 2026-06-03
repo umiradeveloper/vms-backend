@@ -19,6 +19,7 @@ public class EmailConsumers {
     public void consume(EmailEventDto event) {
 
         String json = Json.encode(event);
+        System.out.println(json);
         ListCommands<String, String> list = redis.list(String.class);
 
         // push ke Redis queue
