@@ -955,13 +955,29 @@ public class TransaksiRes {
                 byte[] DokumenMerge = getDokumenDisposisi(trx.id_transaksi);
                 List<String> role = List.of("18", "09", "35");
                 List<UserEntity> user = UserEntity.find("role.kode_role IN ?1", role).list();
+                List<CompletableFuture<Void>> futures = new ArrayList<>();
                 for (UserEntity get : user) {
-                    configHttpService.sendEmailWithAttach(get.email.trim(), "Pengajuan Payment Checklist Pembayaran",
-                            "Dokumen Transaksi", "transaksi-" + trx.kode_transaksi, DokumenMerge);
+                    
+                      futures.add(
+                            sendEmailAsync(
+                                get,
+                                "Pengajuan Payment Checklist Pembayaran",
+                                "Dokumen Transaksi",
+                                "transaksi-" + trx.kode_transaksi,
+                                DokumenMerge
+                            )
+                        );
+
+                    // configHttpService.sendEmailWithAttach(get.email.trim(), "Pengajuan Payment Checklist Pembayaran",
+                    //         "Dokumen Transaksi", "transaksi-" + trx.kode_transaksi, DokumenMerge);
 
                     // configHttpService.SendWhatsapp("081384456729", "Pengajuan Payment Checklist
                     // Pembayaran Dengan kode transaksi "+trx.kode_transaksi);
                 }
+
+                CompletableFuture.allOf(
+                    futures.toArray(new CompletableFuture[0])
+                ).join();
                 // configHttpService.SendWhatsapp("081384456729", "Pengajuan Payment Checklist
                 // Pembayaran Dengan kode transaksi ");
 
@@ -1131,5 +1147,24 @@ public class TransaksiRes {
             return new byte[0];
             // TODO: handle exception
         }
+    }
+
+    public CompletableFuture<Void> sendEmailAsync(UserEntity user,
+                                                String subject,
+                                                String message,
+                                                String filename,
+                                                byte[] pdf) {
+
+        return CompletableFuture.runAsync(() -> {
+
+            configHttpService.sendEmailWithAttach(
+                    user.email.trim(),
+                    subject,
+                    message,
+                    filename,
+                    pdf
+            );
+
+        }, executor);
     }
 }

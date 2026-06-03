@@ -145,4 +145,6 @@ public class ConfigHttpService {
 
         return "Mail sent!";
     }
+
+    
 }
