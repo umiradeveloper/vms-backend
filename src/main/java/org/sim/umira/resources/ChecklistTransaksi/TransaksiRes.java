@@ -37,6 +37,8 @@ import org.sim.umira.entities.ChecklistTransaksi.TransaksiProyekEntity;
 import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.kafka.EmailEventDto;
+import org.sim.umira.kafka.EmailProducers;
 import org.sim.umira.services.PDFMerge;
 import org.sim.umira.services.PdfService;
 import org.sim.umira.services.SuperappsExecutor;
@@ -72,6 +74,9 @@ public class TransaksiRes {
 
     @Inject
     ConfigHttpService configHttpService;
+
+    @Inject
+    EmailProducers emailProducers;
 
     @POST
     @Path("/create-transaksi")
@@ -955,18 +960,9 @@ public class TransaksiRes {
                 byte[] DokumenMerge = getDokumenDisposisi(trx.id_transaksi);
                 List<String> role = List.of("18", "09", "35");
                 List<UserEntity> user = UserEntity.find("role.kode_role IN ?1", role).list();
-                List<CompletableFuture<Void>> futures = new ArrayList<>();
                 for (UserEntity get : user) {
                     
-                      futures.add(
-                            sendEmailAsync(
-                                get,
-                                "Pengajuan Payment Checklist Pembayaran",
-                                "Dokumen Transaksi",
-                                "transaksi-" + trx.kode_transaksi,
-                                DokumenMerge
-                            )
-                        );
+                      emailProducers.send(new EmailEventDto(get.email.trim(), "Pengajuan Payment Checklist Pembayaran", "Dokumen Transaksi", "transaksi-" + trx.kode_transaksi, DokumenMerge));
 
                     // configHttpService.sendEmailWithAttach(get.email.trim(), "Pengajuan Payment Checklist Pembayaran",
                     //         "Dokumen Transaksi", "transaksi-" + trx.kode_transaksi, DokumenMerge);
@@ -975,9 +971,7 @@ public class TransaksiRes {
                     // Pembayaran Dengan kode transaksi "+trx.kode_transaksi);
                 }
 
-                CompletableFuture.allOf(
-                    futures.toArray(new CompletableFuture[0])
-                ).join();
+               
                 // configHttpService.SendWhatsapp("081384456729", "Pengajuan Payment Checklist
                 // Pembayaran Dengan kode transaksi ");
 
@@ -1149,22 +1143,5 @@ public class TransaksiRes {
         }
     }
 
-    public CompletableFuture<Void> sendEmailAsync(UserEntity user,
-                                                String subject,
-                                                String message,
-                                                String filename,
-                                                byte[] pdf) {
-
-        return CompletableFuture.runAsync(() -> {
-
-            configHttpService.sendEmailWithAttach(
-                    user.email.trim(),
-                    subject,
-                    message,
-                    filename,
-                    pdf
-            );
-
-        }, executor);
-    }
+   
 }
