@@ -14,7 +14,7 @@ import jakarta.inject.Inject;
 public class EmailConsumers {
      @Inject
     RedisDataSource redis;
-      
+
     @Incoming("email-in")
     public void consume(EmailEventDto event) {
 
