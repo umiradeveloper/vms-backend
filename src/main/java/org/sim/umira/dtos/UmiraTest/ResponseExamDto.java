@@ -22,6 +22,10 @@ public class ResponseExamDto {
 
     public Integer limit_score_exam;
 
+    public Integer take_question;
+
+    public Integer count_user;
+
     public List<?> examResult;
 
     public List<?> examQuestion;
@@ -29,7 +33,7 @@ public class ResponseExamDto {
     public List<?> examAccess;
 
     public ResponseExamDto(String id_exam, String kode_exam, String type_exam, String title_exam, String desc_exam,
-            LocalDateTime date_exam, Integer duration_exam, Integer status_exam, Integer limit_score_exam, List<?> examResult, List<?> examQuestion, List<?> examAccess) {
+            LocalDateTime date_exam, Integer duration_exam, Integer status_exam, Integer limit_score_exam, Integer take_question, Integer count_user , List<?> examResult, List<?> examQuestion, List<?> examAccess) {
         this.id_exam = id_exam;
         this.kode_exam = kode_exam;
         this.type_exam = type_exam;
@@ -42,6 +46,8 @@ public class ResponseExamDto {
         this.examResult = examResult;
         this.examQuestion = examQuestion;
         this.examAccess = examAccess;
+        this.count_user = count_user;
+        this.take_question = take_question;
     }
 
     

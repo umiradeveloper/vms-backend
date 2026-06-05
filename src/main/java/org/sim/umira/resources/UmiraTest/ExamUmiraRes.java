@@ -27,8 +27,11 @@ import io.quarkus.redis.datasource.value.ValueCommands;
 import io.quarkus.security.UnauthorizedException;
 import io.vertx.core.json.JsonObject;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
@@ -47,6 +50,9 @@ public class ExamUmiraRes {
     @Inject
     RedisDataSource redis;
 
+    @Inject
+    EntityManager em;
+
     @GET
     @Path("/get-exam")
     public Response getExam() {
@@ -64,6 +70,7 @@ public class ExamUmiraRes {
                 List<ExamAccessEntity> exAccess = ExamAccessEntity.find("exam = ?1", exE).list();
                 examResponse.add(new ResponseExamDto(exE.id_exam, exE.kode_exam, exE.type_exam, exE.title_exam,
                         exE.desc_exam, exE.date_exam, exE.duration_exam, exE.status_exam, exE.limit_score_exam,
+                        exE.take_question, exE.count_user,
                         exResult, exQuest, exAccess));
                 // examResult.add(new ResponseExamResultDto(null, null, null, null, null, null,
                 // null, null, null, examResult, exam))
@@ -86,11 +93,22 @@ public class ExamUmiraRes {
                     .find("select e from ExamEntity e join e.examAccess ea where ea.role = ?1", user.role).list();
             List<ResponseExamDto> examResponse = new ArrayList<>();
             for (ExamEntity exE : exam) {
-                List<ExamQuestionEntity> exQuest = ExamQuestionEntity.find("exam = ?1", exE).list();
+                // List<ExamQuestionEntity> exQuest = ExamQuestionEntity.find("exam = ?1",
+                // exE).list();
+                Query query = em.createNativeQuery(
+                    "SELECT * FROM exam_question WHERE id_exam = ? ORDER BY RAND()",
+                    ExamQuestionEntity.class)
+                    .setParameter(1, exE.id_exam);
+            if (exE.take_question != null && exE.take_question > 0) {
+                query.setMaxResults(exE.take_question);
+            }
+            @SuppressWarnings("unchecked")
+            List<ExamQuestionEntity> randomQuestions = query.getResultList();
                 List<ExamResultEntity> exResult = ExamResultEntity.find("exam = ?1 AND user = ?2", exE, user).list();
                 examResponse.add(new ResponseExamDto(exE.id_exam, exE.kode_exam, exE.type_exam, exE.title_exam,
                         exE.desc_exam, exE.date_exam, exE.duration_exam, exE.status_exam, exE.limit_score_exam,
-                        exResult, exQuest, null));
+                        exE.take_question, exE.count_user,
+                        exResult, randomQuestions, null));
                 // examResult.add(new ResponseExamResultDto(null, null, null, null, null, null,
                 // null, null, null, examResult, exam))
             }
@@ -114,11 +132,22 @@ public class ExamUmiraRes {
                         WHERE ea.role = ?1 AND e.id_exam = ?2
                     """, user.role, id).firstResult();
             // ResponseExamDto examResponse = new ArrayList<>();
-            List<ExamQuestionEntity> exQuest = ExamQuestionEntity.find("exam = ?1", exE).list();
+            // List<ExamQuestionEntity> exQuest = ExamQuestionEntity.find("exam = ?1",
+            // exE).list();
+
+            Query query = em.createNativeQuery(
+                    "SELECT * FROM exam_question WHERE id_exam  = ? ORDER BY RAND()",
+                    ExamQuestionEntity.class)
+                    .setParameter(1, exE.id_exam);
+            if (exE.take_question != null && exE.take_question > 0) {
+                query.setMaxResults(exE.take_question);
+            }
+            @SuppressWarnings("unchecked")
+            List<ExamQuestionEntity> randomQuestions = query.getResultList();
             List<ExamResultEntity> exResult = ExamResultEntity.find("exam = ?1 AND user = ?2", exE, user).list();
             ResponseExamDto examResponse = new ResponseExamDto(exE.id_exam, exE.kode_exam, exE.type_exam,
                     exE.title_exam, exE.desc_exam, exE.date_exam, exE.duration_exam, exE.status_exam,
-                    exE.limit_score_exam, exResult, exQuest, null);
+                    exE.limit_score_exam, exE.take_question, exE.count_user, exResult, randomQuestions, null);
             return Response.ok().entity(ResponseHandler.ok("get exam", examResponse)).build();
         } catch (Exception e) {
             e.printStackTrace();
@@ -143,6 +172,7 @@ public class ExamUmiraRes {
                             new ResponseExamDto(examRes.exam.id_exam, examRes.exam.kode_exam, examRes.exam.type_exam,
                                     examRes.exam.title_exam, examRes.exam.desc_exam, examRes.exam.date_exam,
                                     examRes.exam.duration_exam, examRes.exam.status_exam, examRes.exam.limit_score_exam,
+                                    examRes.exam.take_question, examRes.exam.count_user,
                                     null, null, null),
                             examRes.examQuestionResult, examQuest)))
                     .build();
@@ -227,7 +257,7 @@ public class ExamUmiraRes {
             ex.correct_answer = correct_answer;
             ex.wrong_answer = wrong;
             ex.duration_result = 0;
-            ex.un_answer = exam.examQuestion.size() - wrong - correct_answer;
+            ex.un_answer = (exam.take_question != null && exam.take_question > 0)?exam.take_question: exam.examQuestion.size() - wrong - correct_answer;
             ex.status_pass = (score_semua > exam.limit_score_exam) ? "Passed" : "Not Passed";
             ex.persist();
             if (create.result_answer.size() > 0) {
@@ -279,6 +309,8 @@ public class ExamUmiraRes {
             ex.date_exam = create.date_exam;
             ex.limit_score_exam = create.limit_score_exam;
             ex.status_exam = create.status_exam;
+            ex.count_user = create.count_user;
+            ex.take_question = create.take_question;
             ex.persist();
             for (int i = 0; i < create.question.size(); i++) {
                 ExamQuestionEntity exQ = new ExamQuestionEntity();
@@ -319,6 +351,8 @@ public class ExamUmiraRes {
             ex.date_exam = create.date_exam;
             ex.limit_score_exam = create.limit_score_exam;
             ex.status_exam = create.status_exam;
+            ex.count_user = create.count_user;
+            ex.take_question = create.take_question;
             // ex.persist();
             if (create.question.size() > 0) {
                 Long deleteData = ExamQuestionEntity.delete("exam = ?1", ex);
@@ -363,6 +397,27 @@ public class ExamUmiraRes {
     public Response createExamSession(@QueryParam("id") String id, @Context SecurityContext ctx,
             @QueryParam("duration") String duration) {
         UserEntity user = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        ExamEntity exam = ExamEntity.findById(id);
+        List<ExamResultEntity> listRes = ExamResultEntity.find("user = ?1 AND exam = ?2", user, exam).list();
+        if (exam.count_user != null
+                && exam.count_user > 0
+                && listRes.size() >= exam.count_user) {
+                JsonObject data = new JsonObject();
+
+            data.put(
+                    "limit",
+                    true);
+            data.put(
+                    "remainingSeconds",
+                    1000);
+            return Response.ok()
+                    .entity(
+                            ResponseHandler.ok(
+                                    "Jumlah Test Melebihi Limit",
+                                    data))
+                    .build();
+        }
+
 
         try {
             ValueCommands<String, String> value = redis.value(String.class);
@@ -421,11 +476,39 @@ public class ExamUmiraRes {
             @QueryParam("id") String id,
             @Context SecurityContext ctx) {
 
-        UserEntity user = UserEntity.find(
-                "email = ?1",
-                ctx.getUserPrincipal()
-                        .getName())
-                .firstResult();
+        UserEntity user = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        ExamEntity exam = ExamEntity.findById(id);
+        List<ExamResultEntity> listRes = ExamResultEntity.find("user = ?1 AND exam = ?2", user, exam).list();
+        if (exam.count_user != null
+                && exam.count_user > 0
+                && listRes.size() >= exam.count_user) {
+
+            // throw new BadRequestException("Jumlah Test Melebihi Limit");
+            JsonObject data = new JsonObject();
+
+            data.put(
+                    "limit",
+                    true);
+            data.put(
+                    "remainingSeconds",
+                    1000);
+            return Response.ok()
+                    .entity(
+                            ResponseHandler.ok(
+                                    "Jumlah Test Melebihi Limit",
+                                    data))
+                    .build();
+          
+        }
+        // if(exam.count_user != null && listRes != null){
+        //     if(exam.count_user > 0 && listRes.size() > 0){
+        //         if(listRes.size() == exam.count_user){
+        //             throw new BadRequestException("Jumlah Test Melebihi Limit");
+        //         }
+        //     }
+            
+        // }
+
 
         ValueCommands<String, String> value = redis.value(String.class);
 

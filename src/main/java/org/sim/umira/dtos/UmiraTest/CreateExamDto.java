@@ -37,6 +37,12 @@ public class CreateExamDto {
     @NotNull(message = "limit_score_exam must be required")
     public Integer limit_score_exam;
 
+    @NotNull(message = "take_question must be required")
+    public Integer take_question;
+
+    @NotNull(message = "count_user must be required")
+    public Integer count_user;
+
     @NotNull(message = "role_access must be required")
     public List<String> role_access;
 

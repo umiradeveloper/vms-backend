@@ -22,11 +22,20 @@ public class EmailWorker {
     @Scheduled(every = "2s")
     public void processQueue() {
 
-        String data = redis.list(String.class).lpop("email-queue");
+        String data;
+        try {
+            data = redis.list(String.class).lpop("email-queue");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
 
-        if (data == null) return;
+        if (data == null) {
+            return;
+        }
 
         EmailEventDto event = Json.decodeValue(data, EmailEventDto.class);
+        
 
         try {
             mailer.sendEmailWithAttach(

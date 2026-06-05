@@ -15,6 +15,7 @@ import org.sim.umira.entities.VmsVendorEntity;
 import org.sim.umira.entities.CostControl.KategoriEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
+import org.sim.umira.minio.MinioServices;
 import org.sim.umira.services.PdfService;
 
 import io.quarkus.redis.datasource.RedisDataSource;
@@ -40,6 +41,10 @@ public class MasterRes {
 
     @Inject
     RedisDataSource redis;
+
+
+    @Inject 
+    MinioServices minio;
 
     @GET
     @Path("/get-branch")
@@ -138,6 +143,18 @@ public class MasterRes {
         value.set("test", "hello redis");
 
         return value.get("test");
+    }
+
+
+    @GET
+    @Path("/minio-check")
+    public Response checkBucket() {
+        try {
+            return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", minio.listObjects())).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new InternalServerErrorException("Internal server error");
+        }
     }
 
 

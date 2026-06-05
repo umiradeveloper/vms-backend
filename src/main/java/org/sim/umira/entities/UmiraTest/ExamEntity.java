@@ -37,6 +37,10 @@ public class ExamEntity extends PanacheEntityBase {
 
     public Integer limit_score_exam;
 
+    public Integer take_question;
+
+    public Integer count_user;
+
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL)
     @JsonManagedReference
     public List<ExamQuestionEntity> examQuestion;
