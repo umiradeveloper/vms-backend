@@ -22,37 +22,37 @@ public class EmailWorker {
     @Scheduled(every = "2s")
     public void processQueue() {
 
-        String data;
-        try {
-            data = redis.list(String.class).lpop("email-queue");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
+        // String data;
+        // try {
+        //     data = redis.list(String.class).lpop("email-queue");
+        // } catch (Exception e) {
+        //     e.printStackTrace();
+        //     return;
+        // }
 
-        if (data == null) {
-            return;
-        }
+        // if (data == null) {
+        //     return;
+        // }
 
-        EmailEventDto event = Json.decodeValue(data, EmailEventDto.class);
-        
+        // EmailEventDto event = Json.decodeValue(data, EmailEventDto.class);
 
-        try {
-            mailer.sendEmailWithAttach(
-                    event.to,
-                    event.message,
-                    event.subject,
-                    event.filename,
-                    event.attachment
-            );
 
-        } catch (Exception e) {
-            // requeue if failed
-            // redis.rpush("email-queue", data);
-            ListCommands<String, String> list = redis.list(String.class);
+        // try {
+        //     mailer.sendEmailWithAttach(
+        //             event.to,
+        //             event.message,
+        //             event.subject,
+        //             event.filename,
+        //             event.attachment
+        //     );
 
-            // push ke Redis queue
-            list.rpush("email-queue", data);
-        }
+        // } catch (Exception e) {
+        //     // requeue if failed
+        //     // redis.rpush("email-queue", data);
+        //     ListCommands<String, String> list = redis.list(String.class);
+
+        //     // push ke Redis queue
+        //     list.rpush("email-queue", data);
+        // }
     }
 }
