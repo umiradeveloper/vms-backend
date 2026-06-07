@@ -1,6 +1,8 @@
 package org.sim.umira.resources;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.IsoFields;
@@ -12,10 +14,13 @@ import java.util.List;
 import org.sim.umira.dtos.CostControl.ReportProyekDto;
 import org.sim.umira.entities.BranchEntity;
 import org.sim.umira.entities.RoleEntity;
+import org.sim.umira.entities.VmsVendorDetailMinioEntity;
 import org.sim.umira.entities.VmsVendorEntity;
 import org.sim.umira.entities.CostControl.KategoriEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
 import org.sim.umira.handlers.ResponseHandler;
+import org.sim.umira.kafka.KafkaProducers;
+import org.sim.umira.kafka.DTO.UploadEventDto;
 import org.sim.umira.minio.MinioServices;
 import org.sim.umira.services.PdfService;
 
@@ -43,41 +48,42 @@ public class MasterRes {
     @Inject
     RedisDataSource redis;
 
-
-    @Inject 
+    @Inject
     MinioServices minio;
+
+    @Inject
+    KafkaProducers kafkaProducers;
 
     @GET
     @Path("/get-branch")
-    public Response getBranch(){
+    public Response getBranch() {
         List<BranchEntity> be = BranchEntity.listAll();
         return Response.ok().entity(ResponseHandler.ok("Inquiry Branch Success", be)).build();
     }
 
     @GET
     @Path("/get-role")
-    public Response getRole(){
+    public Response getRole() {
         List<RoleEntity> be = RoleEntity.find("kode_role != ?1 AND kode_role != ?2", "99", "01").list();
         return Response.ok().entity(ResponseHandler.ok("Inquiry Role Success", be)).build();
     }
-    
+
     @GET
     @Path("/get-week-by-project")
     public Response getWeekByProject(
-        @QueryParam("id_project") String id_project
-    ){
-         ProyekEntity pe = ProyekEntity.findById(id_project);
+            @QueryParam("id_project") String id_project) {
+        ProyekEntity pe = ProyekEntity.findById(id_project);
         // for(ProyekEntity proj: pe){
-            if(pe.periode_awal_progress == null){
-                throw new BadRequestException("Periode Awal Progress Harus Di Isi");
-            }
-             if(pe.periode_akhir_progress == null){
-                throw new BadRequestException("Periode Akhir Progress Harus Di Isi");
-            }
+        if (pe.periode_awal_progress == null) {
+            throw new BadRequestException("Periode Awal Progress Harus Di Isi");
+        }
+        if (pe.periode_akhir_progress == null) {
+            throw new BadRequestException("Periode Akhir Progress Harus Di Isi");
+        }
         // }
 
         try {
-            
+
             List<WeekData> result = new ArrayList<>();
             LocalDate start = pe.periode_awal_progress;
             LocalDate end = pe.periode_akhir_progress;
@@ -96,56 +102,51 @@ public class MasterRes {
                 currentStart = currentStart.plusDays(7);
             }
 
-            return Response.ok().entity(ResponseHandler.ok("Inquiry Role Success", result.stream().sorted(Comparator.comparing(WeekData::week)).toList())).build();
+            return Response.ok().entity(ResponseHandler.ok("Inquiry Role Success",
+                    result.stream().sorted(Comparator.comparing(WeekData::week)).toList())).build();
         } catch (Exception e) {
             throw new InternalError(e.getMessage());
             // TODO: handle exception
         }
-        
+
     }
 
     @GET
     @Path("/kategori")
-    public Response getKategori(){
-         List<KategoriEntity> kategori = KategoriEntity.listAll();
+    public Response getKategori() {
+        List<KategoriEntity> kategori = KategoriEntity.listAll();
         return Response.ok().entity(ResponseHandler.ok("Inquiry Kategori Success", kategori)).build();
     }
 
     @GET
     @Path("/all-vendor")
-    public Response getVendor(){
+    public Response getVendor() {
         try {
             List<VmsVendorEntity> vv = VmsVendorEntity.find(
-                "id IN (" +
-                "SELECT MAX(id) FROM VmsVendorEntity " +
-                "WHERE isApproval = ?1 " +
-                "GROUP BY nama_perusahaan" +
-                ") ORDER BY tanggal_pengajuan DESC",
-                1
-            ).list();
-            
+                    "id IN (" +
+                            "SELECT MAX(id) FROM VmsVendorEntity " +
+                            "WHERE isApproval = ?1 " +
+                            "GROUP BY nama_perusahaan" +
+                            ") ORDER BY tanggal_pengajuan DESC",
+                    1).list();
 
             return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
         }
-         
-    }
 
-    
+    }
 
     @GET
     @Path("/check")
     public String checkRedis() {
 
-        ValueCommands<String, String> value =
-                redis.value(String.class);
+        ValueCommands<String, String> value = redis.value(String.class);
 
         value.set("test", "hello redis");
 
         return value.get("test");
     }
-
 
     @GET
     @Path("/minio-check")
@@ -163,8 +164,7 @@ public class MasterRes {
     // @Consumes(MediaType.APPLICATION_JSON)
     @Produces("application/pdf")
     public Response checkFile(
-        @QueryParam("url") String url
-    ){
+            @QueryParam("url") String url) {
         try {
             InputStream file = minio.getFile(url);
             return Response.ok(file).build();
@@ -175,35 +175,57 @@ public class MasterRes {
         }
     }
 
-
-
     @GET
     @Path("/get-pdf")
-    public Response getPdf(){
+    public Response getPdf() {
         try {
-         ReportProyekDto project = new ReportProyekDto(
-                "Pembangunan Gedung A",
-                "PT Maju Mundur",
-                LocalDate.now(),
-                LocalDate.now().plusMonths(6),
-                75
-        );
+            ReportProyekDto project = new ReportProyekDto(
+                    "Pembangunan Gedung A",
+                    "PT Maju Mundur",
+                    LocalDate.now(),
+                    LocalDate.now().plusMonths(6),
+                    75);
 
-        byte[] pdf = pdfService.generatePdf(project);
+            byte[] pdf = pdfService.generatePdf(project);
 
-        return Response.ok(pdf)
-                .header(
-                        "Content-Disposition",
-                        "attachment; filename=report.pdf"
-                )
-                .build();
+            return Response.ok(pdf)
+                    .header(
+                            "Content-Disposition",
+                            "attachment; filename=report.pdf")
+                    .build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
         }
     }
 
+    @GET
+    @Path("/Execute-upload-vms-detail")
+    public Response executeUploadVms() {
+        try {
+            List<VmsVendorDetailMinioEntity> listDetail = VmsVendorDetailMinioEntity.listAll();
+            for (VmsVendorDetailMinioEntity detail : listDetail) {
+                java.nio.file.Path path = java.nio.file.Path.of(detail.url_dokumen);
 
-    public record WeekData(int week, LocalDate startDate, LocalDate endDate) {}
+                if (!Files.exists(path)) {
+
+                    System.out.printf(
+                            "[SKIP] File not found: %s%n",
+                            detail.url_dokumen);
+
+                    continue;
+                }
+                String filename = Paths.get(detail.url_dokumen).getFileName().toString();
+                kafkaProducers.uploadDoc(new UploadEventDto("uploads", filename, detail.url_dokumen));
+            }
+            return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    public record WeekData(int week, LocalDate startDate, LocalDate endDate) {
+    }
 
 }

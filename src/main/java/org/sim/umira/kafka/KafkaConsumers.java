@@ -67,8 +67,8 @@ public class KafkaConsumers {
     }
 
     @Incoming("file-upload-in")
+    @Blocking
     public void consumeUpload(UploadEventDto upload) {
-
         try {
             logs.save(
                     "KafkaConsumer",
@@ -78,7 +78,6 @@ public class KafkaConsumers {
                     Json.encode(upload),
                     null);
 
-            executor.submit(() -> {
 
                 long start = System.currentTimeMillis();
 
@@ -123,7 +122,6 @@ public class KafkaConsumers {
 
                     e.printStackTrace();
                 }
-            });
 
         } catch (Exception e) {
 
@@ -138,6 +136,8 @@ public class KafkaConsumers {
         }
 
     }
+
+  
 
     @Incoming("delete-file-in")
     public void consumeDeleteFile(DeleteFileEventDto upload) {
