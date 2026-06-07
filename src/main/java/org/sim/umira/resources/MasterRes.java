@@ -1,5 +1,6 @@
 package org.sim.umira.resources;
 
+import java.io.InputStream;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.IsoFields;
@@ -154,6 +155,23 @@ public class MasterRes {
         } catch (Exception e) {
             e.printStackTrace();
             throw new InternalServerErrorException("Internal server error");
+        }
+    }
+
+    @GET
+    @Path("/minio-file")
+    // @Consumes(MediaType.APPLICATION_JSON)
+    @Produces("application/pdf")
+    public Response checkFile(
+        @QueryParam("url") String url
+    ){
+        try {
+            InputStream file = minio.getFile(url);
+            return Response.ok(file).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
         }
     }
 

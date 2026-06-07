@@ -1,4 +1,4 @@
-package org.sim.umira.kafka;
+package org.sim.umira.kafka.DTO;
 
 public class EmailEventDto {
      public String to;

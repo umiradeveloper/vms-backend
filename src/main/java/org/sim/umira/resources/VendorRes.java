@@ -30,6 +30,10 @@ import org.sim.umira.entities.VmsVendorMstKualifikasi;
 import org.sim.umira.entities.VmsVendorUpdateEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.kafka.KafkaProducers;
+import org.sim.umira.kafka.DTO.DeleteFileEventDto;
+import org.sim.umira.kafka.DTO.UploadEventDto;
+import org.sim.umira.minio.MinioServices;
 
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
@@ -59,6 +63,12 @@ public class VendorRes {
 
     @Inject
     ConfigHttpService httpService;
+
+     @Inject
+    KafkaProducers kafkaProducers;
+
+      @Inject 
+    MinioServices minio;
 
     @POST
     @Path("/create-vendor/upload")
@@ -113,6 +123,7 @@ public class VendorRes {
                 java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
                 Files.createDirectories(target.getParent());
                 Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                kafkaProducers.uploadDoc(new UploadEventDto("uploads", randomFileName, target.toString()));
                 VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
                 ve.vendor = vm;
                 // ve.dokumen = vd;
@@ -172,6 +183,7 @@ public class VendorRes {
                 java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
                 Files.createDirectories(target.getParent());
                 Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                kafkaProducers.uploadDoc(new UploadEventDto("uploads", randomFileName, target.toString()));
                 VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
                 ve.vendor = vm;
                 // ve.dokumen = vd;
@@ -245,6 +257,7 @@ public class VendorRes {
                     tasks.add(CompletableFuture.runAsync(() -> {
                         try {
                             Files.deleteIfExists(java.nio.file.Path.of("uploads", detail.url_dokumen));
+                            kafkaProducers.deleteDoc(new DeleteFileEventDto(java.nio.file.Path.of("uploads", detail.url_dokumen).toString()));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -264,6 +277,7 @@ public class VendorRes {
                     java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
                     Files.createDirectories(target.getParent());
                     Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                    kafkaProducers.uploadDoc(new UploadEventDto("uploads", randomFileName, target.toString()));
                     VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
                     ve.vendor = vm;
                     // ve.dokumen = vd;
@@ -297,6 +311,7 @@ public class VendorRes {
                     tasks.add(CompletableFuture.runAsync(() -> {
                         try {
                             Files.deleteIfExists(java.nio.file.Path.of("uploads", detail.url_dokumen));
+                            kafkaProducers.deleteDoc(new DeleteFileEventDto(java.nio.file.Path.of("uploads", detail.url_dokumen).toString()));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -316,6 +331,7 @@ public class VendorRes {
                     java.nio.file.Path target = java.nio.file.Path.of("uploads", randomFileName);
                     Files.createDirectories(target.getParent());
                     Files.copy(create.files.get(i).uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                    kafkaProducers.uploadDoc(new UploadEventDto("uploads", randomFileName, target.toString()));
                     VmsVendorDetailEntity ve = new VmsVendorDetailEntity();
                     ve.vendor = vm;
                     // ve.dokumen = vd;
@@ -350,6 +366,7 @@ public class VendorRes {
                     tasks.add(CompletableFuture.runAsync(() -> {
                         try {
                             Files.deleteIfExists(java.nio.file.Path.of("uploads", detail.url_dokumen));
+                            kafkaProducers.deleteDoc(new DeleteFileEventDto(java.nio.file.Path.of("uploads", detail.url_dokumen).toString()));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -371,6 +388,7 @@ public class VendorRes {
                     try {
                         Files.createDirectories(target.getParent());
                         Files.copy(file.uploadedFile(), target, StandardCopyOption.REPLACE_EXISTING);
+                        kafkaProducers.uploadDoc(new UploadEventDto("uploads", randomFileName, target.toString()));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -642,10 +660,11 @@ public class VendorRes {
         VmsVendorDetailEntity vme = VmsVendorDetailEntity.findById(id);
         System.out.println(vme.url_dokumen);
         try {
-            String baseDir = System.getProperty("user.dir"); // direktori saat jar dijalankan
+            //  String baseDir = System.getProperty("user.dir"); // direktori saat jar dijalankan
 
-            InputStream imageStream = Files.newInputStream(Paths.get(baseDir, vme.url_dokumen));
-            return Response.ok(imageStream).build();
+            // InputStream imageStream = Files.newInputStream(Paths.get(baseDir, vme.url_dokumen));
+            InputStream file = minio.getFile(vme.url_dokumen);
+            return Response.ok(file).build();
         } catch (Exception e) {
             throw new InternalError("Cant get file");
         }

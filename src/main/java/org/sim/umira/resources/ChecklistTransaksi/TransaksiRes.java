@@ -25,6 +25,7 @@ import org.sim.umira.dtos.ChecklistTransaksi.UpdateDetailTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.UpdatePengajuanDetailTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.UpdateTransaksiDto;
 import org.sim.umira.dtos.ChecklistTransaksi.UpdateTransaksiPaymentDto;
+import org.sim.umira.entities.LogsKafkaEntity;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.ChecklistTransaksi.CountTransaksiEntity;
 import org.sim.umira.entities.ChecklistTransaksi.JenisTransaksiEntity;
@@ -37,8 +38,12 @@ import org.sim.umira.entities.ChecklistTransaksi.TransaksiProyekEntity;
 import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
-import org.sim.umira.kafka.EmailEventDto;
-import org.sim.umira.kafka.EmailProducers;
+
+import org.sim.umira.kafka.KafkaProducers;
+import org.sim.umira.kafka.DTO.DeleteFileEventDto;
+import org.sim.umira.kafka.DTO.EmailEventDto;
+import org.sim.umira.kafka.DTO.UploadEventDto;
+import org.sim.umira.minio.MinioServices;
 import org.sim.umira.services.PDFMerge;
 import org.sim.umira.services.PdfService;
 import org.sim.umira.services.SuperappsExecutor;
@@ -76,7 +81,9 @@ public class TransaksiRes {
     ConfigHttpService configHttpService;
 
     @Inject
-    EmailProducers emailProducers;
+    KafkaProducers kafkaProducers;
+
+    
 
     @POST
     @Path("/create-transaksi")
@@ -129,6 +136,34 @@ public class TransaksiRes {
             for (int i = 0; i < form.files.size(); i++) {
                 final int idx = i;
                 System.out.println(form.nama_transaksi.get(idx));
+
+            
+
+
+                // kafkaProducers.uploadDoc(new UploadEventDto(UPLOAD_DIR.toString(), fileName, bytes));
+
+               
+                
+                // CompletableFuture<TransaksiDetailEntity> task =
+                //         minio.uploadAsync(
+                //                 form.files.get(idx).uploadedFile(),
+                //                 "minio-superapps",
+                //                 UPLOAD_DIR.toString()+"/"+fileName,
+                //                 form.files.get(idx).contentType())
+                //         .thenApplyAsync(result -> {
+
+                //             TransaksiDetailEntity entity =
+                //                     new TransaksiDetailEntity();
+
+                //             entity.transaksi = transaksiParent;
+                //             entity.pertanyaan =
+                //                     form.nama_transaksi.get(idx);
+                //             entity.jawaban = fileName;
+
+                //             return entity;
+                // }, executor);
+
+                
                 CompletableFuture<TransaksiDetailEntity> task = CompletableFuture.supplyAsync(() -> {
                     try {
 
@@ -143,6 +178,10 @@ public class TransaksiRes {
                                 form.files.get(idx).uploadedFile(),
                                 target,
                                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                       
+
+                        kafkaProducers.uploadDoc(new UploadEventDto(UPLOAD_DIR.toString(), fileName, target.toString()));
                         // ap.url_dokumen = target.toString();
                         // buat entity (belum persist)
                         TransaksiDetailEntity entity = new TransaksiDetailEntity();
@@ -247,6 +286,7 @@ public class TransaksiRes {
 
                 for (TransaksiDetailEntity trD : trxDetail) {
                     Boolean deleteFiles = Files.deleteIfExists(java.nio.file.Path.of(trD.jawaban));
+                    kafkaProducers.deleteDoc(new DeleteFileEventDto(trD.jawaban));
 
                     if (deleteFiles) {
 
@@ -262,7 +302,7 @@ public class TransaksiRes {
                             .find("transaksi = ?1", trxProy).list();
                     for (TransaksiDetailProyekEntity trDP : trxDetailpro) {
                         Boolean deleteFiles = Files.deleteIfExists(java.nio.file.Path.of(trDP.jawaban));
-
+                        kafkaProducers.deleteDoc(new DeleteFileEventDto(trDP.jawaban));
                         if (deleteFiles) {
 
                             TransaksiDetailProyekEntity.deleteById(trDP.id_detail_transaksi);
@@ -289,6 +329,8 @@ public class TransaksiRes {
                                     form.files.get(idx).uploadedFile(),
                                     target,
                                     java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                            kafkaProducers.uploadDoc(new UploadEventDto(UPLOAD_DIR.toString(), fileName, target.toString()));
 
                             UpdateDetailTransaksiDto resUpdate = new UpdateDetailTransaksiDto();
 
@@ -377,7 +419,7 @@ public class TransaksiRes {
 
                             if (trxD.jawaban != null &&
                                     !trxD.jawaban.isBlank()) {
-
+                                kafkaProducers.deleteDoc(new DeleteFileEventDto(trxD.jawaban));
                                 Files.deleteIfExists(
                                         java.nio.file.Path.of(trxD.jawaban));
                             }
@@ -403,7 +445,7 @@ public class TransaksiRes {
 
                             if (trxP.bukti_bayar != null &&
                                     !trxP.bukti_bayar.isBlank()) {
-
+                                kafkaProducers.deleteDoc(new DeleteFileEventDto(trxP.bukti_bayar));
                                 Files.deleteIfExists(
                                         java.nio.file.Path.of(trxP.bukti_bayar));
                             }
@@ -439,7 +481,7 @@ public class TransaksiRes {
 
                                 if (trxD.jawaban != null &&
                                         !trxD.jawaban.isBlank()) {
-
+                                    kafkaProducers.deleteDoc(new DeleteFileEventDto(trxD.jawaban));
                                     Files.deleteIfExists(
                                             java.nio.file.Path.of(trxD.jawaban));
                                 }
@@ -762,6 +804,7 @@ public class TransaksiRes {
             // List<TransaksiEntity> transaksi = TransaksiEntity.listAll();
             TransaksiDetailEntity detail = TransaksiDetailEntity.findById(id);
             if (update.upload_dokumen_transaksi != null) {
+                kafkaProducers.deleteDoc(new DeleteFileEventDto(detail.jawaban));
                 Files.deleteIfExists(java.nio.file.Path.of(detail.jawaban));
                 String ext = update.upload_dokumen_transaksi.fileName()
                         .substring(update.upload_dokumen_transaksi.fileName().lastIndexOf("."));
@@ -774,6 +817,7 @@ public class TransaksiRes {
                         update.upload_dokumen_transaksi.uploadedFile(),
                         target,
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                kafkaProducers.uploadDoc(new UploadEventDto(UPLOAD_DIR.toString(), fileName, target.toString()));
                 detail.jawaban = target.toString();
             }
             // if(update.nilai_transaksi != null){
@@ -830,6 +874,7 @@ public class TransaksiRes {
                         create.bukti_bayar.uploadedFile(),
                         target,
                         java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                kafkaProducers.uploadDoc(new UploadEventDto(UPLOAD_DIR.toString(), fileName, target.toString()));
                 // trx.upload_bukti_pembayaran = target.toString();
                 bb = target.toString();
 
@@ -962,7 +1007,7 @@ public class TransaksiRes {
                 List<UserEntity> user = UserEntity.find("role.kode_role IN ?1", role).list();
                 for (UserEntity get : user) {
                     
-                      emailProducers.send(new EmailEventDto(get.email.trim(), "Pengajuan Payment Checklist Pembayaran", "Dokumen Transaksi", "transaksi-" + trx.kode_transaksi, DokumenMerge));
+                      kafkaProducers.sendEmail(new EmailEventDto(get.email.trim(), "Pengajuan Payment Checklist Pembayaran", "Dokumen Transaksi", "transaksi-" + trx.kode_transaksi, DokumenMerge));
 
                     // configHttpService.sendEmailWithAttach(get.email.trim(), "Pengajuan Payment Checklist Pembayaran",
                     //         "Dokumen Transaksi", "transaksi-" + trx.kode_transaksi, DokumenMerge);
@@ -1004,6 +1049,7 @@ public class TransaksiRes {
             TransaksiPaymentEntity trxPayment = TransaksiPaymentEntity.findById(id);
             if (trxPayment != null) {
                 Files.deleteIfExists(java.nio.file.Path.of(trxPayment.bukti_bayar));
+                kafkaProducers.deleteDoc(new DeleteFileEventDto(trxPayment.bukti_bayar));
                 TransaksiPaymentEntity.deleteById(id);
             }
             return Response.ok().entity(ResponseHandler.ok("Delete Transaksi Berhasil", null)).build();
@@ -1023,6 +1069,7 @@ public class TransaksiRes {
             if (trxPayment != null) {
                 if (update.upload_dokumen_transaksi != null) {
                     Files.deleteIfExists(java.nio.file.Path.of(trxPayment.bukti_bayar));
+                    kafkaProducers.deleteDoc(new DeleteFileEventDto(trxPayment.bukti_bayar));
                     String ext = update.upload_dokumen_transaksi.fileName()
                             .substring(update.upload_dokumen_transaksi.fileName().lastIndexOf("."));
                     String fileName = java.util.UUID.randomUUID() + ext;
@@ -1034,6 +1081,7 @@ public class TransaksiRes {
                             update.upload_dokumen_transaksi.uploadedFile(),
                             target,
                             java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    kafkaProducers.uploadDoc(new UploadEventDto(UPLOAD_DIR.toString(), fileName, target.toString()));
                     // trx.upload_bukti_pembayaran = target.toString();
                     // bb = target.toString();
                     trxPayment.bukti_bayar = target.toString();

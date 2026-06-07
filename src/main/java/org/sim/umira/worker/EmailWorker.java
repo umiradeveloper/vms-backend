@@ -1,7 +1,7 @@
 package org.sim.umira.worker;
 
 import org.sim.umira.configs.ConfigHttpService;
-import org.sim.umira.kafka.EmailEventDto;
+import org.sim.umira.kafka.DTO.EmailEventDto;
 
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.list.ListCommands;
