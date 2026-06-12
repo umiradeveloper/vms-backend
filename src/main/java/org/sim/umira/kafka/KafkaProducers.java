@@ -14,6 +14,8 @@ public class KafkaProducers {
     @Inject
     LogsKafka logs;
 
+    
+
     @Inject
     @Channel("email-out")
     Emitter<EmailEventDto> emitter;

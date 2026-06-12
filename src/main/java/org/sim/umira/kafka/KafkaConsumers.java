@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.sim.umira.kafka.DTO.DeleteFileEventDto;
@@ -31,6 +32,11 @@ public class KafkaConsumers {
     @SuperappsExecutor
     ExecutorService executor;
 
+     @ConfigProperty(name = "redis.email.channel")
+    String redisChannelEmail;
+
+    
+
     @Inject
     LogsKafka logs;
 
@@ -42,7 +48,7 @@ public class KafkaConsumers {
             ListCommands<String, String> list = redis.list(String.class);
 
             // push ke Redis queue
-            list.rpush("email-queue", json);
+            list.rpush(redisChannelEmail, json);
 
             logs.save(
                     "KafkaConsumer",

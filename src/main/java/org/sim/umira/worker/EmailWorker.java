@@ -1,5 +1,6 @@
 package org.sim.umira.worker;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.sim.umira.configs.ConfigHttpService;
 import org.sim.umira.kafka.DTO.EmailEventDto;
 
@@ -15,16 +16,20 @@ import jakarta.inject.Inject;
 public class EmailWorker {
     @Inject
     ConfigHttpService mailer;
+    
 
     @Inject
     RedisDataSource redis;
+
+    @ConfigProperty(name = "redis.email.channel")
+    String redisChannelEmail;
 
     @Scheduled(every = "2s")
     public void processQueue() {
 
         String data;
         try {
-            data = redis.list(String.class).lpop("email-queue");
+            data = redis.list(String.class).lpop(redisChannelEmail);
         } catch (Exception e) {
             e.printStackTrace();
             return;
@@ -52,7 +57,7 @@ public class EmailWorker {
             ListCommands<String, String> list = redis.list(String.class);
 
             // push ke Redis queue
-            list.rpush("email-queue", data);
+            list.rpush(redisChannelEmail, data);
         }
     }
 }

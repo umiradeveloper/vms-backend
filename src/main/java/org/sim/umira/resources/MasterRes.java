@@ -221,7 +221,6 @@ public class MasterRes {
             return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", null)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
-            // TODO: handle exception
         }
     }
 
