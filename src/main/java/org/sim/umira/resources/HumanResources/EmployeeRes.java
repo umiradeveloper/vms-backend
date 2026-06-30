@@ -6,6 +6,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.HumanResources.EmployeeDto;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
+import org.sim.umira.entities.HumanResources.KlasifikasiWorkEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 
@@ -34,6 +35,11 @@ public class EmployeeRes {
         if(ue == null){
             throw new BadRequestException("User tidak di temukan");
         }
+        EmployeeEntity empCheck = EmployeeEntity.find("user = ?1", ue).firstResult();
+        if(empCheck != null){
+             throw new BadRequestException("User sudah di daftarkan");
+        }
+        KlasifikasiWorkEntity klasifikasi = KlasifikasiWorkEntity.find("klasifikasi_works = ?1", create.klasifikasi_works).firstResult();
         try {
             EmployeeEntity employee = new EmployeeEntity();
             employee.nama = create.nama;
@@ -60,6 +66,7 @@ public class EmployeeRes {
             employee.blood_type = create.blood_type;
             employee.grade = create.grade;
             employee.kelas = create.kelas;
+            employee.klasifikasi_works = klasifikasi;
             employee.persist();
             return Response.ok().entity(ResponseHandler.ok("Create Employee berhasil", null)).build();
         } catch (Exception e) {
@@ -76,6 +83,7 @@ public class EmployeeRes {
         if(ue == null){
             throw new BadRequestException("User tidak di temukan");
         }
+        KlasifikasiWorkEntity klasifikasi = KlasifikasiWorkEntity.find("klasifikasi_works = ?1", create.klasifikasi_works).firstResult();
         try {
             EmployeeEntity employee = EmployeeEntity.findById(create.id_employee);
             employee.nama = create.nama;
@@ -102,6 +110,7 @@ public class EmployeeRes {
             employee.blood_type = create.blood_type;
             employee.grade = create.grade;
             employee.kelas = create.kelas;
+            employee.klasifikasi_works = klasifikasi;
             // employee.persist();
             return Response.ok().entity(ResponseHandler.ok("Update Employee berhasil", null)).build();
         } catch (Exception e) {

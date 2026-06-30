@@ -47,7 +47,8 @@ public class CutiRes {
             @Valid @MultipartForm CreateCutiDto create, @Context SecurityContext ctx) {
 
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
-        // EmployeeEntity emp = EmployeeEntity.find("id_user = ?1", ue.id_user).firstResult();
+        // EmployeeEntity emp = EmployeeEntity.find("id_user = ?1",
+        // ue.id_user).firstResult();
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
 
         if ("ANNUAL_LEAVE".equals(create.jenis_cuti)) {
@@ -278,5 +279,26 @@ public class CutiRes {
         } catch (Exception e) {
             throw new InternalServerErrorException("Cant get file");
         }
+    }
+
+    @GET
+    @Path("/jenis-cuti")
+    public Response getJenisCuti() {
+        List<LeaveType> leaveTypes = List.of(
+                new LeaveType("ANNUAL_LEAVE", "Cuti Tahunan"),
+                new LeaveType("IZIN", "Izin"),
+                new LeaveType("ROSTER_LEAVE", "Cuti Roster"),
+                new LeaveType("SICK_LEAVE", "Cuti Sakit"),
+                new LeaveType("MATERNITY_LEAVE", "Cuti Melahirkan"),
+                new LeaveType("BAPTISM_LEAVE", "Cuti Baptis Anak"),
+                new LeaveType("MARRIAGE_LEAVE", "Cuti Menikah"),
+                new LeaveType("CHILD_WEDDING_LEAVE", "Cuti Menikahkan Anak"),
+                new LeaveType("BEREAVEMENT_LEAVE", "Cuti Keluarga Meninggal"),
+                new LeaveType("BREAVEMENT1_LEAVE", "Cuti Anggota Keluarga Dalam Satu Rumah Meninggal"),
+                new LeaveType("HAJJ_LEAVE", "Cuti Haji"));
+        return Response.ok().entity(ResponseHandler.ok("Hapus Cuti Berhasil", leaveTypes)).build();
+    }
+
+    public record LeaveType(String value, String label) {
     }
 }

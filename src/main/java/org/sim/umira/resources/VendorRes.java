@@ -602,7 +602,8 @@ public class VendorRes {
         if (ue.role.kode_role.equals("99")) {
             vv = VmsVendorEntity.listAll();
         } else {
-            vv = VmsVendorEntity.find("user = ?1", ue).list();
+            // vv = VmsVendorEntity.find("user = ?1", ue).list();
+            vv = VmsVendorEntity.listAll();
         }
 
         return Response.ok().entity(ResponseHandler.ok("Inquiry Berhasil", vv)).build();

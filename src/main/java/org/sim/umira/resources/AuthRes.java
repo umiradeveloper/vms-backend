@@ -59,7 +59,7 @@ public class AuthRes {
     @Path("/login")
     @PermitAll
     public Response login(@Valid @RequestBody LoginDto loginDto) {
-        // System.out.println(loginDto.email);
+        System.out.println(loginDto.email);
         UserEntity user = UserEntity.find("(email = ?1 OR no_hp = ?1)", loginDto.email).firstResult();
         
         if(user == null) {

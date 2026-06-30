@@ -10,27 +10,43 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.sim.umira.configs.GoogleCalendarConfig;
 import org.sim.umira.dtos.CostControl.ReportProyekDto;
+import org.sim.umira.dtos.HumanResources.KlasifikasiWorksDto;
 import org.sim.umira.entities.BranchEntity;
 import org.sim.umira.entities.RoleEntity;
 import org.sim.umira.entities.VmsVendorDetailMinioEntity;
 import org.sim.umira.entities.VmsVendorEntity;
 import org.sim.umira.entities.CostControl.KategoriEntity;
 import org.sim.umira.entities.CostControl.ProyekEntity;
+import org.sim.umira.entities.HumanResources.KlasifikasiWorkEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.kafka.KafkaProducers;
 import org.sim.umira.kafka.DTO.UploadEventDto;
 import org.sim.umira.minio.MinioServices;
 import org.sim.umira.services.PdfService;
+import org.sim.umira.services.YearCalendarService;
+
+import com.google.api.client.util.DateTime;
+import com.google.api.services.calendar.Calendar;
+import com.google.api.services.calendar.model.Event;
+import com.google.api.services.calendar.model.EventDateTime;
+import com.google.api.services.calendar.model.Events;
 
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -225,6 +241,120 @@ public class MasterRes {
     }
 
     public record WeekData(int week, LocalDate startDate, LocalDate endDate) {
+    }
+
+    @ConfigProperty(name = "google.calendar.umira-absensi")
+    String absensiCalendar;
+
+    @ConfigProperty(name = "google.calendar.umira-cuti")
+    String cutiCalendar;
+
+    @GET
+    @Path("/check-absensi-calendar")
+    public Response createAbsensiCalendarGoogle(@QueryParam("nama") String nama,
+            @QueryParam("tanggal") String tanggal_absen) {
+        try {
+            Calendar service = GoogleCalendarConfig.getService();
+            LocalDate tanggal = LocalDate.parse(tanggal_absen);
+            Event event = new Event();
+
+            event.setSummary("Absensi - " + nama);
+            event.setDescription("Kehadiran Karyawan");
+
+            // Biru
+            event.setColorId("9");
+
+            event.setStart(
+                    new EventDateTime()
+                            .setDate(
+                                    new DateTime(tanggal.toString())));
+
+            event.setEnd(
+                    new EventDateTime()
+                            .setDate(
+                                    new DateTime(
+                                            tanggal.plusDays(1).toString())));
+
+            Event created = service.events()
+                    .insert(absensiCalendar, event)
+                    .execute();
+
+            return Response.ok().entity(ResponseHandler.ok("absensi Berhasil", created.getHtmlLink())).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+
+    }
+
+    @GET
+    @Path("/calendar")
+    public Response getTanggalCalendar() {
+        try {
+            String holidayCalendarId = "id.indonesian#holiday@group.v.calendar.google.com";
+            Calendar service = GoogleCalendarConfig.getService();
+
+            // 1. ambil libur nasional
+            Set<LocalDate> holidays = YearCalendarService.getHolidays(service, holidayCalendarId);
+
+            // 2. generate 1 tahun
+            List<YearCalendarService.DayInfo> calendar = YearCalendarService.generateYear(2026, holidays);
+
+            // for (Event e : events.getItems()) {
+            // System.out.println("LIBUR: " + e.getSummary());
+            // System.out.println("DATE : " + e.getStart().getDate());
+            // }
+            // 3. output
+            for (YearCalendarService.DayInfo d : calendar) {
+                System.out.println(d.date + " -> " + d.type);
+            }
+            return Response.ok().entity(ResponseHandler.ok("get satu tahun", calendar)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+
+    }
+
+
+    @POST
+    @Path("/create-klasifikasi-works")
+    @Transactional
+    public Response createKlasifikasiWorks(@Valid @RequestBody KlasifikasiWorksDto klasifikasiWork){
+        try {
+
+            KlasifikasiWorkEntity klasifikasi = new KlasifikasiWorkEntity();
+            klasifikasi.klasifikasi_works = klasifikasiWork.klasifikasi_works;
+            klasifikasi.nama_klasifikasi_works = klasifikasiWork.nama_klasifikasi;
+            klasifikasi.is_shift = klasifikasiWork.is_shift;
+            klasifikasi.is_office = klasifikasiWork.is_office;
+            klasifikasi.is_jadwal = klasifikasiWork.is_jadwal;
+            klasifikasi.jam_masuk = klasifikasiWork.jam_masuk;
+            klasifikasi.jam_keluar = klasifikasiWork.jam_keluar;
+            klasifikasi.persist();
+
+            return Response.ok().entity(ResponseHandler.ok("create klasifikasi works berhasil", null)).build();
+            
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+    @GET
+    @Path("/get-klasifikasi-works")
+    @Transactional
+    public Response getKlasifikasiWorks(){
+        try {
+
+            List<KlasifikasiWorkEntity> list = KlasifikasiWorkEntity.listAll();
+
+            return Response.ok().entity(ResponseHandler.ok("get klasifikasi works berhasil", list)).build();
+            
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
     }
 
 }

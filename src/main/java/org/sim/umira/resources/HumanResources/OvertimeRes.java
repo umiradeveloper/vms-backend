@@ -1,5 +1,6 @@
 package org.sim.umira.resources.HumanResources;
 
+import java.nio.file.Files;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -8,8 +9,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.dtos.HumanResources.OvertimeDto;
 import org.sim.umira.dtos.HumanResources.PengajuanOvertimeDto;
+import org.sim.umira.dtos.HumanResources.PengajuanOvertimeMultipartDto;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.HumanResources.AttendanceEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
@@ -38,13 +41,15 @@ import jakarta.ws.rs.core.SecurityContext;
 @Secured
 public class OvertimeRes {
 
+    private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/overtime");
+
     @POST
     @Path("/create-overtime")
     @Transactional
     public Response createOvertime(@Valid @RequestBody OvertimeDto overtime) {
 
         EmployeeEntity emp = EmployeeEntity.findById(overtime.id_employee);
-        if(emp == null){
+        if (emp == null) {
             throw new BadRequestException("Employee tidak terdaftar");
         }
 
@@ -71,22 +76,23 @@ public class OvertimeRes {
     @POST
     @Path("/create-pengajuan-overtime")
     @Transactional
-    public Response createPengajuanOvertime(@Valid @RequestBody PengajuanOvertimeDto pengajuan, @Context SecurityContext ctx){
-       
+    public Response createPengajuanOvertime(@Valid @RequestBody PengajuanOvertimeDto pengajuan,
+            @Context SecurityContext ctx) {
+
         Set<String> set = new HashSet<>();
 
         for (String val : pengajuan.level_approval) {
             if (!set.add(val)) {
                 throw new BadRequestException("level approval tidak boleh ada yang sama");
                 // System.out.println("Duplikat ditemukan: " + val);
-               
+
             }
         }
 
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
-             Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
+            Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
                     LocalTime.parse(pengajuan.jam_selesai));
             Long durationWork = duration.toMinutes();
             PengajuanOvertimeEntity pengajuanOvertime = new PengajuanOvertimeEntity();
@@ -95,6 +101,73 @@ public class OvertimeRes {
             pengajuanOvertime.jam_selesai = pengajuan.jam_selesai;
             pengajuanOvertime.tanggal = pengajuan.tanggal;
             pengajuanOvertime.durasi = String.valueOf(durationWork);
+            pengajuanOvertime.alasan = pengajuan.alasan;
+
+            pengajuanOvertime.persist();
+            PengajuanApprovalOvertimeEntity pengajuanApprovalOvertimeMaker = new PengajuanApprovalOvertimeEntity();
+            pengajuanApprovalOvertimeMaker.employee = emp;
+            pengajuanApprovalOvertimeMaker.pengajuanOvertime = pengajuanOvertime;
+            pengajuanApprovalOvertimeMaker.level_approval = "Maker";
+            pengajuanApprovalOvertimeMaker.status_approval = "Pengajuan";
+            pengajuanApprovalOvertimeMaker.urutan = 0;
+            pengajuanApprovalOvertimeMaker.tanggal_approval = LocalDateTime.now();
+            pengajuanApprovalOvertimeMaker.persist();
+            for (int i = 0; i < pengajuan.id_employee_approval.size(); i++) {
+                EmployeeEntity empApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(i));
+                PengajuanApprovalOvertimeEntity pengajuanApprovalOvertime = new PengajuanApprovalOvertimeEntity();
+                pengajuanApprovalOvertime.employee = empApproval;
+                pengajuanApprovalOvertime.pengajuanOvertime = pengajuanOvertime;
+                pengajuanApprovalOvertime.level_approval = pengajuan.level_approval.get(i);
+                pengajuanApprovalOvertime.urutan = pengajuan.urutan.get(i);
+                pengajuanApprovalOvertime.persist();
+            }
+            return Response.ok().entity(ResponseHandler.ok("Create Overtime Success", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+        }
+    }
+
+    @POST
+    @Path("/create-pengajuan-overtime-multipart")
+    @Transactional
+    public Response createPengajuanOvertimeMultipart(
+            @MultipartForm @Valid @RequestBody PengajuanOvertimeMultipartDto pengajuan, @Context SecurityContext ctx) {
+
+        Set<String> set = new HashSet<>();
+
+        for (String val : pengajuan.level_approval) {
+            if (!set.add(val)) {
+                throw new BadRequestException("level approval tidak boleh ada yang sama");
+                // System.out.println("Duplikat ditemukan: " + val);
+
+            }
+        }
+
+        try {
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+            // Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
+            //         LocalTime.parse(pengajuan.jam_selesai));
+            // Long durationWork = duration.toMinutes();
+            PengajuanOvertimeEntity pengajuanOvertime = new PengajuanOvertimeEntity();
+            pengajuanOvertime.employee = emp;
+            pengajuanOvertime.jam_mulai = pengajuan.jam_mulai;
+            pengajuanOvertime.jam_selesai = pengajuan.jam_selesai;
+            pengajuanOvertime.tanggal = pengajuan.tanggal;
+            pengajuanOvertime.durasi = pengajuan.durasi;
+            if (pengajuan.dokumen != null) {
+                String ext = pengajuan.dokumen.fileName().substring(pengajuan.dokumen.fileName().lastIndexOf("."));
+                String fileName = java.util.UUID.randomUUID() + ext;
+                if (!Files.exists(UPLOAD_DIR)) {
+                    Files.createDirectories(UPLOAD_DIR);
+                }
+                java.nio.file.Path target = UPLOAD_DIR.resolve(fileName);
+                Files.copy(
+                        pengajuan.dokumen.uploadedFile(),
+                        target,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                pengajuanOvertime.dokumen = target.toString();
+            }
             pengajuanOvertime.alasan = pengajuan.alasan;
             pengajuanOvertime.persist();
             PengajuanApprovalOvertimeEntity pengajuanApprovalOvertimeMaker = new PengajuanApprovalOvertimeEntity();
@@ -122,68 +195,74 @@ public class OvertimeRes {
 
     @GET
     @Path("/get-approval-overtime")
-    public Response getApprovalOvertime(@Context SecurityContext ctx){
+    public Response getApprovalOvertime(@Context SecurityContext ctx) {
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity employeeApproval = EmployeeEntity.find("user = ?1", ue).firstResult();
             // System.out.println(ue.id_user);
-            // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
+            // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan =
+            // PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND
+            // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanOvertimeEntity> listPengajuan = PengajuanOvertimeEntity.find("""
-                SELECT DISTINCT p
-                FROM PengajuanOvertimeEntity p 
-                WHERE EXISTS (
-                    SELECT 1
-                    FROM PengajuanApprovalOvertimeEntity ps
-                    WHERE ps.pengajuanOvertime = p
-                    AND ps.employee = ?1
-                    AND ps.tanggal_approval IS NULL
-                    AND ps.urutan = (
-                        SELECT MIN(ps2.urutan)
-                        FROM PengajuanApprovalOvertimeEntity ps2
-                        WHERE ps2.pengajuanOvertime = p
-                            AND ps2.tanggal_approval IS NULL
-                    )
-                )
-            """, employeeApproval).list();   
-            // List<PengajuanBiayaKonstruksiEntity> listPengajuan = PengajuanBiayaKonstruksiEntity.listAll();
-            
+                        SELECT DISTINCT p
+                        FROM PengajuanOvertimeEntity p
+                        WHERE EXISTS (
+                            SELECT 1
+                            FROM PengajuanApprovalOvertimeEntity ps
+                            WHERE ps.pengajuanOvertime = p
+                            AND ps.employee = ?1
+                            AND ps.tanggal_approval IS NULL
+                            AND ps.urutan = (
+                                SELECT MIN(ps2.urutan)
+                                FROM PengajuanApprovalOvertimeEntity ps2
+                                WHERE ps2.pengajuanOvertime = p
+                                    AND ps2.tanggal_approval IS NULL
+                            )
+                        )
+                    """, employeeApproval).list();
+            // List<PengajuanBiayaKonstruksiEntity> listPengajuan =
+            // PengajuanBiayaKonstruksiEntity.listAll();
+
             return Response.ok().entity(ResponseHandler.ok("Data Tersedia", listPengajuan)).build();
 
-            
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
         }
     }
 
-     @GET
+    @GET
     @Path("/get-montoring-approval-overtime")
-    public Response getMonitoringOvertime(@Context SecurityContext ctx){
+    public Response getMonitoringOvertime(@Context SecurityContext ctx) {
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity employeeApproval = EmployeeEntity.find("user = ?1", ue).firstResult();
             // System.out.println(ue.id_user);
-            // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
-             List<PengajuanOvertimeEntity> listPengajuan;
-            if(ue.role.kode_role == "99"){
-                listPengajuan = PengajuanOvertimeEntity.find("SELECT DISTINCT p FROM PengajuanOvertimeEntity p JOIN p.approval r JOIN p.employee pr").list();
-            }else{
+            // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan =
+            // PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND
+            // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
+            List<PengajuanOvertimeEntity> listPengajuan;
+            if (ue.role.kode_role == "99") {
+                listPengajuan = PengajuanOvertimeEntity
+                        .find("SELECT DISTINCT p FROM PengajuanOvertimeEntity p JOIN p.approval r JOIN p.employee pr")
+                        .list();
+            } else {
                 listPengajuan = PengajuanOvertimeEntity.find("""
-                    SELECT DISTINCT p
-                    FROM PengajuanOvertimeEntity p 
-                    WHERE EXISTS (
-                        SELECT 1
-                        FROM PengajuanApprovalOvertimeEntity ps
-                        WHERE ps.pengajuanOvertime = p
-                        AND ps.employee = ?1
-                    )
-                """, employeeApproval).list();   
+                            SELECT DISTINCT p
+                            FROM PengajuanOvertimeEntity p
+                            WHERE EXISTS (
+                                SELECT 1
+                                FROM PengajuanApprovalOvertimeEntity ps
+                                WHERE ps.pengajuanOvertime = p
+                                AND ps.employee = ?1
+                            )
+                        """, employeeApproval).list();
             }
-            // List<PengajuanBiayaKonstruksiEntity> listPengajuan = PengajuanBiayaKonstruksiEntity.listAll();
-            
+            // List<PengajuanBiayaKonstruksiEntity> listPengajuan =
+            // PengajuanBiayaKonstruksiEntity.listAll();
+
             return Response.ok().entity(ResponseHandler.ok("Data Tersedia", listPengajuan)).build();
 
-            
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
@@ -193,27 +272,33 @@ public class OvertimeRes {
     @GET
     @Path("/approval-overtime")
     @Transactional
-    public Response approvalAttendance(@QueryParam("id_pengajuan_lembur") String id_pengajuan_lembur, @QueryParam("status_approval") String status_approval, @Context SecurityContext ctx, @QueryParam("catatan") String catatan){
-        if(id_pengajuan_lembur == null || id_pengajuan_lembur == ""){
+    public Response approvalAttendance(@QueryParam("id_pengajuan_lembur") String id_pengajuan_lembur,
+            @QueryParam("status_approval") String status_approval, @Context SecurityContext ctx,
+            @QueryParam("catatan") String catatan) {
+        if (id_pengajuan_lembur == null || id_pengajuan_lembur == "") {
             throw new BadRequestException("id_pengajuan_lembur harus Di Isi");
-        }   
-        if(status_approval == null || status_approval == ""){
+        }
+        if (status_approval == null || status_approval == "") {
             throw new BadRequestException("status_approval harus Di Isi");
         }
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             PengajuanOvertimeEntity pengajuanOvertime = PengajuanOvertimeEntity.findById(id_pengajuan_lembur);
-            PengajuanApprovalOvertimeEntity getPersetujuanOvertime = PengajuanApprovalOvertimeEntity.find("pengajuanOvertime = ?1 AND employee = ?2 AND tanggal_approval IS NULL ORDER BY urutan ASC", pengajuanOvertime, emp).firstResult();
-            if(getPersetujuanOvertime != null){
+            PengajuanApprovalOvertimeEntity getPersetujuanOvertime = PengajuanApprovalOvertimeEntity
+                    .find("pengajuanOvertime = ?1 AND employee = ?2 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                            pengajuanOvertime, emp)
+                    .firstResult();
+            if (getPersetujuanOvertime != null) {
                 getPersetujuanOvertime.status_approval = status_approval;
                 getPersetujuanOvertime.tanggal_approval = LocalDateTime.now();
-                getPersetujuanOvertime.keterangan = (catatan != "" || catatan != null)?catatan:"";
-                
-                if(status_approval.equals("Approve")){
+                getPersetujuanOvertime.keterangan = (catatan != "" || catatan != null) ? catatan : "";
+
+                if (status_approval.equals("Approve")) {
                     // System.out.println(status_approver);
-                    List<PengajuanApprovalOvertimeEntity> pengajuanList = PengajuanApprovalOvertimeEntity.find("tanggal_approval IS NULL AND pengajuanOvertime = ?1", pengajuanOvertime).list();
-                    if(pengajuanList.size() == 0){
+                    List<PengajuanApprovalOvertimeEntity> pengajuanList = PengajuanApprovalOvertimeEntity
+                            .find("tanggal_approval IS NULL AND pengajuanOvertime = ?1", pengajuanOvertime).list();
+                    if (pengajuanList.size() == 0) {
                         OvertimeEntity ov = new OvertimeEntity();
                         ov.employee = pengajuanOvertime.employee;
                         ov.tanggal = pengajuanOvertime.tanggal;
@@ -222,24 +307,26 @@ public class OvertimeRes {
                         ov.alasan = pengajuanOvertime.alasan;
                         ov.durasi = pengajuanOvertime.durasi;
                         ov.persist();
-                        
+
                     }
-                }else if(status_approval.equals("Reject")){
-                    List<PengajuanApprovalOvertimeEntity> getPersetujuanReject = PengajuanApprovalOvertimeEntity.find("pengajuanOvertime = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC", pengajuanOvertime).list();
-                    for(PengajuanApprovalOvertimeEntity pengajuanReject: getPersetujuanReject){
+                } else if (status_approval.equals("Reject")) {
+                    List<PengajuanApprovalOvertimeEntity> getPersetujuanReject = PengajuanApprovalOvertimeEntity
+                            .find("pengajuanOvertime = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                                    pengajuanOvertime)
+                            .list();
+                    for (PengajuanApprovalOvertimeEntity pengajuanReject : getPersetujuanReject) {
                         pengajuanReject.tanggal_approval = LocalDateTime.now();
                         pengajuanReject.status_approval = "Reject";
-                        pengajuanReject.keterangan = "Rejected By "+ue.username;
+                        pengajuanReject.keterangan = "Rejected By " + ue.username;
                     }
-               
+
                 }
-                
-            
+
                 return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
-            }else{
+            } else {
                 return Response.ok().entity(ResponseHandler.error("Data Persetujuan tidak ada")).build();
             }
-            
+
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
@@ -248,11 +335,11 @@ public class OvertimeRes {
 
     @GET
     @Path("/get-overtime")
-    public Response getOvertime(){
+    public Response getOvertime() {
         try {
             List<OvertimeEntity> list = OvertimeEntity.listAll();
             return Response.ok().entity(ResponseHandler.ok("Create Overtime Success", list)).build();
-        }catch(Exception e){
+        } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
         }
     }
@@ -260,12 +347,12 @@ public class OvertimeRes {
     @DELETE
     @Path("/delete-overtime")
     @Transactional
-    public Response deleteOvertime(@QueryParam("id") String id){
+    public Response deleteOvertime(@QueryParam("id") String id) {
         try {
             Boolean delete = OvertimeEntity.deleteById(id);
             return Response.ok().entity(ResponseHandler.ok("Delete Overtime Success", delete)).build();
         } catch (Exception e) {
-             throw new InternalServerErrorException(e.getMessage());
+            throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
         }
     }

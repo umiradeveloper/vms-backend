@@ -54,4 +54,6 @@ public class EmployeeDto {
     public String grade;
 
     public String kelas;
+
+    public String klasifikasi_works;
 }

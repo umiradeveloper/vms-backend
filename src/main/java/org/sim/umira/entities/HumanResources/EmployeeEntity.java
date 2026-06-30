@@ -11,6 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
@@ -73,4 +74,11 @@ public class EmployeeEntity extends PanacheEntityBase {
     @OneToOne
     @JoinColumn(name = "id_user")
     public UserEntity user;
+
+    
+    @ManyToOne
+    @JoinColumn(name = "id_klasifikasi_works")
+    public KlasifikasiWorkEntity klasifikasi_works;
+
+    
 }
