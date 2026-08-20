@@ -27,6 +27,10 @@ public class CreateCutiDto {
     @PartType(MediaType.TEXT_PLAIN)
     public String jenis_cuti;
 
+    @FormParam("kode_cuti")
+    @PartType(MediaType.TEXT_PLAIN)
+    public String kode_cuti;
+
     @NotNull(message = "tanggal_mulai must be required")
     @FormParam("tanggal_mulai")
     @PartType(MediaType.TEXT_PLAIN)

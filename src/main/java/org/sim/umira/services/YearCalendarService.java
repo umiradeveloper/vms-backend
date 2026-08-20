@@ -99,7 +99,7 @@ public class YearCalendarService {
 
     public static List<DayInfo> generatedDay(
             int year,
-            Set<LocalDate> holidays, String startDate, String endDate) {
+            Set<LocalDate> holidays, String startDate, String endDate, Boolean SaturdayOff) {
 
         List<DayInfo> result = new ArrayList<>();
 
@@ -111,8 +111,10 @@ public class YearCalendarService {
             DayInfo info = new DayInfo();
             info.date = date;
 
-            boolean weekend = date.getDayOfWeek() == DayOfWeek.SATURDAY ||
-                    date.getDayOfWeek() == DayOfWeek.SUNDAY;
+            // boolean weekend = date.getDayOfWeek() == DayOfWeek.SATURDAY ||
+            //         date.getDayOfWeek() == DayOfWeek.SUNDAY;
+            boolean weekend = date.getDayOfWeek() == DayOfWeek.SUNDAY
+        || (SaturdayOff && date.getDayOfWeek() == DayOfWeek.SATURDAY);
 
             boolean holiday = holidays.contains(date);
 

@@ -9,7 +9,9 @@ import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -317,11 +319,10 @@ public class MasterRes {
 
     }
 
-
     @POST
     @Path("/create-klasifikasi-works")
     @Transactional
-    public Response createKlasifikasiWorks(@Valid @RequestBody KlasifikasiWorksDto klasifikasiWork){
+    public Response createKlasifikasiWorks(@Valid @RequestBody KlasifikasiWorksDto klasifikasiWork) {
         try {
 
             KlasifikasiWorkEntity klasifikasi = new KlasifikasiWorkEntity();
@@ -335,22 +336,55 @@ public class MasterRes {
             klasifikasi.persist();
 
             return Response.ok().entity(ResponseHandler.ok("create klasifikasi works berhasil", null)).build();
-            
+
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
         }
     }
+
     @GET
     @Path("/get-klasifikasi-works")
-    @Transactional
-    public Response getKlasifikasiWorks(){
+    // @Transactional
+    public Response getKlasifikasiWorks() {
         try {
 
             List<KlasifikasiWorkEntity> list = KlasifikasiWorkEntity.listAll();
 
             return Response.ok().entity(ResponseHandler.ok("get klasifikasi works berhasil", list)).build();
-            
+
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @GET
+    @Path("/get-jenis-lembur")
+    public Response getJenisLembur() {
+        try {
+
+            // List<KlasifikasiWorkEntity> list = KlasifikasiWorkEntity.listAll();
+            List<Map<String, Object>> data = new ArrayList<>();
+
+            Map<String, Object> item1 = new HashMap<>();
+            item1.put("kode_lembur", "0");
+            item1.put("biaya_lembur", "173/gaji-pokok");
+
+            Map<String, Object> item2 = new HashMap<>();
+            item2.put("kode_lembur", "1");
+            item2.put("biaya_lembur", "16.000");
+
+            Map<String, Object> item3 = new HashMap<>();
+            item3.put("kode_lembur", "2");
+            item3.put("biaya_lembur", "17.000");
+
+            data.add(item1);
+            data.add(item2);
+            data.add(item3);
+
+            return Response.ok().entity(ResponseHandler.ok("get klasifikasi works berhasil", data)).build();
+
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception

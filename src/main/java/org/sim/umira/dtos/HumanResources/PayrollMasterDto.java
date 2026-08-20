@@ -7,6 +7,7 @@ public class PayrollMasterDto {
 
     public Integer tunjangan_transport;
 
+     public Integer tunjangan_jabatan;
 
     public Integer tunjangan_makan;
 

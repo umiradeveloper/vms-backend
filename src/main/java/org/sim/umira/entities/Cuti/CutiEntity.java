@@ -25,6 +25,8 @@ public class CutiEntity extends PanacheEntityBase {
     @GeneratedValue(strategy = GenerationType.UUID)
     public String id_cuti;
 
+    public String kode_cuti;
+
     public String jenis_cuti;
 
     public LocalDate tanggal_mulai;

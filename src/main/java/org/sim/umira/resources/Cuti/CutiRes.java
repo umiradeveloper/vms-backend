@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.List;
 
 import org.jboss.resteasy.reactive.MultipartForm;
@@ -12,6 +13,7 @@ import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.Cuti.CutiEntity;
 import org.sim.umira.entities.Cuti.SaldoCutiEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
+import org.sim.umira.entities.HumanResources.MasterCounterCutiEntity;
 import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
@@ -49,7 +51,24 @@ public class CutiRes {
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         // EmployeeEntity emp = EmployeeEntity.find("id_user = ?1",
         // ue.id_user).firstResult();
+        
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+        String years = String.valueOf(Year.now().getValue());
+
+        MasterCounterCutiEntity getCount = MasterCounterCutiEntity.find("year = ?1 AND jenis_cuti = ?2",years, create.kode_cuti).firstResult();
+        String id_cuti = "";
+        if(getCount != null){
+            getCount.counter = getCount.counter + 1;
+            id_cuti = create.kode_cuti+"-"+years+String.format("%5s", getCount.counter + 1).replace(' ', '0');
+        }else{
+            MasterCounterCutiEntity countMaster = new MasterCounterCutiEntity();
+            countMaster.jenis_cuti = create.kode_cuti;
+            countMaster.year = years;
+            countMaster.counter = 1;
+            countMaster.persist();
+            id_cuti = create.kode_cuti+"-"+years+String.format("%5s",  1).replace(' ', '0');
+        }
+        
 
         if ("ANNUAL_LEAVE".equals(create.jenis_cuti)) {
             int tahun = java.time.LocalDate.now().getYear();
@@ -104,6 +123,7 @@ public class CutiRes {
             cuti.status_cuti = "PENDING";
             cuti.created_at = LocalDateTime.now();
             cuti.created_by = ue.id_user;
+            cuti.kode_cuti = id_cuti;
             // cuti.id_approver = create.id_approver;
             cuti.persist();
 
@@ -116,7 +136,7 @@ public class CutiRes {
 
     @GET
     @Path("/get-cuti-balance")
-    @Transactional
+    // @Transactional
     public Response getCutiBalance(@Context SecurityContext ctx) {
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
@@ -134,11 +154,13 @@ public class CutiRes {
 
     @GET
     @Path("/get-cuti-by-user")
-    @Transactional
+    // @Transactional
     public Response getCutiByUser(@Context SecurityContext ctx) {
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
-            var cutiList = CutiEntity.find("user = ?1", ue).list();
+            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+            List<CutiEntity> cutiList = CutiEntity.find("employee_pengajuan = ?1", emp).list();
+            // List<CutiEntity> cutiList = CutiEntity.listAll();
             return Response.ok().entity(ResponseHandler.ok("Get Cuti Berhasil", cutiList)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
@@ -285,20 +307,20 @@ public class CutiRes {
     @Path("/jenis-cuti")
     public Response getJenisCuti() {
         List<LeaveType> leaveTypes = List.of(
-                new LeaveType("ANNUAL_LEAVE", "Cuti Tahunan"),
-                new LeaveType("IZIN", "Izin"),
-                new LeaveType("ROSTER_LEAVE", "Cuti Roster"),
-                new LeaveType("SICK_LEAVE", "Cuti Sakit"),
-                new LeaveType("MATERNITY_LEAVE", "Cuti Melahirkan"),
-                new LeaveType("BAPTISM_LEAVE", "Cuti Baptis Anak"),
-                new LeaveType("MARRIAGE_LEAVE", "Cuti Menikah"),
-                new LeaveType("CHILD_WEDDING_LEAVE", "Cuti Menikahkan Anak"),
-                new LeaveType("BEREAVEMENT_LEAVE", "Cuti Keluarga Meninggal"),
-                new LeaveType("BREAVEMENT1_LEAVE", "Cuti Anggota Keluarga Dalam Satu Rumah Meninggal"),
-                new LeaveType("HAJJ_LEAVE", "Cuti Haji"));
+                new LeaveType("ANNUAL_LEAVE", "Cuti Tahunan", "ANL"),
+                new LeaveType("IZIN", "Izin", "IZN"),
+                new LeaveType("ROSTER_LEAVE", "Cuti Roster", "RST"),
+                new LeaveType("SICK_LEAVE", "Cuti Sakit", "SKT"),
+                new LeaveType("MATERNITY_LEAVE", "Cuti Melahirkan", "BRN"),
+                new LeaveType("BAPTISM_LEAVE", "Cuti Baptis Anak", "BPT"),
+                new LeaveType("MARRIAGE_LEAVE", "Cuti Menikah", "MRD"),
+                new LeaveType("CHILD_WEDDING_LEAVE", "Cuti Menikahkan Anak", "MRC"),
+                new LeaveType("BEREAVEMENT_LEAVE", "Cuti Keluarga Meninggal", "FDT"),
+                new LeaveType("BREAVEMENT1_LEAVE", "Cuti Anggota Keluarga Dalam Satu Rumah Meninggal", "FDA"),
+                new LeaveType("HAJJ_LEAVE", "Cuti Haji", "HAJ"));
         return Response.ok().entity(ResponseHandler.ok("Hapus Cuti Berhasil", leaveTypes)).build();
     }
 
-    public record LeaveType(String value, String label) {
+    public record LeaveType(String value, String label, String kode) {
     }
 }

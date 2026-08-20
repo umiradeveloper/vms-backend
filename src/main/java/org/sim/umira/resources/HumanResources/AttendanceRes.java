@@ -372,21 +372,20 @@ public class AttendanceRes {
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
         try {
-            // LocalDate now_date = LocalDate.now();
-            // String start_date = now_date.getYear() + "-"+ (now_date.getMonthValue() - 1)+
-            // "-" + tanggal_pembukuan;
-            // LocalDate startDate =
-            // now_date.minusMonths(1).withDayOfMonth(Integer.parseInt(tanggal_pembukuan));
-            // LocalDate endDate =
-            // now_date.withDayOfMonth(Integer.parseInt(tanggal_pembukuan));
+           
             int monthInt = Integer.parseInt(month);
             Month monthM = Month.of(monthInt);
             YearMonth ym = YearMonth.of(Integer.parseInt(year), monthM);
+            Boolean saturdayOff = true;
+            Integer is_office = emp.klasifikasi_works.is_office;
+            if(is_office == 1){
+                saturdayOff = false;
+            }
 
-            LocalDate startDate = ym.atDay(1);
+            // LocalDate startDate = ym.atDay(1);
+            LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
             LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
-            // String end_date = now_date.getYear() + "-"+ now_date.getMonthValue()+ "-" +
-            // tanggal_pembukuan;
+            
 
             Calendar service = GoogleCalendarConfig.getService();
 
@@ -395,8 +394,8 @@ public class AttendanceRes {
                     startDate.toString(), endDate.toString());
 
             // 2. generate 1 tahun
-            List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(2026, holidays,
-                    startDate.toString(), endDate.toString());
+            List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(Integer.parseInt(year), holidays,
+                    startDate.toString(), endDate.toString(), saturdayOff);
             List<ResponseAttendanceDto> result = new ArrayList<>();
             for (YearCalendarService.DayInfo g : calendar) {
                 AttendanceEntity ae = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", g.date, emp)
