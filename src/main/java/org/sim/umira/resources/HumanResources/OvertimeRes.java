@@ -140,10 +140,11 @@ public class OvertimeRes {
 
             }
         }
-         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
-            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
-
-        Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
+        EmployeeEntity emp = EmployeeEntity.findById(pengajuan.id_employee);
+        if (emp == null) {
+            throw new BadRequestException("Employee tidak terdaftar");
+        }
+         Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
                 LocalTime.parse(pengajuan.jam_selesai));
         Long durationWork = duration.toMinutes();
         int hoursNow = Integer.parseInt(String.valueOf(durationWork)) / 60;
@@ -162,7 +163,8 @@ public class OvertimeRes {
         LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
 
         Integer totalOvertime = 0;
-       
+        System.out.println(startDate);
+        System.out.println(endDate);
 
         List<OvertimeEntity> overtimeEmp = OvertimeEntity
                 .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
