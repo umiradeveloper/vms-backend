@@ -15,11 +15,13 @@ import org.sim.umira.dtos.LoginDto;
 import org.sim.umira.dtos.RegisterDto;
 import org.sim.umira.dtos.ResetPasswordDto;
 import org.sim.umira.dtos.ResponseLoginDto;
+import org.sim.umira.dtos.ResponseLoginDtoMobile;
 import org.sim.umira.entities.BranchEntity;
 import org.sim.umira.entities.MenuAccessEntity;
 import org.sim.umira.entities.MenuAccessMobileEntity;
 import org.sim.umira.entities.RoleEntity;
 import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.JwtService;
 import org.sim.umira.services.AESUtils;
@@ -152,15 +154,31 @@ public class AuthRes {
         // String id_role = user.role.id_role;
         List<MenuAccessMobileEntity> mae = MenuAccessMobileEntity.find("role = ?1 order by menu.kode_menu asc", user.role).list();
 
+        EmployeeEntity emp = EmployeeEntity.find("user = ?1", user).firstResult();
+        EmployeeEntity empChecker = null;
+        EmployeeEntity empSigner = null;
+        if(emp != null){
+                if(emp.id_employee_checker != null || emp.id_employee_checker != ""){
+                    empChecker = EmployeeEntity.findById(emp.id_employee_checker);
+                }
+                if(emp.id_employee_signer != null || emp.id_employee_signer != ""){
+                    empSigner = EmployeeEntity.findById(emp.id_employee_signer);
+                }
+        }
+       
+
         // System.out.println(mae);
         try {
             updateTokenMobile(loginDto.email, loginDto.token_mobile);
-            return Response.ok().entity(ResponseHandler.ok("Success", new ResponseLoginDto(token, user, mae))).build();
+            // return Response.ok().entity(ResponseHandler.ok("Success", new ResponseLoginDto(token, user, mae))).build();
+            return Response.ok().entity(ResponseHandler.ok("Success", new ResponseLoginDtoMobile(token, user, mae, emp, empChecker, empSigner))).build();
         } catch (Exception e) {
             e.printStackTrace();
             return Response.ok().entity(ResponseHandler.error(e.getMessage())).build();
         }
     }
+
+   
 
     @Transactional
     public Boolean updateTokenMobile(String email, String token){

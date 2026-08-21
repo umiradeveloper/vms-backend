@@ -2,14 +2,19 @@ package org.sim.umira.resources.HumanResources;
 
 import java.nio.file.Files;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
+import java.time.YearMonth;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.MultipartForm;
+import org.sim.umira.configs.GoogleCalendarConfig;
 import org.sim.umira.dtos.HumanResources.OvertimeDto;
 import org.sim.umira.dtos.HumanResources.PengajuanOvertimeDto;
 import org.sim.umira.dtos.HumanResources.PengajuanOvertimeMultipartDto;
@@ -23,6 +28,9 @@ import org.sim.umira.entities.HumanResources.PengajuanAttendanceEntity;
 import org.sim.umira.entities.HumanResources.PengajuanOvertimeEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.services.YearCalendarService;
+
+import com.google.api.services.calendar.Calendar;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -43,6 +51,12 @@ public class OvertimeRes {
 
     private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/overtime");
 
+    @ConfigProperty(name = "date-close-book")
+    String tanggal_pembukuan;
+
+    @ConfigProperty(name = "overtime-max")
+    String overtime_max;
+
     @POST
     @Path("/create-overtime")
     @Transactional
@@ -52,11 +66,36 @@ public class OvertimeRes {
         if (emp == null) {
             throw new BadRequestException("Employee tidak terdaftar");
         }
+        Duration duration = Duration.between(LocalTime.parse(overtime.jam_mulai),
+                LocalTime.parse(overtime.jam_selesai));
+        Long durationWork = duration.toMinutes();
+        int hoursNow = Integer.parseInt(String.valueOf(durationWork)) / 60;
+
+        LocalDate tanggal = overtime.tanggal;
+
+        int monthInt = tanggal.getMonthValue();
+        Month monthM = Month.of(monthInt);
+        YearMonth ym = YearMonth.of(tanggal.getYear(), monthM);
+
+        // LocalDate startDate = ym.atDay(1);
+        LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
+        LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
+
+        Integer totalOvertime = 0;
+
+        List<OvertimeEntity> overtimeEmp = OvertimeEntity
+                .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
+        for (OvertimeEntity ov : overtimeEmp) {
+            totalOvertime += Integer.parseInt(ov.durasi);
+        }
+        int hours = totalOvertime / 60;
+
+        if ((hours + hoursNow) > Integer.parseInt(overtime_max)) {
+            throw new BadRequestException("Overtime Melebihi Limit");
+        }
 
         try {
-            Duration duration = Duration.between(LocalTime.parse(overtime.jam_mulai),
-                    LocalTime.parse(overtime.jam_selesai));
-            Long durationWork = duration.toMinutes();
+
             OvertimeEntity ov = new OvertimeEntity();
             ov.employee = emp;
             ov.durasi = String.valueOf(durationWork);
@@ -147,7 +186,7 @@ public class OvertimeRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             // Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
-            //         LocalTime.parse(pengajuan.jam_selesai));
+            // LocalTime.parse(pengajuan.jam_selesai));
             // Long durationWork = duration.toMinutes();
             PengajuanOvertimeEntity pengajuanOvertime = new PengajuanOvertimeEntity();
             pengajuanOvertime.employee = emp;

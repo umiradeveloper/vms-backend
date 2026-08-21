@@ -71,6 +71,10 @@ public class EmployeeEntity extends PanacheEntityBase {
 
     public String kelas;
 
+    public String id_employee_checker;
+
+    public String id_employee_signer;
+
     @OneToOne
     @JoinColumn(name = "id_user")
     public UserEntity user;

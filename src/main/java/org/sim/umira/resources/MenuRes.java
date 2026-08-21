@@ -113,7 +113,15 @@ public class MenuRes {
             @QueryParam("id") String id) {
         try { // direktori saat jar dijalankan
             MenuMobileEntity menuFoto = MenuMobileEntity.findById(id);
-            InputStream imageStream = Files.newInputStream(Paths.get(menuFoto.menu_icon));
+            InputStream imageStream = null;
+            System.out.println(id);
+            if("001".equals(id)){
+                System.out.println("masuk");
+                imageStream = Files.newInputStream(Paths.get("logo/logo-hris.png"));
+            }else{
+                imageStream = Files.newInputStream(Paths.get(menuFoto.menu_icon));
+            }
+            
             return Response.ok(imageStream).build();
         } catch (Exception e) {
             throw new InternalError("Cant get file");

@@ -317,7 +317,7 @@ public class AttendanceRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity employeeApproval = EmployeeEntity.find("user = ?1", ue).firstResult();
             List<PengajuanAttendanceEntity> listPengajuan;
-            // System.out.println(ue.id_user);
+            // System.out.println(ue.role.kode_role);
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan =
             // PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND
             // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
