@@ -239,7 +239,10 @@ public class OvertimeRes {
 
         LocalDate tanggal = pengajuan.tanggal;
 
-        int monthInt = tanggal.getMonthValue();
+        YearMonth periode = getPeriode(tanggal, Integer.parseInt(tanggal_pembukuan));
+
+        // System.out.println("periode "+overtime.tanggal);
+        int monthInt = periode.getMonthValue();
         Month monthM = Month.of(monthInt);
         YearMonth ym = YearMonth.of(tanggal.getYear(), monthM);
 
@@ -248,6 +251,8 @@ public class OvertimeRes {
         LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
 
         Integer totalOvertime = 0;
+        System.out.println(startDate);
+        System.out.println(endDate);
 
         List<OvertimeEntity> overtimeEmp = OvertimeEntity
                 .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();

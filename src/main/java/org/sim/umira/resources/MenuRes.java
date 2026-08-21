@@ -116,8 +116,8 @@ public class MenuRes {
             InputStream imageStream = null;
             System.out.println(id);
             if("001".equals(id)){
-                System.out.println("masuk");
-                imageStream = Files.newInputStream(Paths.get("logo/logo-hris.png"));
+                // System.out.println("masuk");
+                imageStream = Files.newInputStream(Paths.get("/var/www/vms-backend/logo/logo-hris.png"));
             }else{
                 imageStream = Files.newInputStream(Paths.get(menuFoto.menu_icon));
             }
