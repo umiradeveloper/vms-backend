@@ -73,7 +73,10 @@ public class OvertimeRes {
 
         LocalDate tanggal = overtime.tanggal;
 
-        int monthInt = tanggal.getMonthValue();
+        YearMonth periode = getPeriode(tanggal, Integer.parseInt(tanggal_pembukuan));
+
+        // System.out.println("periode "+overtime.tanggal);
+        int monthInt = periode.getMonthValue();
         Month monthM = Month.of(monthInt);
         YearMonth ym = YearMonth.of(tanggal.getYear(), monthM);
 
@@ -82,6 +85,8 @@ public class OvertimeRes {
         LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
 
         Integer totalOvertime = 0;
+        System.out.println(startDate);
+        System.out.println(endDate);
 
         List<OvertimeEntity> overtimeEmp = OvertimeEntity
                 .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
@@ -111,6 +116,14 @@ public class OvertimeRes {
             // TODO: handle exception
         }
     }
+    public YearMonth getPeriode(LocalDate tanggal, int tanggalPembukuan) {
+        System.out.println("tanggal "+tanggal.getDayOfMonth());
+        if (tanggal.getDayOfMonth() > tanggalPembukuan) {
+            return YearMonth.from(tanggal).plusMonths(1);
+        }
+
+        return YearMonth.from(tanggal);
+    }
 
     @POST
     @Path("/create-pengajuan-overtime")
@@ -127,13 +140,46 @@ public class OvertimeRes {
 
             }
         }
+         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+
+        Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
+                LocalTime.parse(pengajuan.jam_selesai));
+        Long durationWork = duration.toMinutes();
+        int hoursNow = Integer.parseInt(String.valueOf(durationWork)) / 60;
+
+        LocalDate tanggal = pengajuan.tanggal;
+
+        YearMonth periode = getPeriode(tanggal, Integer.parseInt(tanggal_pembukuan));
+
+        // System.out.println("periode "+overtime.tanggal);
+        int monthInt = periode.getMonthValue();
+        Month monthM = Month.of(monthInt);
+        YearMonth ym = YearMonth.of(tanggal.getYear(), monthM);
+
+        // LocalDate startDate = ym.atDay(1);
+        LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
+        LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
+
+        Integer totalOvertime = 0;
+       
+
+        List<OvertimeEntity> overtimeEmp = OvertimeEntity
+                .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
+        for (OvertimeEntity ov : overtimeEmp) {
+            totalOvertime += Integer.parseInt(ov.durasi);
+        }
+        int hours = totalOvertime / 60;
+
+        if ((hours + hoursNow) > Integer.parseInt(overtime_max)) {
+            throw new BadRequestException("Overtime Melebihi Limit");
+        }
 
         try {
-            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
-            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
-            Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
-                    LocalTime.parse(pengajuan.jam_selesai));
-            Long durationWork = duration.toMinutes();
+           
+            // Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
+            //         LocalTime.parse(pengajuan.jam_selesai));
+            // Long durationWork = duration.toMinutes();
             PengajuanOvertimeEntity pengajuanOvertime = new PengajuanOvertimeEntity();
             pengajuanOvertime.employee = emp;
             pengajuanOvertime.jam_mulai = pengajuan.jam_mulai;
@@ -181,10 +227,40 @@ public class OvertimeRes {
 
             }
         }
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+
+        Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
+                LocalTime.parse(pengajuan.jam_selesai));
+        Long durationWork = duration.toMinutes();
+        int hoursNow = Integer.parseInt(String.valueOf(durationWork)) / 60;
+
+        LocalDate tanggal = pengajuan.tanggal;
+
+        int monthInt = tanggal.getMonthValue();
+        Month monthM = Month.of(monthInt);
+        YearMonth ym = YearMonth.of(tanggal.getYear(), monthM);
+
+        // LocalDate startDate = ym.atDay(1);
+        LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
+        LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
+
+        Integer totalOvertime = 0;
+
+        List<OvertimeEntity> overtimeEmp = OvertimeEntity
+                .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
+        for (OvertimeEntity ov : overtimeEmp) {
+            totalOvertime += Integer.parseInt(ov.durasi);
+        }
+        int hours = totalOvertime / 60;
+
+        if ((hours + hoursNow) > Integer.parseInt(overtime_max)) {
+            throw new BadRequestException("Overtime Melebihi Limit");
+        }
 
         try {
-            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
-            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+            // UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            // EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             // Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
             // LocalTime.parse(pengajuan.jam_selesai));
             // Long durationWork = duration.toMinutes();
