@@ -139,15 +139,19 @@ public class AuthRes {
         
         
         if(user == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("Invalid email or password")).build();
+            // return Response.status(Response.Status.BAD_REQUEST).entity(ResponseHandler.error("Invalid email or password")).build();
+            throw new BadRequestException("Invalid email or password");
         }
         // user.token_mobile = loginDto.token_mobile;
         if(user.isApproval == 0 ){
-            return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("User Not Active")).build();
+            // return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("User Not Active")).build();
+            throw new BadRequestException("User Not Active");
         }
         // System.out.println(BcryptUtil.matches(loginDto.password, user.password));
         if(!BcryptUtil.matches(loginDto.password, user.password)){
-            return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("Password not match")).build();
+            // return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseHandler.error("Password not match")).build();
+            throw new BadRequestException("Password not match");
+            
         }
         
         String token = js.generateToken(user.email, List.of(user.role.nama_role), 3600 * 60 * 60 * 1000L);
@@ -155,10 +159,13 @@ public class AuthRes {
         List<MenuAccessMobileEntity> mae = MenuAccessMobileEntity.find("role = ?1 order by menu.kode_menu asc", user.role).list();
 
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", user).firstResult();
+        
         EmployeeEntity empChecker = null;
         EmployeeEntity empSigner = null;
-        if(emp != null){
-                if(emp.id_employee_checker != null || emp.id_employee_checker != ""){
+        if(emp == null){
+                throw new BadRequestException("Employee Tidak Di Temukan");
+        }else{
+            if(emp.id_employee_checker != null || emp.id_employee_checker != ""){
                     empChecker = EmployeeEntity.findById(emp.id_employee_checker);
                 }
                 if(emp.id_employee_signer != null || emp.id_employee_signer != ""){

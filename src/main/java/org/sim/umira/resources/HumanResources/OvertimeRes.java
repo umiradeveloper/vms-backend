@@ -364,12 +364,24 @@ public class OvertimeRes {
             // PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND
             // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanOvertimeEntity> listPengajuan;
-            if (ue.role.kode_role == "99") {
-                listPengajuan = PengajuanOvertimeEntity
-                        .find("SELECT DISTINCT p FROM PengajuanOvertimeEntity p JOIN p.approval r JOIN p.employee pr")
-                        .list();
-            } else {
-                listPengajuan = PengajuanOvertimeEntity.find("""
+            // if (ue.role.kode_role == "99") {
+            //     listPengajuan = PengajuanOvertimeEntity
+            //             .find("SELECT DISTINCT p FROM PengajuanOvertimeEntity p JOIN p.approval r JOIN p.employee pr")
+            //             .list();
+            // } else {
+            //     listPengajuan = PengajuanOvertimeEntity.find("""
+            //                 SELECT DISTINCT p
+            //                 FROM PengajuanOvertimeEntity p
+            //                 WHERE EXISTS (
+            //                     SELECT 1
+            //                     FROM PengajuanApprovalOvertimeEntity ps
+            //                     WHERE ps.pengajuanOvertime = p
+            //                     AND ps.employee = ?1
+            //                 )
+            //             """, employeeApproval).list();
+            // }
+
+            listPengajuan = PengajuanOvertimeEntity.find("""
                             SELECT DISTINCT p
                             FROM PengajuanOvertimeEntity p
                             WHERE EXISTS (
@@ -379,7 +391,6 @@ public class OvertimeRes {
                                 AND ps.employee = ?1
                             )
                         """, employeeApproval).list();
-            }
             // List<PengajuanBiayaKonstruksiEntity> listPengajuan =
             // PengajuanBiayaKonstruksiEntity.listAll();
 
@@ -459,8 +470,8 @@ public class OvertimeRes {
     @Path("/get-overtime")
     public Response getOvertime() {
         try {
-            List<OvertimeEntity> list = OvertimeEntity.listAll();
-            return Response.ok().entity(ResponseHandler.ok("Create Overtime Success", list)).build();
+            // List<OvertimeEntity> list = OvertimeEntity.listAll();
+            return Response.ok().entity(ResponseHandler.ok("Create Overtime Success", null)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
         }

@@ -1,9 +1,13 @@
 package org.sim.umira.resources.HumanResources;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.HumanResources.EmployeeDto;
+import org.sim.umira.entities.MasterProjectEntity;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import org.sim.umira.entities.HumanResources.KlasifikasiWorkEntity;
@@ -40,7 +44,11 @@ public class EmployeeRes {
              throw new BadRequestException("User sudah di daftarkan");
         }
         KlasifikasiWorkEntity klasifikasi = KlasifikasiWorkEntity.find("klasifikasi_works = ?1", create.klasifikasi_works).firstResult();
+        MasterProjectEntity project = MasterProjectEntity.findById(create.id_project);
         try {
+            LocalDate date = Instant.parse(create.tmt_akhir)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate();
             EmployeeEntity employee = new EmployeeEntity();
             employee.nama = create.nama;
             employee.user = ue;
@@ -50,7 +58,11 @@ public class EmployeeRes {
             employee.email = create.email;
             employee.no_hp = create.no_hp;
             employee.tmt = create.tmt;
+            employee.tmt_akhir = date.toString();
             employee.status_karyawan = create.status_karyawan;
+            employee.bank_account_holder = create.bank_account_holder;
+            employee.religion = create.religion;
+            employee.emergency_call = create.emergency_call;
             employee.tanggal_lahir = create.tanggal_lahir;
             employee.tempat_lahir = create.tempat_lahir;
             employee.alamat = create.alamat;
@@ -67,6 +79,12 @@ public class EmployeeRes {
             employee.grade = create.grade;
             employee.kelas = create.kelas;
             employee.klasifikasi_works = klasifikasi;
+            employee.pkwt_ke = create.pkwt_ke;
+            employee.id_employee_checker = create.id_employee_checker;
+            employee.id_employee_signer = create.id_employee_signer;
+            employee.pendidikan_terakhir = create.pendidikan_terakhir;
+            employee.project = project;
+
             employee.persist();
             return Response.ok().entity(ResponseHandler.ok("Create Employee berhasil", null)).build();
         } catch (Exception e) {
@@ -84,7 +102,11 @@ public class EmployeeRes {
             throw new BadRequestException("User tidak di temukan");
         }
         KlasifikasiWorkEntity klasifikasi = KlasifikasiWorkEntity.find("klasifikasi_works = ?1", create.klasifikasi_works).firstResult();
+        MasterProjectEntity project = MasterProjectEntity.findById(create.id_project);
         try {
+            LocalDate date = Instant.parse(create.tmt_akhir)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate();
             EmployeeEntity employee = EmployeeEntity.findById(create.id_employee);
             employee.nama = create.nama;
             employee.user = ue;
@@ -94,7 +116,11 @@ public class EmployeeRes {
             employee.email = create.email;
             employee.no_hp = create.no_hp;
             employee.tmt = create.tmt;
+            employee.tmt_akhir = date.toString();
             employee.status_karyawan = create.status_karyawan;
+            employee.bank_account_holder = create.bank_account_holder;
+            employee.religion = create.religion;
+            employee.emergency_call = create.emergency_call;
             employee.tanggal_lahir = create.tanggal_lahir;
             employee.tempat_lahir = create.tempat_lahir;
             employee.alamat = create.alamat;
@@ -111,6 +137,12 @@ public class EmployeeRes {
             employee.grade = create.grade;
             employee.kelas = create.kelas;
             employee.klasifikasi_works = klasifikasi;
+            employee.pkwt_ke = create.pkwt_ke;
+            employee.id_employee_checker = create.id_employee_checker;
+            employee.id_employee_signer = create.id_employee_signer;
+            employee.pendidikan_terakhir = create.pendidikan_terakhir;
+            employee.project = project;
+
             // employee.persist();
             return Response.ok().entity(ResponseHandler.ok("Update Employee berhasil", null)).build();
         } catch (Exception e) {

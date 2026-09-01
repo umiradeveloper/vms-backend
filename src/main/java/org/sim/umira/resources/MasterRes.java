@@ -17,9 +17,12 @@ import java.util.Set;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.configs.GoogleCalendarConfig;
+import org.sim.umira.dtos.CreateMasterProjectDto;
+import org.sim.umira.dtos.RegisterDto;
 import org.sim.umira.dtos.CostControl.ReportProyekDto;
 import org.sim.umira.dtos.HumanResources.KlasifikasiWorksDto;
 import org.sim.umira.entities.BranchEntity;
+import org.sim.umira.entities.MasterProjectEntity;
 import org.sim.umira.entities.RoleEntity;
 import org.sim.umira.entities.VmsVendorDetailMinioEntity;
 import org.sim.umira.entities.VmsVendorEntity;
@@ -127,6 +130,31 @@ public class MasterRes {
             // TODO: handle exception
         }
 
+    }
+
+    @POST
+    @Path("/create-master-project")
+    @Transactional
+    public Response createMasterProject(@Valid @RequestBody CreateMasterProjectDto createProject) {
+        try {
+            MasterProjectEntity create = new MasterProjectEntity();
+            create.project_name = createProject.project_name;
+            create.project_code = createProject.project_code;
+            create.latitude = createProject.latitude;
+            create.longitude = createProject.longitude;
+            create.persist();
+            return Response.ok().entity(ResponseHandler.ok("Inquiry Kategori Success", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException("Project Berhasil di create");
+            // TODO: handle exception
+        }
+    }
+
+    @GET
+    @Path("/get-master-project")
+    public Response getMasterProject() {
+        List<MasterProjectEntity> project = MasterProjectEntity.listAll();
+        return Response.ok().entity(ResponseHandler.ok("Inquiry Project Success", project)).build();
     }
 
     @GET

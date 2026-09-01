@@ -21,6 +21,8 @@ public class EmployeeDto {
 
     public LocalDate tmt;
 
+    public String tmt_akhir;
+
     public String status_karyawan;
 
     public String foto_url;
@@ -55,5 +57,23 @@ public class EmployeeDto {
 
     public String kelas;
 
+    public Integer pkwt_ke;
+
     public String klasifikasi_works;
+
+    public String id_project;
+
+    public String id_employee_checker;
+
+    public String id_employee_signer;
+
+    public String bank_account_holder;
+
+    public String religion;
+
+    public String emergency_call;
+
+    public String pendidikan_terakhir;
+
+    
 }

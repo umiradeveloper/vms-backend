@@ -2,6 +2,7 @@ package org.sim.umira.entities.HumanResources;
 
 import java.time.LocalDate;
 
+import org.sim.umira.entities.MasterProjectEntity;
 import org.sim.umira.entities.UserEntity;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
@@ -37,6 +38,8 @@ public class EmployeeEntity extends PanacheEntityBase {
 
     public LocalDate tmt;
 
+    public String tmt_akhir;
+
     public String status_karyawan;
 
     public String foto_url;
@@ -71,9 +74,20 @@ public class EmployeeEntity extends PanacheEntityBase {
 
     public String kelas;
 
+    public Integer pkwt_ke;
+
     public String id_employee_checker;
 
     public String id_employee_signer;
+
+
+    public String bank_account_holder;
+
+    public String religion;
+
+    public String emergency_call;
+
+    public String pendidikan_terakhir;
 
     @OneToOne
     @JoinColumn(name = "id_user")
@@ -83,6 +97,12 @@ public class EmployeeEntity extends PanacheEntityBase {
     @ManyToOne
     @JoinColumn(name = "id_klasifikasi_works")
     public KlasifikasiWorkEntity klasifikasi_works;
+
+
+    @ManyToOne
+    @JoinColumn(name = "id_project")
+    public MasterProjectEntity project;
+
 
     
 }

@@ -67,6 +67,7 @@ public class AttendanceRes {
             // tanggal = ?2", employee, attendance.tanggal).firstResult();
             Duration duration = Duration.between(attendance.jam_masuk, attendance.jam_keluar);
             Long durationWork = duration.toHours();
+            
             if (durationWork < 8) {
                 throw new BadRequestException("Jam kerja kurang");
             }
@@ -135,9 +136,23 @@ public class AttendanceRes {
             }
             Duration duration = Duration.between(LocalTime.parse(checkAttendance.jam_masuk), attendance.jam_keluar);
             Long durationWork = duration.toHours();
-            if (durationWork < 8) {
-                throw new BadRequestException("Jam kerja kurang");
+            if(employee.klasifikasi_works.jam_masuk == null && employee.klasifikasi_works.jam_keluar == null){
+                // Duration durationParam = Duration.between(LocalTime.parse(jam_masuk), LocalTime.parse(jam_keluar));
+                // Long durationWorkParam = durationParam.toHours();
+                if (durationWork < 8) {
+                    throw new BadRequestException("Jam kerja kurang");
+                }
+            }else{
+                String jam_masuk = employee.klasifikasi_works.jam_masuk;
+                String jam_keluar = employee.klasifikasi_works.jam_keluar;
+
+                Duration durationParam = Duration.between(LocalTime.parse(jam_masuk), LocalTime.parse(jam_keluar));
+                Long durationWorkParam = durationParam.toHours();
+                if (durationWork < durationWorkParam) {
+                    throw new BadRequestException("Jam kerja kurang");
+                }
             }
+           
             checkAttendance.jam_keluar = String.valueOf(attendance.jam_keluar);
             return Response.ok().entity(ResponseHandler.ok("Clock Out berhasil", null)).build();
         } else {
