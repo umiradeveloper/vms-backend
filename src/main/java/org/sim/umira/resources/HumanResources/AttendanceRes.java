@@ -190,6 +190,7 @@ public class AttendanceRes {
             pengajuanAttendance.tanggal = pengajuan.tanggal;
             pengajuanAttendance.persist();
             PengajuanApprovalAttendanceEntity pengajuanApprovalMaker = new PengajuanApprovalAttendanceEntity();
+            pengajuanApprovalMaker.pengajuanAbsensi = pengajuanAttendance;
             pengajuanApprovalMaker.employee = employeeE;
             pengajuanApprovalMaker.level_approval = "Maker";
             pengajuanApprovalMaker.urutan = 0;
@@ -331,15 +332,16 @@ public class AttendanceRes {
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity employeeApproval = EmployeeEntity.find("user = ?1", ue).firstResult();
+            System.out.println(employeeApproval.nama);
             List<PengajuanAttendanceEntity> listPengajuan;
-            // System.out.println(ue.role.kode_role);
-            // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan =
-            // PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND
-            // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
+
+            
+           
             if (ue.role.kode_role == "99") {
                 listPengajuan = PengajuanAttendanceEntity
                         .find("SELECT DISTINCT p FROM PengajuanAttendanceEntity p JOIN p.approval r JOIN p.employee pr")
                         .list();
+         
             } else {
                 listPengajuan = PengajuanAttendanceEntity.find("""
                             SELECT DISTINCT p
