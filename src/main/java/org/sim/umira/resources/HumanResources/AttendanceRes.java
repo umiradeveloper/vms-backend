@@ -287,7 +287,7 @@ public class AttendanceRes {
         if (status_approval == null || status_approval == "") {
             throw new BadRequestException("status_approval harus Di Isi");
         }
-        System.out.println(id_pengajuan_absensi);
+        // System.out.println(id_pengajuan_absensi);
         try {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
@@ -308,6 +308,9 @@ public class AttendanceRes {
                     if (pengajuanList.size() == 0) {
                         AttendanceEntity checkAttendanceEmployee = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuanAttendance.tanggal, pengajuanAttendance.employee).firstResult();
                         if(checkAttendanceEmployee != null){
+                            if(emp.nip.equals(nip_admin_hr)){
+                                checkAttendanceEmployee.employee = emp;
+                            }
                             checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
                             checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
                             checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
