@@ -360,7 +360,7 @@ public class AttendanceRes {
 
             
            
-            if (ue.role.kode_role == "99") {
+            if (ue.role.kode_role == "99" || employeeApproval.nip.equals(nip_admin_hr)) {
                 listPengajuan = PengajuanAttendanceEntity
                         .find("SELECT DISTINCT p FROM PengajuanAttendanceEntity p JOIN p.approval r JOIN p.employee pr")
                         .list();
