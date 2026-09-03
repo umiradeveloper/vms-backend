@@ -216,6 +216,9 @@ public class AttendanceRes {
         }
     }
 
+
+    @ConfigProperty(name = "nip-admin-hr")
+    String nip_admin_hr;
     @GET
     @Path("/get-approval-attendance")
     public Response getApprovalAttendance(@Context SecurityContext ctx) {
@@ -226,7 +229,20 @@ public class AttendanceRes {
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan =
             // PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND
             // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
-            List<PengajuanAttendanceEntity> listPengajuan = PengajuanAttendanceEntity.find("""
+            List<PengajuanAttendanceEntity> listPengajuan;
+
+            if(employeeApproval.nip.equals(nip_admin_hr)){
+                 listPengajuan = PengajuanAttendanceEntity.find("""
+                        SELECT DISTINCT p
+                        FROM PengajuanAttendanceEntity p
+                        WHERE EXISTS (
+                            SELECT 1
+                            FROM PengajuanApprovalAttendanceEntity ps
+                            WHERE ps.pengajuanAbsensi = p
+                        )
+                    """).list();
+            }else{
+                listPengajuan = PengajuanAttendanceEntity.find("""
                         SELECT DISTINCT p
                         FROM PengajuanAttendanceEntity p
                         WHERE EXISTS (
@@ -243,6 +259,9 @@ public class AttendanceRes {
                             )
                         )
                     """, employeeApproval).list();
+            }
+
+            
             // List<PengajuanBiayaKonstruksiEntity> listPengajuan =
             // PengajuanBiayaKonstruksiEntity.listAll();
 
