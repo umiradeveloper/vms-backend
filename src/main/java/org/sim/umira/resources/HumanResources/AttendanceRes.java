@@ -292,59 +292,74 @@ public class AttendanceRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             PengajuanAttendanceEntity pengajuanAttendance = PengajuanAttendanceEntity.findById(id_pengajuan_absensi);
-            PengajuanApprovalAttendanceEntity getPersetujuanAttendance = PengajuanApprovalAttendanceEntity
+            if(emp.nip.equals(nip_admin_hr)){
+                List<PengajuanApprovalAttendanceEntity> list = PengajuanApprovalAttendanceEntity.find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC").list();
+                for(PengajuanApprovalAttendanceEntity appr: list){
+                    appr.employee = emp;
+                    appr.status_approval = status_approval;
+                    appr.tanggal_approval = LocalDateTime.now();
+                    appr.keterangan = "Approved By HR";
+                }
+                PengajuanApprovalAttendanceEntity.flush();
+                return Response.ok().entity(ResponseHandler.ok("Approver HR Berhasil", null)).build();
+            }else{
+                 PengajuanApprovalAttendanceEntity getPersetujuanAttendance = PengajuanApprovalAttendanceEntity
                     .find("pengajuanAbsensi = ?1 AND employee = ?2 AND tanggal_approval IS NULL ORDER BY urutan ASC",
                             pengajuanAttendance, emp)
                     .firstResult();
-            if (getPersetujuanAttendance != null) {
-                getPersetujuanAttendance.status_approval = status_approval;
-                getPersetujuanAttendance.tanggal_approval = LocalDateTime.now();
-                getPersetujuanAttendance.keterangan = (catatan != "" || catatan != null) ? catatan : "";
+                    if (getPersetujuanAttendance != null) {
+                        getPersetujuanAttendance.status_approval = status_approval;
+                        getPersetujuanAttendance.tanggal_approval = LocalDateTime.now();
+                        getPersetujuanAttendance.keterangan = (catatan != "" || catatan != null) ? catatan : "";
 
-                if (status_approval.equals("Approve")) {
-                    // System.out.println(status_approver);
-                    List<PengajuanApprovalAttendanceEntity> pengajuanList = PengajuanApprovalAttendanceEntity
-                            .find("tanggal_approval IS NULL AND pengajuanAbsensi = ?1", pengajuanAttendance).list();
-                    if (pengajuanList.size() == 0) {
-                        AttendanceEntity checkAttendanceEmployee = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuanAttendance.tanggal, pengajuanAttendance.employee).firstResult();
-                        if(checkAttendanceEmployee != null){
-                            if(emp.nip.equals(nip_admin_hr)){
-                                checkAttendanceEmployee.employee = emp;
+                        if (status_approval.equals("Approve")) {
+                            // System.out.println(status_approver);
+                            List<PengajuanApprovalAttendanceEntity> pengajuanList = PengajuanApprovalAttendanceEntity
+                                    .find("tanggal_approval IS NULL AND pengajuanAbsensi = ?1", pengajuanAttendance).list();
+                            // if(emp.nip.equals(nip_admin_hr)){
+                            
+                            if (pengajuanList.size() == 0) {
+                                AttendanceEntity checkAttendanceEmployee = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuanAttendance.tanggal, pengajuanAttendance.employee).firstResult();
+                                if(checkAttendanceEmployee != null){
+                                    // if(emp.nip.equals(nip_admin_hr)){
+                                    //     checkAttendanceEmployee.employee = emp;
+                                    // }
+                                    checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
+                                    checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
+                                    checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
+                                    checkAttendanceEmployee.status = pengajuanAttendance.status_absensi;
+                                }else{
+                                    AttendanceEntity attendance = new AttendanceEntity();
+                                    attendance.employee = pengajuanAttendance.employee;
+                                    attendance.tanggal = pengajuanAttendance.tanggal;
+                                    attendance.jam_keluar = pengajuanAttendance.jam_keluar;
+                                    attendance.jam_masuk = pengajuanAttendance.jam_masuk;
+                                    attendance.keterangan = pengajuanAttendance.keterangan;
+                                    attendance.status = pengajuanAttendance.status_absensi;
+                                    attendance.persist();
+                                }
+                                
+
                             }
-                            checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
-                            checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
-                            checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
-                            checkAttendanceEmployee.status = pengajuanAttendance.status_absensi;
-                        }else{
-                            AttendanceEntity attendance = new AttendanceEntity();
-                            attendance.employee = pengajuanAttendance.employee;
-                            attendance.tanggal = pengajuanAttendance.tanggal;
-                            attendance.jam_keluar = pengajuanAttendance.jam_keluar;
-                            attendance.jam_masuk = pengajuanAttendance.jam_masuk;
-                            attendance.keterangan = pengajuanAttendance.keterangan;
-                            attendance.status = pengajuanAttendance.status_absensi;
-                            attendance.persist();
+                        } else if (status_approval.equals("Reject")) {
+                            List<PengajuanApprovalAttendanceEntity> getPersetujuanReject = PengajuanApprovalAttendanceEntity
+                                    .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                                            pengajuanAttendance)
+                                    .list();
+                            for (PengajuanApprovalAttendanceEntity pengajuanReject : getPersetujuanReject) {
+                                pengajuanReject.tanggal_approval = LocalDateTime.now();
+                                pengajuanReject.status_approval = "Reject";
+                                pengajuanReject.keterangan = "Rejected By " + ue.username;
+                            }
+
                         }
-                        
 
+                        return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
+                    } else {
+                        return Response.ok().entity(ResponseHandler.error("Data Persetujuan tidak ada")).build();
                     }
-                } else if (status_approval.equals("Reject")) {
-                    List<PengajuanApprovalAttendanceEntity> getPersetujuanReject = PengajuanApprovalAttendanceEntity
-                            .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
-                                    pengajuanAttendance)
-                            .list();
-                    for (PengajuanApprovalAttendanceEntity pengajuanReject : getPersetujuanReject) {
-                        pengajuanReject.tanggal_approval = LocalDateTime.now();
-                        pengajuanReject.status_approval = "Reject";
-                        pengajuanReject.keterangan = "Rejected By " + ue.username;
-                    }
-
-                }
-
-                return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
-            } else {
-                return Response.ok().entity(ResponseHandler.error("Data Persetujuan tidak ada")).build();
             }
+           
 
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
