@@ -26,10 +26,12 @@ import org.sim.umira.entities.HumanResources.PengajuanApprovalAttendanceEntity;
 import org.sim.umira.entities.HumanResources.PengajuanAttendanceEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.services.FcmService;
 import org.sim.umira.services.YearCalendarService;
 
 import com.google.api.services.calendar.Calendar;
 
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
@@ -251,6 +253,8 @@ public class AttendanceRes {
             // TODO: handle exception
         }
     }
+    @Inject
+    FcmService fcmService;
 
     @GET
     @Path("/approval-attendance")
