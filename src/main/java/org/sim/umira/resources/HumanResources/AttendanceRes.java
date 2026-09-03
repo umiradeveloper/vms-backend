@@ -231,7 +231,7 @@ public class AttendanceRes {
             // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanAttendanceEntity> listPengajuan;
 
-            if(employeeApproval.nip.equals(nip_admin_hr)){
+            if(ue.role.kode_role == "99"){
                  listPengajuan = PengajuanAttendanceEntity.find("""
                         SELECT DISTINCT p
                         FROM PengajuanAttendanceEntity p
@@ -292,13 +292,13 @@ public class AttendanceRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             PengajuanAttendanceEntity pengajuanAttendance = PengajuanAttendanceEntity.findById(id_pengajuan_absensi);
-            if(emp.nip.equals(nip_admin_hr)){
+            if(ue.role.kode_role == "99"){
                 List<PengajuanApprovalAttendanceEntity> list = PengajuanApprovalAttendanceEntity.find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC").list();
                 for(PengajuanApprovalAttendanceEntity appr: list){
-                    appr.employee = emp;
+                    // appr.employee = emp;
                     appr.status_approval = status_approval;
                     appr.tanggal_approval = LocalDateTime.now();
-                    appr.keterangan = "Approved By HR";
+                    appr.keterangan = "Approved By Superadmin";
                 }
                 PengajuanApprovalAttendanceEntity.flush();
                 return Response.ok().entity(ResponseHandler.ok("Approver HR Berhasil", null)).build();
@@ -378,7 +378,7 @@ public class AttendanceRes {
 
             
            
-            if (ue.role.kode_role == "99" || employeeApproval.nip.equals(nip_admin_hr)) {
+            if (ue.role.kode_role == "99") {
                 listPengajuan = PengajuanAttendanceEntity
                         .find("SELECT DISTINCT p FROM PengajuanAttendanceEntity p JOIN p.approval r JOIN p.employee pr")
                         .list();
