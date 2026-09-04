@@ -22,7 +22,7 @@ public class CreateCutiDto {
 // public String id_user;
 
 
-    @NotBlank(message = "jenis_cuti must be required")
+    @NotBlank(message = "jenis_cuti Harus Di Isi")
     @FormParam("jenis_cuti")
     @PartType(MediaType.TEXT_PLAIN)
     public String jenis_cuti;
@@ -31,31 +31,39 @@ public class CreateCutiDto {
     @PartType(MediaType.TEXT_PLAIN)
     public String kode_cuti;
 
-    @NotNull(message = "tanggal_mulai must be required")
+    @NotNull(message = "tanggal_mulai Harus Di Isi")
     @FormParam("tanggal_mulai")
     @PartType(MediaType.TEXT_PLAIN)
     public LocalDate tanggal_mulai;
 
-    @NotNull(message = "tanggal_selesai must be required")
+    @NotNull(message = "tanggal_selesai Harus Di Isi")
     @FormParam("tanggal_selesai")
     @PartType(MediaType.TEXT_PLAIN)
     public LocalDate tanggal_selesai;
 
-    @NotBlank(message = "alasan_cuti must be required")
+    @NotBlank(message = "alasan_cuti Harus Di Isi")
     @FormParam("alasan_cuti")
     @PartType(MediaType.TEXT_PLAIN)
     public String alasan_cuti;
 
+    @NotBlank(message = "tanggal_selesai Harus Di Isi")
     @FormParam("id_delegasi")
     @PartType(MediaType.TEXT_PLAIN)
     public String id_delegasi;
 
+    @NotNull(message = "Document Harus Di Isi")
     @FormParam("dokumen_upload")
     @PartType(MediaType.APPLICATION_OCTET_STREAM)
     public FileUpload dokumen_upload;
 
-    // @FormParam("id_approver")
-    // @PartType(MediaType.TEXT_PLAIN)
-    // public String id_approver;
+    @NotBlank(message = "Checker Harus Di Isi")
+    @FormParam("id_employee_approval")
+    @PartType(MediaType.TEXT_PLAIN)
+    public String id_employee_approval;
+
+    @NotBlank(message = "Signer Harus Di Isi")
+    @FormParam("id_employee_manager")
+    @PartType(MediaType.TEXT_PLAIN)
+    public String id_employee_manager;
 
 }

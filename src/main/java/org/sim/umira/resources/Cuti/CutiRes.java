@@ -51,8 +51,23 @@ public class CutiRes {
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         // EmployeeEntity emp = EmployeeEntity.find("id_user = ?1",
         // ue.id_user).firstResult();
+
+        if (create.dokumen_upload == null) {
+                throw new BadRequestException("Dokumen Belum Di Upload");
+        }
+        
+
+        if (create.dokumen_upload.fileName() == null ||
+                create.dokumen_upload.fileName().isBlank()) {
+                throw new BadRequestException("Dokumen Belum Di Upload");
+        }
         
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+
+        EmployeeEntity empApproval = EmployeeEntity.findById(create.id_employee_approval);
+
+        EmployeeEntity empManager = EmployeeEntity.findById(create.id_employee_manager);
+
         String years = String.valueOf(Year.now().getValue());
 
         MasterCounterCutiEntity getCount = MasterCounterCutiEntity.find("year = ?1 AND jenis_cuti = ?2",years, create.kode_cuti).firstResult();
@@ -96,6 +111,7 @@ public class CutiRes {
                                 + " hari");
             }
         }
+        
         try {
             CutiEntity cuti = new CutiEntity();
 
@@ -124,6 +140,8 @@ public class CutiRes {
             cuti.created_at = LocalDateTime.now();
             cuti.created_by = ue.id_user;
             cuti.kode_cuti = id_cuti;
+            cuti.employee_approval = empApproval;
+            cuti.employee_manager = empManager;
             // cuti.id_approver = create.id_approver;
             cuti.persist();
 
@@ -160,6 +178,29 @@ public class CutiRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             List<CutiEntity> cutiList = CutiEntity.find("employee_pengajuan = ?1", emp).list();
+            // List<CutiEntity> cutiList = CutiEntity.listAll();
+            return Response.ok().entity(ResponseHandler.ok("Get Cuti Berhasil", cutiList)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+        }
+    }
+
+
+     @GET
+    @Path("/get-cuti-by-approval")
+    // @Transactional
+    public Response getCutiByApproval(@Context SecurityContext ctx) {
+        try {
+            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+            // List<CutiEntity> cutiList = CutiEntity.find("employee_pengajuan = ?1", emp).list();
+        //    List<CutiEntity> cutiList = CutiEntity.find("(employee_approval = ?1 AND tanggal_approval IS NULL) OR (employee_manager = ?1 AND tanggal_manager IS NULL)", emp).list();
+            List<CutiEntity> cutiList = CutiEntity.find(
+                "(employee_approval = ?1 AND tanggal_approval IS NULL) " +
+                "OR " +
+                "(employee_manager = ?1 AND tanggal_approval IS NOT NULL AND tanggal_manager IS NULL)",
+                emp
+            ).list();
             // List<CutiEntity> cutiList = CutiEntity.listAll();
             return Response.ok().entity(ResponseHandler.ok("Get Cuti Berhasil", cutiList)).build();
         } catch (Exception e) {

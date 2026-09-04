@@ -55,7 +55,12 @@ public class CutiEntity extends PanacheEntityBase {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_employee_approval")
     @JsonBackReference
-    public UserEntity employee_approval;
+    public EmployeeEntity employee_approval;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_employee_manager")
+    @JsonBackReference
+    public EmployeeEntity employee_manager;
 
     @ManyToOne
     @JoinColumn(name = "id_employee_pengajuan")
@@ -65,6 +70,12 @@ public class CutiEntity extends PanacheEntityBase {
     public LocalDateTime created_at;
 
     public String created_by;
+
+    public LocalDateTime tanggal_approval;
+
+    public LocalDateTime tanggal_manager;
+
+    public String alasan_penolakan_manager;
 
     // public String id_approver;
 }
