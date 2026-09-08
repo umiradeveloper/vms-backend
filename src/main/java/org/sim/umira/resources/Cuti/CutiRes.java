@@ -61,9 +61,22 @@ public class CutiRes {
                 create.dokumen_upload.fileName().isBlank()) {
                 throw new BadRequestException("Dokumen Belum Di Upload");
         }
+
+        
         
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
-
+        List<CutiEntity> cutiE = CutiEntity.find("employee_pengajuan = ?1 AND tanggal_mulai <= ?2 AND tanggal_selesai >= ?3 AND status_cuti = ?4", emp, create.tanggal_mulai, create.tanggal_selesai, "APPROVED").list();
+        // List<CutiEntity> cutiR = CutiEntity.find("employee_pengajuan = ?1 AND tanggal_selesai BETWEEN ?2 AND ?3 AND status_cuti = ?4", emp, create.tanggal_mulai, create.tanggal_selesai, "APPROVED").list();
+        List<CutiEntity> cutiP = CutiEntity.find("employee_pengajuan = ?1 AND status_cuti = ?2", emp, "PENDING").list();
+        if(cutiE.size() > 0){
+            throw new BadRequestException("Tanggal sudah di gunakan");
+        }
+        // if(cutiR.size() > 0){
+        //     throw new BadRequestException("Tanggal sudah di gunakan");
+        // }
+        if(cutiP.size() > 0){
+            throw new BadRequestException("Sedang Proses Pengajuan Cuti");
+        }
         EmployeeEntity empApproval = EmployeeEntity.findById(create.id_employee_approval);
 
         EmployeeEntity empManager = EmployeeEntity.findById(create.id_employee_manager);
@@ -287,7 +300,9 @@ public class CutiRes {
     public Response approveCuti(
             @QueryParam("id_cuti") String id_cuti,
             @QueryParam("status_cuti") String status_cuti,
-            @QueryParam("alasan_penolakan") String alasan_penolakan) {
+            @QueryParam("alasan_penolakan") String alasan_penolakan, @Context SecurityContext ctx) {
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
         try {
             CutiEntity cuti = CutiEntity.findById(id_cuti);
             if (cuti == null) {
@@ -309,9 +324,19 @@ public class CutiRes {
             }
 
             cuti.status_cuti = status_cuti;
-            if (alasan_penolakan != null && !alasan_penolakan.isBlank()) {
-                cuti.alasan_penolakan = alasan_penolakan;
+            if(cuti.employee_approval.equals(emp)){
+                cuti.tanggal_approval = LocalDateTime.now();
+                if (alasan_penolakan != null && !alasan_penolakan.isBlank()) {
+                    cuti.alasan_penolakan = alasan_penolakan;
+                }
             }
+             if(cuti.employee_manager.equals(emp)){
+                cuti.tanggal_manager = LocalDateTime.now();
+                if (alasan_penolakan != null && !alasan_penolakan.isBlank()) {
+                    cuti.alasan_penolakan_manager = alasan_penolakan;
+                }
+            }
+           
 
             return Response.ok().entity(ResponseHandler.ok("Status cuti berhasil diupdate", null)).build();
         } catch (Exception e) {

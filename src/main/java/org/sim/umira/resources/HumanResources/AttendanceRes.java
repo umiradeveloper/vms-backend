@@ -8,18 +8,23 @@ import java.time.Month;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import javax.xml.namespace.QName;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.configs.GoogleCalendarConfig;
 import org.sim.umira.dtos.HumanResources.AttendanceDto;
+import org.sim.umira.dtos.HumanResources.AttendanceEmployeeReportDto;
 import org.sim.umira.dtos.HumanResources.ClockInOutDto;
 import org.sim.umira.dtos.HumanResources.PengajuanAttendanceDto;
 import org.sim.umira.dtos.HumanResources.ResponseAttendanceDto;
 import org.sim.umira.entities.UserEntity;
-
+import org.sim.umira.entities.Cuti.CutiEntity;
 import org.sim.umira.entities.HumanResources.AttendanceEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import org.sim.umira.entities.HumanResources.PengajuanApprovalAttendanceEntity;
@@ -69,7 +74,7 @@ public class AttendanceRes {
             // tanggal = ?2", employee, attendance.tanggal).firstResult();
             Duration duration = Duration.between(attendance.jam_masuk, attendance.jam_keluar);
             Long durationWork = duration.toHours();
-            
+
             if (durationWork < 8) {
                 throw new BadRequestException("Jam kerja kurang");
             }
@@ -138,13 +143,14 @@ public class AttendanceRes {
             }
             Duration duration = Duration.between(LocalTime.parse(checkAttendance.jam_masuk), attendance.jam_keluar);
             Long durationWork = duration.toHours();
-            if(employee.klasifikasi_works.jam_masuk == null && employee.klasifikasi_works.jam_keluar == null){
-                // Duration durationParam = Duration.between(LocalTime.parse(jam_masuk), LocalTime.parse(jam_keluar));
+            if (employee.klasifikasi_works.jam_masuk == null && employee.klasifikasi_works.jam_keluar == null) {
+                // Duration durationParam = Duration.between(LocalTime.parse(jam_masuk),
+                // LocalTime.parse(jam_keluar));
                 // Long durationWorkParam = durationParam.toHours();
                 if (durationWork < 8) {
                     throw new BadRequestException("Jam kerja kurang");
                 }
-            }else{
+            } else {
                 String jam_masuk = employee.klasifikasi_works.jam_masuk;
                 String jam_keluar = employee.klasifikasi_works.jam_keluar;
 
@@ -154,7 +160,7 @@ public class AttendanceRes {
                     throw new BadRequestException("Jam kerja kurang");
                 }
             }
-           
+
             checkAttendance.jam_keluar = String.valueOf(attendance.jam_keluar);
             return Response.ok().entity(ResponseHandler.ok("Clock Out berhasil", null)).build();
         } else {
@@ -216,9 +222,9 @@ public class AttendanceRes {
         }
     }
 
-
     @ConfigProperty(name = "nip-admin-hr")
     String nip_admin_hr;
+
     @GET
     @Path("/get-approval-attendance")
     public Response getApprovalAttendance(@Context SecurityContext ctx) {
@@ -231,37 +237,36 @@ public class AttendanceRes {
             // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanAttendanceEntity> listPengajuan;
 
-            if(ue.role.kode_role == "99"){
-                 listPengajuan = PengajuanAttendanceEntity.find("""
-                        SELECT DISTINCT p
-                        FROM PengajuanAttendanceEntity p
-                        WHERE EXISTS (
-                            SELECT 1
-                            FROM PengajuanApprovalAttendanceEntity ps
-                            WHERE ps.pengajuanAbsensi = p
-                        )
-                    """).list();
-            }else{
+            if (ue.role.kode_role == "99") {
                 listPengajuan = PengajuanAttendanceEntity.find("""
-                        SELECT DISTINCT p
-                        FROM PengajuanAttendanceEntity p
-                        WHERE EXISTS (
-                            SELECT 1
-                            FROM PengajuanApprovalAttendanceEntity ps
-                            WHERE ps.pengajuanAbsensi = p
-                            AND ps.employee = ?1
-                            AND ps.tanggal_approval IS NULL
-                            AND ps.urutan = (
-                                SELECT MIN(ps2.urutan)
-                                FROM PengajuanApprovalAttendanceEntity ps2
-                                WHERE ps2.pengajuanAbsensi = p
-                                    AND ps2.tanggal_approval IS NULL
+                            SELECT DISTINCT p
+                            FROM PengajuanAttendanceEntity p
+                            WHERE EXISTS (
+                                SELECT 1
+                                FROM PengajuanApprovalAttendanceEntity ps
+                                WHERE ps.pengajuanAbsensi = p
                             )
-                        )
-                    """, employeeApproval).list();
+                        """).list();
+            } else {
+                listPengajuan = PengajuanAttendanceEntity.find("""
+                            SELECT DISTINCT p
+                            FROM PengajuanAttendanceEntity p
+                            WHERE EXISTS (
+                                SELECT 1
+                                FROM PengajuanApprovalAttendanceEntity ps
+                                WHERE ps.pengajuanAbsensi = p
+                                AND ps.employee = ?1
+                                AND ps.tanggal_approval IS NULL
+                                AND ps.urutan = (
+                                    SELECT MIN(ps2.urutan)
+                                    FROM PengajuanApprovalAttendanceEntity ps2
+                                    WHERE ps2.pengajuanAbsensi = p
+                                        AND ps2.tanggal_approval IS NULL
+                                )
+                            )
+                        """, employeeApproval).list();
             }
 
-            
             // List<PengajuanBiayaKonstruksiEntity> listPengajuan =
             // PengajuanBiayaKonstruksiEntity.listAll();
 
@@ -272,6 +277,7 @@ public class AttendanceRes {
             // TODO: handle exception
         }
     }
+
     @Inject
     FcmService fcmService;
 
@@ -292,9 +298,10 @@ public class AttendanceRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             PengajuanAttendanceEntity pengajuanAttendance = PengajuanAttendanceEntity.findById(id_pengajuan_absensi);
-            if(ue.role.kode_role == "99"){
-                List<PengajuanApprovalAttendanceEntity> list = PengajuanApprovalAttendanceEntity.find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC").list();
-                for(PengajuanApprovalAttendanceEntity appr: list){
+            if (ue.role.kode_role == "99") {
+                List<PengajuanApprovalAttendanceEntity> list = PengajuanApprovalAttendanceEntity
+                        .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC").list();
+                for (PengajuanApprovalAttendanceEntity appr : list) {
                     // appr.employee = emp;
                     appr.status_approval = status_approval;
                     appr.tanggal_approval = LocalDateTime.now();
@@ -302,64 +309,65 @@ public class AttendanceRes {
                 }
                 PengajuanApprovalAttendanceEntity.flush();
                 return Response.ok().entity(ResponseHandler.ok("Approver HR Berhasil", null)).build();
-            }else{
-                 PengajuanApprovalAttendanceEntity getPersetujuanAttendance = PengajuanApprovalAttendanceEntity
-                    .find("pengajuanAbsensi = ?1 AND employee = ?2 AND tanggal_approval IS NULL ORDER BY urutan ASC",
-                            pengajuanAttendance, emp)
-                    .firstResult();
-                    if (getPersetujuanAttendance != null) {
-                        getPersetujuanAttendance.status_approval = status_approval;
-                        getPersetujuanAttendance.tanggal_approval = LocalDateTime.now();
-                        getPersetujuanAttendance.keterangan = (catatan != "" || catatan != null) ? catatan : "";
+            } else {
+                PengajuanApprovalAttendanceEntity getPersetujuanAttendance = PengajuanApprovalAttendanceEntity
+                        .find("pengajuanAbsensi = ?1 AND employee = ?2 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                                pengajuanAttendance, emp)
+                        .firstResult();
+                if (getPersetujuanAttendance != null) {
+                    getPersetujuanAttendance.status_approval = status_approval;
+                    getPersetujuanAttendance.tanggal_approval = LocalDateTime.now();
+                    getPersetujuanAttendance.keterangan = (catatan != "" || catatan != null) ? catatan : "";
 
-                        if (status_approval.equals("Approve")) {
-                            // System.out.println(status_approver);
-                            List<PengajuanApprovalAttendanceEntity> pengajuanList = PengajuanApprovalAttendanceEntity
-                                    .find("tanggal_approval IS NULL AND pengajuanAbsensi = ?1", pengajuanAttendance).list();
-                            // if(emp.nip.equals(nip_admin_hr)){
-                            
-                            if (pengajuanList.size() == 0) {
-                                AttendanceEntity checkAttendanceEmployee = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuanAttendance.tanggal, pengajuanAttendance.employee).firstResult();
-                                if(checkAttendanceEmployee != null){
-                                    // if(emp.nip.equals(nip_admin_hr)){
-                                    //     checkAttendanceEmployee.employee = emp;
-                                    // }
-                                    checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
-                                    checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
-                                    checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
-                                    checkAttendanceEmployee.status = pengajuanAttendance.status_absensi;
-                                }else{
-                                    AttendanceEntity attendance = new AttendanceEntity();
-                                    attendance.employee = pengajuanAttendance.employee;
-                                    attendance.tanggal = pengajuanAttendance.tanggal;
-                                    attendance.jam_keluar = pengajuanAttendance.jam_keluar;
-                                    attendance.jam_masuk = pengajuanAttendance.jam_masuk;
-                                    attendance.keterangan = pengajuanAttendance.keterangan;
-                                    attendance.status = pengajuanAttendance.status_absensi;
-                                    attendance.persist();
-                                }
-                                
+                    if (status_approval.equals("Approve")) {
+                        // System.out.println(status_approver);
+                        List<PengajuanApprovalAttendanceEntity> pengajuanList = PengajuanApprovalAttendanceEntity
+                                .find("tanggal_approval IS NULL AND pengajuanAbsensi = ?1", pengajuanAttendance).list();
+                        // if(emp.nip.equals(nip_admin_hr)){
 
-                            }
-                        } else if (status_approval.equals("Reject")) {
-                            List<PengajuanApprovalAttendanceEntity> getPersetujuanReject = PengajuanApprovalAttendanceEntity
-                                    .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
-                                            pengajuanAttendance)
-                                    .list();
-                            for (PengajuanApprovalAttendanceEntity pengajuanReject : getPersetujuanReject) {
-                                pengajuanReject.tanggal_approval = LocalDateTime.now();
-                                pengajuanReject.status_approval = "Reject";
-                                pengajuanReject.keterangan = "Rejected By " + ue.username;
+                        if (pengajuanList.size() == 0) {
+                            AttendanceEntity checkAttendanceEmployee = AttendanceEntity
+                                    .find("tanggal = ?1 AND employee = ?2", pengajuanAttendance.tanggal,
+                                            pengajuanAttendance.employee)
+                                    .firstResult();
+                            if (checkAttendanceEmployee != null) {
+                                // if(emp.nip.equals(nip_admin_hr)){
+                                // checkAttendanceEmployee.employee = emp;
+                                // }
+                                checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
+                                checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
+                                checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
+                                checkAttendanceEmployee.status = pengajuanAttendance.status_absensi;
+                            } else {
+                                AttendanceEntity attendance = new AttendanceEntity();
+                                attendance.employee = pengajuanAttendance.employee;
+                                attendance.tanggal = pengajuanAttendance.tanggal;
+                                attendance.jam_keluar = pengajuanAttendance.jam_keluar;
+                                attendance.jam_masuk = pengajuanAttendance.jam_masuk;
+                                attendance.keterangan = pengajuanAttendance.keterangan;
+                                attendance.status = pengajuanAttendance.status_absensi;
+                                attendance.persist();
                             }
 
                         }
+                    } else if (status_approval.equals("Reject")) {
+                        List<PengajuanApprovalAttendanceEntity> getPersetujuanReject = PengajuanApprovalAttendanceEntity
+                                .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                                        pengajuanAttendance)
+                                .list();
+                        for (PengajuanApprovalAttendanceEntity pengajuanReject : getPersetujuanReject) {
+                            pengajuanReject.tanggal_approval = LocalDateTime.now();
+                            pengajuanReject.status_approval = "Reject";
+                            pengajuanReject.keterangan = "Rejected By " + ue.username;
+                        }
 
-                        return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
-                    } else {
-                        return Response.ok().entity(ResponseHandler.error("Data Persetujuan tidak ada")).build();
                     }
+
+                    return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
+                } else {
+                    return Response.ok().entity(ResponseHandler.error("Data Persetujuan tidak ada")).build();
+                }
             }
-           
 
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
@@ -376,13 +384,11 @@ public class AttendanceRes {
             System.out.println(employeeApproval.nama);
             List<PengajuanAttendanceEntity> listPengajuan;
 
-            
-           
             if (ue.role.kode_role == "99") {
                 listPengajuan = PengajuanAttendanceEntity
                         .find("SELECT DISTINCT p FROM PengajuanAttendanceEntity p JOIN p.approval r JOIN p.employee pr")
                         .list();
-         
+
             } else {
                 listPengajuan = PengajuanAttendanceEntity.find("""
                             SELECT DISTINCT p
@@ -418,6 +424,26 @@ public class AttendanceRes {
             // TODO: handle exception
         }
     }
+    @GET
+    @Path("/get-attendance-monitor")
+    public Response getAttendanceMonitor(@QueryParam("tanggal") LocalDate tgl) {
+        System.out.println(tgl);
+        try {
+            // List<AttendanceEntity> attendance = AttendanceEntity.listAll();
+            List<EmployeeEntity> emp = EmployeeEntity.findAll().list();
+            List<responseAttendanceMonitor> resAttend = new ArrayList<>();
+            for(EmployeeEntity employee: emp){
+                AttendanceEntity attendance = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", tgl, employee).firstResult();
+                resAttend.add(new responseAttendanceMonitor(employee, (attendance != null)?attendance.jam_masuk:"-", (attendance != null)?attendance.jam_keluar:"-", (attendance != null)?attendance.status:"Alpha", (attendance != null)?attendance.keterangan:"", (attendance != null)?attendance.id_absensi:"", tgl.toString()));
+            }
+            return Response.ok().entity(ResponseHandler.ok("Inquiry attendance Done", resAttend)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    public record responseAttendanceMonitor(EmployeeEntity emp, String jam_masuk, String jam_keluar, String status, String Keterangan, String id_absensi, String tanggal){ }
 
     @ConfigProperty(name = "date-close-book")
     String tanggal_pembukuan;
@@ -430,20 +456,19 @@ public class AttendanceRes {
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
         try {
-           
+
             int monthInt = Integer.parseInt(month);
             Month monthM = Month.of(monthInt);
             YearMonth ym = YearMonth.of(Integer.parseInt(year), monthM);
             Boolean saturdayOff = true;
             Integer is_office = emp.klasifikasi_works.is_office;
-            if(is_office == 1){
+            if (is_office == 1) {
                 saturdayOff = false;
             }
 
             // LocalDate startDate = ym.atDay(1);
             LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
             LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
-            
 
             Calendar service = GoogleCalendarConfig.getService();
 
@@ -452,13 +477,17 @@ public class AttendanceRes {
                     startDate.toString(), endDate.toString());
 
             // 2. generate 1 tahun
-            List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(Integer.parseInt(year), holidays,
+            List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(Integer.parseInt(year),
+                    holidays,
                     startDate.toString(), endDate.toString(), saturdayOff);
             List<ResponseAttendanceDto> result = new ArrayList<>();
             for (YearCalendarService.DayInfo g : calendar) {
                 AttendanceEntity ae = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", g.date, emp)
                         .firstResult();
-                result.add(new ResponseAttendanceDto(g.date, g.type, g.status, ae));
+                boolean isCuti = CutiEntity.count(
+                        "tanggal_mulai <= ?1 AND tanggal_selesai >= ?1 AND employee_pengajuan = ?2",
+                        g.date, emp) > 0;
+                result.add(new ResponseAttendanceDto(g.date, g.type, g.status, ae, isCuti));
             }
 
             return Response.ok().entity(ResponseHandler.ok("Inquiry attendance Done", result)).build();
@@ -467,6 +496,190 @@ public class AttendanceRes {
             // TODO: handle exception
         }
     }
+
+   
+
+    @GET
+    @Path("/get-attendance-employee")
+    @Transactional
+    public Response getAttendanceEmployee(
+            @QueryParam("month") String month,
+            @QueryParam("year") String year
+    ) {
+        try {
+
+            String holidayCalendarId =
+                    "id.indonesian#holiday@group.v.calendar.google.com";
+
+            int monthInt = Integer.parseInt(month);
+            int yearInt = Integer.parseInt(year);
+            int tanggalPembukuan = Integer.parseInt(tanggal_pembukuan);
+
+            YearMonth ym = YearMonth.of(yearInt, monthInt);
+
+            List<EmployeeEntity> allEmployee =
+                    EmployeeEntity.findAll().list();
+
+            List<AttendanceEmployeeReportDto> response =
+                    new ArrayList<>();
+
+            Calendar service = GoogleCalendarConfig.getService();
+
+            /*
+            * Tentukan periode pembukuan
+            */
+            LocalDate startDate =
+                    ym.minusMonths(1).atDay(tanggalPembukuan + 1);
+
+            LocalDate endDate =
+                    ym.atDay(
+                            Math.min(
+                                    tanggalPembukuan,
+                                    ym.lengthOfMonth()
+                            )
+                    );
+
+            /*
+            * Ambil hari libur sekali saja.
+            * Jangan di dalam loop employee.
+            */
+            Set<LocalDate> holidays =
+                    YearCalendarService.getHolidaysByParams(
+                            service,
+                            holidayCalendarId,
+                            startDate.toString(),
+                            endDate.toString()
+                    );
+
+            for (EmployeeEntity emp : allEmployee) {
+
+                boolean saturdayOff = true;
+
+                Integer isOffice =
+                        emp.klasifikasi_works.is_office;
+
+                if (isOffice != null && isOffice == 1) {
+                    saturdayOff = false;
+                }
+
+                /*
+                * Generate calendar untuk periode employee
+                */
+                List<YearCalendarService.DayInfo> calendar =
+                        YearCalendarService.generatedDay(
+                                yearInt,
+                                holidays,
+                                startDate.toString(),
+                                endDate.toString(),
+                                saturdayOff
+                        );
+
+                /*
+                * Tanggal -> attendance
+                */
+                Map<String, Object> attendance =
+                        new LinkedHashMap<>();
+
+                for (YearCalendarService.DayInfo g : calendar) {
+                    // String status;
+
+
+                    if("Work".equals(g.status)){
+                        AttendanceEntity ae =
+                                AttendanceEntity.find(
+                                        "tanggal = ?1 AND employee = ?2",
+                                        g.date,
+                                        emp
+                                ).firstResult();
+
+                        boolean isCuti =
+                                CutiEntity.count(
+                                        "tanggal_mulai <= ?1 " +
+                                        "AND tanggal_selesai >= ?1 " +
+                                        "AND employee_pengajuan = ?2",
+                                        g.date,
+                                        emp
+                                ) > 0;
+
+                        /*
+                        * Tentukan status
+                        */
+                        
+
+                        if (isCuti) {
+
+                            // status = "C";
+                             attendance.put(
+                                    g.date.toString(),
+                                    "Cuti"
+                            );
+
+                        } else if (ae != null) {
+                            if("Hadir".equals(ae.status)){
+                                    attendance.put(
+                                        g.date.toString(),
+                                        "H \n "+ae.jam_masuk+"-"+ae.jam_keluar
+                                );
+                            }else if("Sakit".equals(ae.status)){
+                                attendance.put(
+                                        g.date.toString(),
+                                        "S"
+                                );
+                            }else if("Izin".equals(ae.status)){
+                                attendance.put(
+                                        g.date.toString(),
+                                        "I"
+                                );
+                            }
+                            
+                            // Sesuaikan dengan field entity AttendanceEntity
+                            // status = "P";
+
+                        }else{
+                             attendance.put(
+                                    g.date.toString(),
+                                    "A"
+                            );
+                        }
+                        
+                    }
+                    
+                   
+
+                    // attendance.put(
+                    //         g.date.toString(),
+                    //         status
+                    // );
+                }
+
+                response.add(
+                        new AttendanceEmployeeReportDto(
+                                emp.nip,
+                                emp.nama,
+                                attendance
+                        )
+                );
+            }
+
+            return Response
+                    .ok()
+                    .entity(
+                            ResponseHandler.ok(
+                                    "Inquiry attendance Done",
+                                    response
+                            )
+                    )
+                    .build();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            throw new InternalServerErrorException(
+                    e.getMessage()
+            );
+        }
+}
 
     @DELETE
     @Path("/delete-attendance")
