@@ -7,18 +7,23 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.configs.GoogleCalendarConfig;
+import org.sim.umira.dtos.HumanResources.AttendanceEmployeeReportDto;
 import org.sim.umira.dtos.HumanResources.OvertimeDto;
 import org.sim.umira.dtos.HumanResources.PengajuanOvertimeDto;
 import org.sim.umira.dtos.HumanResources.PengajuanOvertimeMultipartDto;
 import org.sim.umira.entities.UserEntity;
+import org.sim.umira.entities.Cuti.CutiEntity;
 import org.sim.umira.entities.HumanResources.AttendanceEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import org.sim.umira.entities.HumanResources.OvertimeEntity;
@@ -28,6 +33,7 @@ import org.sim.umira.entities.HumanResources.PengajuanAttendanceEntity;
 import org.sim.umira.entities.HumanResources.PengajuanOvertimeEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.resources.HumanResources.AttendanceRes.responseAttendanceMonitor;
 import org.sim.umira.services.YearCalendarService;
 
 import com.google.api.services.calendar.Calendar;
@@ -229,8 +235,13 @@ public class OvertimeRes {
 
             }
         }
+       
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
-            EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+        EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
+         OvertimeEntity ovt = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, emp).firstResult();
+        if(ovt != null){
+            throw new BadRequestException("Data Lembur Sudah Ada");
+        }
 
         AttendanceEntity aeEntityCheck = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, emp).firstResult();
         if(aeEntityCheck == null){
@@ -247,6 +258,7 @@ public class OvertimeRes {
         if (durationskip <= 120) {
             throw new BadRequestException("Pengajuan lembur harus 2 jam setelah clock out");
         }
+
 
         Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
                 LocalTime.parse(pengajuan.jam_selesai));
@@ -492,6 +504,133 @@ public class OvertimeRes {
             throw new InternalServerErrorException(e.getMessage());
         }
     }
+    @GET
+    @Path("/get-overtime-monitor")
+    public Response getOvertimeMonitor(@QueryParam("tanggal") LocalDate tgl) {
+        // System.out.println(tgl);
+        try {
+            // List<AttendanceEntity> attendance = AttendanceEntity.listAll();
+            List<EmployeeEntity> emp = EmployeeEntity.findAll().list();
+            List<responseOvertime> resOvt = new ArrayList<>();
+            for(EmployeeEntity employee: emp){
+                OvertimeEntity ovt = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", tgl, employee).firstResult();
+                resOvt.add(new responseOvertime(employee, (ovt != null)?ovt.jam_mulai:"-", (ovt != null)?ovt.jam_selesai:"-", (ovt != null)?ovt.durasi:"0", (ovt != null)?ovt.alasan:"-", (ovt != null)?ovt.id_lembur:"", tgl.toString()));
+            }
+            return Response.ok().entity(ResponseHandler.ok("Inquiry attendance Done", resOvt)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    public record responseOvertime(EmployeeEntity emp, String jam_masuk, String jam_selesai, String durasi, String keterangan, String id_lembur, String tanggal){}
+
+
+
+    @GET
+    @Path("/get-overtime-report")
+    @Transactional
+    public Response getOvertimeReport(
+            @QueryParam("month") String month,
+            @QueryParam("year") String year) {
+        try {
+
+            String holidayCalendarId = "id.indonesian#holiday@group.v.calendar.google.com";
+
+            int monthInt = Integer.parseInt(month);
+            int yearInt = Integer.parseInt(year);
+            int tanggalPembukuan = Integer.parseInt(tanggal_pembukuan);
+
+            YearMonth ym = YearMonth.of(yearInt, monthInt);
+
+            List<EmployeeEntity> allEmployee = EmployeeEntity.findAll().list();
+
+            List<responseOvertimeReport> response = new ArrayList<>();
+
+            Calendar service = GoogleCalendarConfig.getService();
+
+            /*
+             * Tentukan periode pembukuan
+             */
+            LocalDate startDate = ym.minusMonths(1).atDay(tanggalPembukuan + 1);
+
+            LocalDate endDate = ym.atDay(
+                    Math.min(
+                            tanggalPembukuan,
+                            ym.lengthOfMonth()));
+
+            /*
+             * Ambil hari libur sekali saja.
+             * Jangan di dalam loop employee.
+             */
+            Set<LocalDate> holidays = YearCalendarService.getHolidaysByParams(
+                    service,
+                    holidayCalendarId,
+                    startDate.toString(),
+                    endDate.toString());
+
+            for (EmployeeEntity emp : allEmployee) {
+
+                boolean saturdayOff = true;
+
+                Integer isOffice = emp.klasifikasi_works.is_office;
+
+                if (isOffice != null && isOffice == 1) {
+                    saturdayOff = false;
+                }
+
+                /*
+                 * Generate calendar untuk periode employee
+                 */
+                List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(
+                        yearInt,
+                        holidays,
+                        startDate.toString(),
+                        endDate.toString(),
+                        saturdayOff);
+
+                /*
+                 * Tanggal -> attendance
+                 */
+                Map<String, Object> ovt = new LinkedHashMap<>();
+
+                for (YearCalendarService.DayInfo g : calendar) {
+                    // String status;
+                    OvertimeEntity overTime = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", g.date, emp).firstResult();
+                    
+
+                    ovt.put(
+                        g.date.toString(),
+                        (overTime != null)?overTime:null
+                    );
+                }
+
+                response.add(
+                        new responseOvertimeReport(
+                                emp.nip,
+                                emp.nama,
+                                ovt));
+            }
+
+            return Response
+                    .ok()
+                    .entity(
+                            ResponseHandler.ok(
+                                    "Inquiry Overtime Done",
+                                    response))
+                    .build();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            throw new InternalServerErrorException(
+                    e.getMessage());
+        }
+    }
+
+    public record responseOvertimeReport(String employeeId, String employeeName, Map<String, Object> overtime){}
+    
 
     @DELETE
     @Path("/delete-overtime")

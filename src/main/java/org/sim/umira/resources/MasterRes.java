@@ -396,6 +396,10 @@ public class MasterRes {
             List<Map<String, Object>> data = new ArrayList<>();
 
             Map<String, Object> item1 = new HashMap<>();
+            Map<String, Object> item0 = new HashMap<>();
+            item0.put("kode_lembur", "-");
+            item0.put("biaya_lembur", "Tidak Ada");
+
             item1.put("kode_lembur", "0");
             item1.put("biaya_lembur", "173/gaji-pokok");
 
@@ -407,6 +411,7 @@ public class MasterRes {
             item3.put("kode_lembur", "2");
             item3.put("biaya_lembur", "17.000");
 
+            data.add(item0);
             data.add(item1);
             data.add(item2);
             data.add(item3);

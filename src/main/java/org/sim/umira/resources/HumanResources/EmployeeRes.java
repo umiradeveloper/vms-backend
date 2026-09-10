@@ -165,6 +165,22 @@ public class EmployeeRes {
     }
 
 
+    @GET
+    @Path("/change-status-employee")
+    @Transactional
+    public Response changeStatueEmployee(@QueryParam("id") String id, @QueryParam("status") Integer status){
+        try {
+
+            // Boolean delete = EmployeeEntity.deleteById(id);
+            Integer emp = EmployeeEntity.update("status_employee = ?1 WHERE id_employee = ?2", status, id);
+            return Response.ok().entity(ResponseHandler.ok("Change Status Employee Done", emp)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+
     @DELETE
     @Path("/delete-employee")
     @Transactional

@@ -27,11 +27,19 @@ public class PayrollMasterEntity extends PanacheEntityBase {
 
     public Integer tunjangan_lembur;
 
+    public Integer tunjangan_operasional;
+
     public Integer tunjangan_lainnya;
 
     public Integer bpjs_kesehatan;
 
     public Integer bpjs_ketenagakerjaan;
+
+    public String tarif_bpjs_kesehatan;
+
+    public String tarif_bpjs_ketenagakerjaan;
+
+    public String kode_lembur;
 
     @OneToOne
     @JoinColumn(name = "id_employee")

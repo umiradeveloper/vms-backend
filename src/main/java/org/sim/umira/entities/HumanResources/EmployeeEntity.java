@@ -89,6 +89,8 @@ public class EmployeeEntity extends PanacheEntityBase {
 
     public String pendidikan_terakhir;
 
+    public Integer status_employee;
+
     @OneToOne
     @JoinColumn(name = "id_user")
     public UserEntity user;

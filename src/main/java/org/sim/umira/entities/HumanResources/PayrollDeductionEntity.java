@@ -20,15 +20,9 @@ public class PayrollDeductionEntity extends PanacheEntityBase{
 
     public Integer pinjaman;
 
-    public Integer thr_paid;
+    public Integer bpjskes;
 
-    public Integer jaminan_pensiun;
-
-    public Integer bpjs_kesehatan;
-
-    public Integer bpjs_kesehatan_family;
-
-    public Integer jht_employee;
+    public Integer bpjstk;
 
     public Integer pph21;
 

@@ -184,11 +184,18 @@ public class AttendanceRes {
 
             }
         }
+         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        EmployeeEntity employeeE = EmployeeEntity.find("user = ?1", ue).firstResult();
+
+        AttendanceEntity att = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal,employeeE).firstResult();
+        if(att != null){
+            throw new BadRequestException("Sudah Melakukan Absen");
+        }
+    
 
         try {
             // List<AttendanceEntity> attendance = AttendanceEntity.listAll();
-            UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
-            EmployeeEntity employeeE = EmployeeEntity.find("user = ?1", ue).firstResult();
+           
             PengajuanAttendanceEntity pengajuanAttendance = new PengajuanAttendanceEntity();
             pengajuanAttendance.employee = employeeE;
             pengajuanAttendance.jam_keluar = pengajuan.jam_keluar;
@@ -424,17 +431,23 @@ public class AttendanceRes {
             // TODO: handle exception
         }
     }
+
     @GET
     @Path("/get-attendance-monitor")
     public Response getAttendanceMonitor(@QueryParam("tanggal") LocalDate tgl) {
-        System.out.println(tgl);
+        // System.out.println(tgl);
         try {
             // List<AttendanceEntity> attendance = AttendanceEntity.listAll();
             List<EmployeeEntity> emp = EmployeeEntity.findAll().list();
             List<responseAttendanceMonitor> resAttend = new ArrayList<>();
-            for(EmployeeEntity employee: emp){
-                AttendanceEntity attendance = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", tgl, employee).firstResult();
-                resAttend.add(new responseAttendanceMonitor(employee, (attendance != null)?attendance.jam_masuk:"-", (attendance != null)?attendance.jam_keluar:"-", (attendance != null)?attendance.status:"Alpha", (attendance != null)?attendance.keterangan:"", (attendance != null)?attendance.id_absensi:"", tgl.toString()));
+            for (EmployeeEntity employee : emp) {
+                AttendanceEntity attendance = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", tgl, employee)
+                        .firstResult();
+                resAttend.add(new responseAttendanceMonitor(employee, (attendance != null) ? attendance.jam_masuk : "-",
+                        (attendance != null) ? attendance.jam_keluar : "-",
+                        (attendance != null) ? attendance.status : "Alpha",
+                        (attendance != null) ? attendance.keterangan : "",
+                        (attendance != null) ? attendance.id_absensi : "", tgl.toString()));
             }
             return Response.ok().entity(ResponseHandler.ok("Inquiry attendance Done", resAttend)).build();
         } catch (Exception e) {
@@ -443,7 +456,9 @@ public class AttendanceRes {
         }
     }
 
-    public record responseAttendanceMonitor(EmployeeEntity emp, String jam_masuk, String jam_keluar, String status, String Keterangan, String id_absensi, String tanggal){ }
+    public record responseAttendanceMonitor(EmployeeEntity emp, String jam_masuk, String jam_keluar, String status,
+            String Keterangan, String id_absensi, String tanggal) {
+    }
 
     @ConfigProperty(name = "date-close-book")
     String tanggal_pembukuan;
@@ -497,19 +512,15 @@ public class AttendanceRes {
         }
     }
 
-   
-
     @GET
     @Path("/get-attendance-employee")
     @Transactional
     public Response getAttendanceEmployee(
             @QueryParam("month") String month,
-            @QueryParam("year") String year
-    ) {
+            @QueryParam("year") String year) {
         try {
 
-            String holidayCalendarId =
-                    "id.indonesian#holiday@group.v.calendar.google.com";
+            String holidayCalendarId = "id.indonesian#holiday@group.v.calendar.google.com";
 
             int monthInt = Integer.parseInt(month);
             int yearInt = Integer.parseInt(year);
@@ -517,138 +528,113 @@ public class AttendanceRes {
 
             YearMonth ym = YearMonth.of(yearInt, monthInt);
 
-            List<EmployeeEntity> allEmployee =
-                    EmployeeEntity.findAll().list();
+            List<EmployeeEntity> allEmployee = EmployeeEntity.findAll().list();
 
-            List<AttendanceEmployeeReportDto> response =
-                    new ArrayList<>();
+            List<AttendanceEmployeeReportDto> response = new ArrayList<>();
 
             Calendar service = GoogleCalendarConfig.getService();
 
             /*
-            * Tentukan periode pembukuan
-            */
-            LocalDate startDate =
-                    ym.minusMonths(1).atDay(tanggalPembukuan + 1);
+             * Tentukan periode pembukuan
+             */
+            LocalDate startDate = ym.minusMonths(1).atDay(tanggalPembukuan + 1);
 
-            LocalDate endDate =
-                    ym.atDay(
-                            Math.min(
-                                    tanggalPembukuan,
-                                    ym.lengthOfMonth()
-                            )
-                    );
+            LocalDate endDate = ym.atDay(
+                    Math.min(
+                            tanggalPembukuan,
+                            ym.lengthOfMonth()));
 
             /*
-            * Ambil hari libur sekali saja.
-            * Jangan di dalam loop employee.
-            */
-            Set<LocalDate> holidays =
-                    YearCalendarService.getHolidaysByParams(
-                            service,
-                            holidayCalendarId,
-                            startDate.toString(),
-                            endDate.toString()
-                    );
+             * Ambil hari libur sekali saja.
+             * Jangan di dalam loop employee.
+             */
+            Set<LocalDate> holidays = YearCalendarService.getHolidaysByParams(
+                    service,
+                    holidayCalendarId,
+                    startDate.toString(),
+                    endDate.toString());
 
             for (EmployeeEntity emp : allEmployee) {
 
                 boolean saturdayOff = true;
 
-                Integer isOffice =
-                        emp.klasifikasi_works.is_office;
+                Integer isOffice = emp.klasifikasi_works.is_office;
 
                 if (isOffice != null && isOffice == 1) {
                     saturdayOff = false;
                 }
 
                 /*
-                * Generate calendar untuk periode employee
-                */
-                List<YearCalendarService.DayInfo> calendar =
-                        YearCalendarService.generatedDay(
-                                yearInt,
-                                holidays,
-                                startDate.toString(),
-                                endDate.toString(),
-                                saturdayOff
-                        );
+                 * Generate calendar untuk periode employee
+                 */
+                List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(
+                        yearInt,
+                        holidays,
+                        startDate.toString(),
+                        endDate.toString(),
+                        saturdayOff);
 
                 /*
-                * Tanggal -> attendance
-                */
-                Map<String, Object> attendance =
-                        new LinkedHashMap<>();
+                 * Tanggal -> attendance
+                 */
+                Map<String, Object> attendance = new LinkedHashMap<>();
 
                 for (YearCalendarService.DayInfo g : calendar) {
                     // String status;
 
+                    if ("Work".equals(g.status)) {
+                        AttendanceEntity ae = AttendanceEntity.find(
+                                "tanggal = ?1 AND employee = ?2",
+                                g.date,
+                                emp).firstResult();
 
-                    if("Work".equals(g.status)){
-                        AttendanceEntity ae =
-                                AttendanceEntity.find(
-                                        "tanggal = ?1 AND employee = ?2",
-                                        g.date,
-                                        emp
-                                ).firstResult();
-
-                        boolean isCuti =
-                                CutiEntity.count(
-                                        "tanggal_mulai <= ?1 " +
+                        boolean isCuti = CutiEntity.count(
+                                "tanggal_mulai <= ?1 " +
                                         "AND tanggal_selesai >= ?1 " +
                                         "AND employee_pengajuan = ?2",
-                                        g.date,
-                                        emp
-                                ) > 0;
+                                g.date,
+                                emp) > 0;
 
                         /*
-                        * Tentukan status
-                        */
-                        
+                         * Tentukan status
+                         */
 
                         if (isCuti) {
 
                             // status = "C";
-                             attendance.put(
+                            attendance.put(
                                     g.date.toString(),
-                                    "Cuti"
-                            );
+                                    "Cuti");
 
                         } else if (ae != null) {
-                            if("Hadir".equals(ae.status)){
-                                    attendance.put(
-                                        g.date.toString(),
-                                        "H \n "+ae.jam_masuk+"-"+ae.jam_keluar
-                                );
-                            }else if("Sakit".equals(ae.status)){
+                            if ("Hadir".equals(ae.status)) {
                                 attendance.put(
                                         g.date.toString(),
-                                        "S"
-                                );
-                            }else if("Izin".equals(ae.status)){
+                                        "H \n " + ae.jam_masuk + "-" + ae.jam_keluar);
+                            } else if ("Sakit".equals(ae.status)) {
                                 attendance.put(
                                         g.date.toString(),
-                                        "I"
-                                );
+                                        "S");
+                            } else if ("Izin".equals(ae.status)) {
+                                attendance.put(
+                                        g.date.toString(),
+                                        "I");
                             }
-                            
+
                             // Sesuaikan dengan field entity AttendanceEntity
                             // status = "P";
 
-                        }else{
-                             attendance.put(
+                        } else {
+                            attendance.put(
                                     g.date.toString(),
-                                    "A"
-                            );
+                                    "A");
                         }
-                        
+
                     }
-                    
-                   
 
                     // attendance.put(
-                    //         g.date.toString(),
-                    //         status
+                    // g.date.toString(),
+                    // status
                     // );
                 }
 
@@ -656,9 +642,7 @@ public class AttendanceRes {
                         new AttendanceEmployeeReportDto(
                                 emp.nip,
                                 emp.nama,
-                                attendance
-                        )
-                );
+                                attendance));
             }
 
             return Response
@@ -666,9 +650,7 @@ public class AttendanceRes {
                     .entity(
                             ResponseHandler.ok(
                                     "Inquiry attendance Done",
-                                    response
-                            )
-                    )
+                                    response))
                     .build();
 
         } catch (Exception e) {
@@ -676,10 +658,9 @@ public class AttendanceRes {
             e.printStackTrace();
 
             throw new InternalServerErrorException(
-                    e.getMessage()
-            );
+                    e.getMessage());
         }
-}
+    }
 
     @DELETE
     @Path("/delete-attendance")

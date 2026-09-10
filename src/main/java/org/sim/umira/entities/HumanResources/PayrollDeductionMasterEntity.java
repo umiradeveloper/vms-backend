@@ -17,19 +17,16 @@ public class PayrollDeductionMasterEntity extends PanacheEntityBase{
     @GeneratedValue(strategy = GenerationType.UUID)
     public String id_payroll_master_deduction;
 
-    public Integer kasbon;
 
-    public Integer pinjaman;
+    // public Integer bpjstk;
 
-    public Integer thr_paid;
+    // public Integer bpjskes;
 
-    public Integer jaminan_pensiun;
 
-    public Integer bpjs_kesehatan;
+    public String tarif_bpjstk;
 
-    public Integer bpjs_kesehatan_family;
+    public String tarif_bpjskes;
 
-    public Integer jht_employee;
 
     public Integer pph21;
 

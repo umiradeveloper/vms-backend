@@ -7,11 +7,11 @@ public class PayrollMasterDto {
 
     public Integer tunjangan_transport;
 
-     public Integer tunjangan_jabatan;
+    public Integer tunjangan_jabatan;
 
     public Integer tunjangan_makan;
 
-    public Integer tunjangan_lembur;
+    public String tunjangan_lembur;
 
     public Integer tunjangan_lainnya;
 
@@ -19,21 +19,20 @@ public class PayrollMasterDto {
 
     public Integer bpjs_ketenagakerjaan;
 
+    public String tarif_bpjs_kesehatan;
+
+    public String tarif_bpjs_ketenagakerjaan;
+
     // ========================================Deduction=================================
 
-    public Integer kasbon;
+    public Integer bpjskes;
 
-    public Integer pinjaman;
+    public Integer bpjstk;
 
-    public Integer thr_paid;
 
-    public Integer jaminan_pensiun;
+    public String tarif_bpjskes;
 
-    public Integer bpjs_kesehatan_deduction;
-
-    public Integer bpjs_kesehatan_family;
-
-    public Integer jht_employee;
+    public String tarif_bpjstk;
 
     public Integer pph21;
 }

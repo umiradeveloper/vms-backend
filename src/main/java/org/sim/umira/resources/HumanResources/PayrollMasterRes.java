@@ -1,5 +1,7 @@
 package org.sim.umira.resources.HumanResources;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.YearMonth;
@@ -68,6 +70,7 @@ public class PayrollMasterRes {
         if (existing != null) {
             throw new BadRequestException("Master payroll untuk employee ini sudah ada");
         }
+        System.out.println(payroll.tarif_bpjstk);
 
         try {
             PayrollMasterEntity payrollMaster = new PayrollMasterEntity();
@@ -75,22 +78,21 @@ public class PayrollMasterRes {
             payrollMaster.gaji_pokok = payroll.gaji_pokok;
             payrollMaster.tunjangan_jabatan = payroll.tunjangan_jabatan;
             payrollMaster.tunjangan_transport = payroll.tunjangan_transport;
+
             payrollMaster.tunjangan_makan = payroll.tunjangan_makan;
-            payrollMaster.tunjangan_lembur = payroll.tunjangan_lembur;
+            payrollMaster.tunjangan_lembur = generatedLembur(payroll.tunjangan_lembur, payroll.gaji_pokok);
             payrollMaster.tunjangan_lainnya = payroll.tunjangan_lainnya;
             payrollMaster.bpjs_kesehatan = payroll.bpjs_kesehatan;
             payrollMaster.bpjs_ketenagakerjaan = payroll.bpjs_ketenagakerjaan;
+            payrollMaster.tarif_bpjs_kesehatan = payroll.tarif_bpjs_kesehatan;
+            payrollMaster.tarif_bpjs_ketenagakerjaan = payroll.tarif_bpjs_ketenagakerjaan;
+            payrollMaster.kode_lembur = payroll.tunjangan_lembur;
             payrollMaster.persist();
 
             PayrollDeductionMasterEntity payrollMasterDeduction = new PayrollDeductionMasterEntity();
             payrollMasterDeduction.payrollMaster = payrollMaster;
-            payrollMasterDeduction.kasbon = payroll.kasbon;
-            payrollMasterDeduction.pinjaman = payroll.pinjaman;
-            payrollMasterDeduction.thr_paid = payroll.thr_paid;
-            payrollMasterDeduction.jaminan_pensiun = payroll.jaminan_pensiun;
-            payrollMasterDeduction.bpjs_kesehatan = payroll.bpjs_kesehatan_deduction;
-            payrollMasterDeduction.bpjs_kesehatan_family = payroll.bpjs_kesehatan_family;
-            payrollMasterDeduction.jht_employee = payroll.jht_employee;
+            payrollMasterDeduction.tarif_bpjskes = payroll.tarif_bpjskes;
+            payrollMasterDeduction.tarif_bpjstk = payroll.tarif_bpjstk;
             payrollMasterDeduction.pph21 = payroll.pph21;
             payrollMasterDeduction.persist();
 
@@ -99,6 +101,21 @@ public class PayrollMasterRes {
             e.printStackTrace();
             throw new InternalServerErrorException(e.getMessage());
         }
+    }
+
+    private Integer generatedLembur(String lembur, Integer gapok) {
+        Integer nominal = 0;
+        String[] splitLembur = lembur.split("\\|");
+        System.out.println(splitLembur);
+        if (splitLembur[0].equals("-")) {
+            nominal = 0;
+        } else if (splitLembur[0].equals("0")) {
+            nominal = gapok / 173;
+        } else {
+            // System.out.println(splitLembur[2]);
+            nominal = Integer.parseInt(splitLembur[1].replace(".", ""));
+        }
+        return nominal;
     }
 
     @ConfigProperty(name = "date-close-book")
@@ -123,152 +140,188 @@ public class PayrollMasterRes {
 
             for (EmployeeEntity emp : employees) {
                 // Skip if already generated
-                PayrollEntity existing = PayrollEntity.find(
-                        "employee = ?1 AND bulan = ?2 AND tahun = ?3", emp, bulan, tahun).firstResult();
-                if (existing != null)
-                    continue;
+                if (emp.status_employee == 1) {
+                    PayrollMasterEntity master = PayrollMasterEntity.find("employee = ?1", emp).firstResult();
+                    if (master != null) {
+                        PayrollEntity existing = PayrollEntity.find(
+                                "employee = ?1 AND bulan = ?2 AND tahun = ?3", emp, bulan, tahun).firstResult();
+                        if (existing != null)
+                            continue;
 
-                int monthInt = Integer.parseInt(bulan);
-                Month monthM = Month.of(monthInt);
-                YearMonth ym = YearMonth.of(Integer.parseInt(tahun), monthM);
-                LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
-                LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
-                Calendar service = GoogleCalendarConfig.getService();
-                Boolean saturdayOff = true;
-                Integer is_office = emp.klasifikasi_works.is_office;
-                if (is_office == 1) {
-                    saturdayOff = false;
+                        int monthInt = Integer.parseInt(bulan);
+                        Month monthM = Month.of(monthInt);
+                        YearMonth ym = YearMonth.of(Integer.parseInt(tahun), monthM);
+                        LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
+                        LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
+                        Calendar service = GoogleCalendarConfig.getService();
+                        Boolean saturdayOff = true;
+                        Integer is_office = emp.klasifikasi_works.is_office;
+                        if (is_office == 1) {
+                            saturdayOff = false;
+                        }
+
+                        // 1. ambil libur nasional
+                        Set<LocalDate> holidays = YearCalendarService.getHolidaysByParams(service, holidayCalendarId,
+                                startDate.toString(), endDate.toString());
+
+                        // 2. generate 1 tahun
+                        List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(
+                                Integer.parseInt(tahun),
+                                holidays,
+                                startDate.toString(), endDate.toString(), saturdayOff);
+
+                        Long total_hari_kerja = calendar.stream().filter(a -> "GREEN".equals(a.type)).count();
+                        List<AttendanceEntity> hadirList = AttendanceEntity.list(
+                                "tanggal BETWEEN ?1 AND ?2 AND employee = ?3 AND status = ?4",
+                                startDate,
+                                endDate,
+                                emp,
+                                "Hadir");
+
+                        Long totalHadir = hadirList.stream()
+                                .map(a -> a.tanggal)
+                                .distinct()
+                                .count();
+                        List<AttendanceEntity> sakitList = AttendanceEntity.list(
+                                "tanggal BETWEEN ?1 AND ?2 AND employee = ?3 AND status = ?4",
+                                startDate,
+                                endDate,
+                                emp,
+                                "Sakit");
+
+                        Long totalSakit = sakitList.stream()
+                                .map(a -> a.tanggal)
+                                .distinct()
+                                .count();
+                        List<AttendanceEntity> izinList = AttendanceEntity.list(
+                                "tanggal BETWEEN ?1 AND ?2 AND employee = ?3 AND status = ?4",
+                                startDate,
+                                endDate,
+                                emp,
+                                "Izin");
+
+                        Long totalIzin = izinList.stream()
+                                .map(a -> a.tanggal)
+                                .distinct()
+                                .count();
+                        List<AttendanceEntity> AlphaList = AttendanceEntity.list(
+                                "tanggal BETWEEN ?1 AND ?2 AND employee = ?3",
+                                startDate,
+                                endDate,
+                                emp);
+
+                        Set<LocalDate> alphaDates = AlphaList.stream()
+                                .map(a -> a.tanggal)
+                                .collect(Collectors.toSet());
+
+                        Long totalAlpha = calendar.stream()
+                                .filter(a -> "GREEN".equals(a.type))
+                                .filter(a -> !alphaDates.contains(a.date))
+                                .count();
+                        System.out.println(AlphaList.size());
+                        // LocalDate startDate =
+                        // ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
+                        // LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan),
+                        // ym.lengthOfMonth()));
+                        List<OvertimeEntity> listOvertime = OvertimeEntity
+                                .find("tanggal BETWEEN ?1 AND ?2 AND employee = ?3 ", startDate, endDate, emp).list();
+                        long totalMinutes = listOvertime.stream()
+                                .filter(overtime -> overtime.durasi != null)
+                                .filter(overtime -> !overtime.durasi.trim().isEmpty())
+                                .mapToLong(overtime -> Long.parseLong(overtime.durasi))
+                                .sum();
+
+                        long totalHours = (totalMinutes / 60) + (totalMinutes % 60 > 30 ? 1 : 0);
+
+                        // PayrollMasterEntity master = PayrollMasterEntity.find("employee = ?1",
+                        // emp).firstResult();
+
+                        PayrollDeductionMasterEntity masterDeduction = PayrollDeductionMasterEntity
+                                .find("payrollMaster = ?1", master).firstResult();
+                        BigDecimal bpjs = new BigDecimal(master.bpjs_kesehatan);
+                        BigDecimal tarif_bpjs = new BigDecimal(master.tarif_bpjs_kesehatan);
+                        BigDecimal bpjstk = new BigDecimal(master.bpjs_ketenagakerjaan);
+                        BigDecimal tarif_bpjstk = new BigDecimal(master.tarif_bpjs_ketenagakerjaan);
+
+                        PayrollEntity payroll = new PayrollEntity();
+                        payroll.employee = emp;
+                        payroll.bulan = bulan;
+                        payroll.tahun = tahun;
+                        payroll.hari_kerja = String.valueOf(totalHadir);
+                        payroll.hari_izin = String.valueOf(totalIzin);
+                        payroll.hari_sakit = String.valueOf(totalSakit);
+                        payroll.hari_alpha = String.valueOf(totalAlpha);
+                        payroll.gaji_pokok = (master != null) ? master.gaji_pokok : 0;
+                        payroll.tunjangan_transport = (master != null) ? master.tunjangan_transport : 0;
+                        payroll.tunjangan_operasional = (master != null) ? master.tunjangan_operasional : 0;
+                        payroll.tunjangan_makan = (master != null)
+                                ? master.tunjangan_makan * Math.toIntExact(totalHadir)
+                                : 0;
+                        payroll.tunjangan_lembur = (master != null)
+                                ? master.tunjangan_lembur * Math.toIntExact(totalHours)
+                                : 0;
+                        payroll.tunjangan_lainnya = (master != null) ? master.tunjangan_lainnya : 0;
+                        payroll.bpjs_kesehatan = (master != null)
+                                ? (int) bpjs.multiply(tarif_bpjs).setScale(0, RoundingMode.HALF_UP).intValue()
+                                : 0;
+                        payroll.bpjs_ketenagakerjaan = (master != null)
+                                ? (int) bpjstk.multiply(tarif_bpjstk).setScale(0, RoundingMode.HALF_UP).intValue()
+                                : 0;
+                        payroll.tunjangan_jabatan = (master != null) ? master.tunjangan_jabatan : 0;
+                        payroll.persist();
+
+                        // Copy deductions from master
+                        // System.out.println(master.gaji_pokok / total_hari_kerja * totalAlpha);
+                        Long potongan_gaji = (master != null) ? master.gaji_pokok / total_hari_kerja * totalAlpha : 0;
+                        PayrollDeductionEntity deduction = new PayrollDeductionEntity();
+                        deduction.payrollMaster = payroll;
+                        // if (master != null) {
+                        // PayrollDeductionMasterEntity masterDed = PayrollDeductionMasterEntity
+                        // .find("payrollMaster = ?1", master).firstResult();
+                        // if (masterDed != null) {
+                        // //deduction.kasbon = masterDed.kasbon; temp sebentar
+
+                        // deduction.pinjaman = masterDed.pinjaman;
+                        // deduction.thr_paid = masterDed.thr_paid;
+                        // deduction.jaminan_pensiun = masterDed.jaminan_pensiun;
+                        // deduction.bpjs_kesehatan = masterDed.bpjs_kesehatan;
+                        // deduction.bpjs_kesehatan_family = masterDed.bpjs_kesehatan_family;
+                        // deduction.jht_employee = masterDed.jht_employee;
+                        // deduction.pph21 = masterDed.pph21;
+                        // }
+                        // }
+
+                        String monthName = monthM.getDisplayName(
+                                TextStyle.FULL,
+                                Locale.ENGLISH).toUpperCase();
+                        List<LoanDetailEntity> loan = LoanDetailEntity
+                                .find("idPinjaman.employee = ?1 AND bulan = ?2 AND tahun = ?3", emp, monthName, tahun)
+                                .list();
+                        Integer loanCicilan = 0;
+                        for (LoanDetailEntity loanD : loan) {
+                            // System.out.println(loanD.nominal_cicilan);
+                            loanCicilan += loanD.nominal_cicilan;
+                            LoanDetailEntity upd = LoanDetailEntity.findById(loanD.id_detail_pinjaman);
+                            upd.status = "PAID";
+                        }
+                        BigDecimal dedbpjs = new BigDecimal(master.bpjs_kesehatan);
+                        BigDecimal dedtarif_bpjs = new BigDecimal(masterDeduction.tarif_bpjskes);
+                        BigDecimal dedbpjstk = new BigDecimal(master.bpjs_ketenagakerjaan);
+                        BigDecimal dedtarif_bpjstk = new BigDecimal(masterDeduction.tarif_bpjstk);
+                        deduction.pinjaman = loanCicilan;
+                        deduction.potongan_kehadiran = Math.toIntExact(potongan_gaji);
+                        deduction.bpjskes = (masterDeduction != null)
+                                ? (int) dedbpjs.multiply(dedtarif_bpjs).setScale(0, RoundingMode.HALF_UP).intValue()
+                                : 0;
+                        deduction.bpjstk = (masterDeduction != null)
+                                ? (int) dedbpjstk.multiply(dedtarif_bpjstk).setScale(0, RoundingMode.HALF_UP).intValue()
+                                : 0;
+                        deduction.persist();
+                        generated++;
+                    }
+
                 }
 
-                // 1. ambil libur nasional
-                Set<LocalDate> holidays = YearCalendarService.getHolidaysByParams(service, holidayCalendarId,
-                        startDate.toString(), endDate.toString());
-
-                // 2. generate 1 tahun
-                List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(Integer.parseInt(tahun),
-                        holidays,
-                        startDate.toString(), endDate.toString(), saturdayOff);
-
-                Long total_hari_kerja = calendar.stream().filter(a -> "GREEN".equals(a.type)).count();
-                List<AttendanceEntity> hadirList = AttendanceEntity.list(
-                        "tanggal BETWEEN ?1 AND ?2 AND employee = ?3 AND status = ?4",
-                        startDate,
-                        endDate,
-                        emp,
-                        "Hadir");
-
-                Long totalHadir = hadirList.stream()
-                        .map(a -> a.tanggal)
-                        .distinct()
-                        .count();
-                List<AttendanceEntity> sakitList = AttendanceEntity.list(
-                        "tanggal BETWEEN ?1 AND ?2 AND employee = ?3 AND status = ?4",
-                        startDate,
-                        endDate,
-                        emp,
-                        "Sakit");
-
-                Long totalSakit = sakitList.stream()
-                        .map(a -> a.tanggal)
-                        .distinct()
-                        .count();
-                List<AttendanceEntity> izinList = AttendanceEntity.list(
-                        "tanggal BETWEEN ?1 AND ?2 AND employee = ?3 AND status = ?4",
-                        startDate,
-                        endDate,
-                        emp,
-                        "Izin");
-
-                Long totalIzin = izinList.stream()
-                        .map(a -> a.tanggal)
-                        .distinct()
-                        .count();
-                List<AttendanceEntity> AlphaList = AttendanceEntity.list(
-                        "tanggal BETWEEN ?1 AND ?2 AND employee = ?3",
-                        startDate,
-                        endDate,
-                        emp);
-
-                Set<LocalDate> alphaDates = AlphaList.stream()
-                        .map(a -> a.tanggal)
-                        .collect(Collectors.toSet());
-
-                Long totalAlpha = calendar.stream()
-                        .filter(a -> "GREEN".equals(a.type))
-                        .filter(a -> !alphaDates.contains(a.date))
-                        .count();
-                System.out.println(AlphaList.size());
-                // LocalDate startDate =
-                // ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
-                // LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan),
-                // ym.lengthOfMonth()));
-                List<OvertimeEntity> listOvertime = OvertimeEntity
-                        .find("tanggal BETWEEN ?1 AND ?2 AND employee = ?3 ", startDate, endDate, emp).list();
-                long totalMinutes = listOvertime.stream()
-                        .filter(overtime -> overtime.durasi != null)
-                        .filter(overtime -> !overtime.durasi.trim().isEmpty())
-                        .mapToLong(overtime -> Long.parseLong(overtime.durasi))
-                        .sum();
-
-                long totalHours = (totalMinutes / 60) + (totalMinutes % 60 > 30 ? 1 : 0);
-
-                PayrollMasterEntity master = PayrollMasterEntity.find("employee = ?1", emp).firstResult();
-
-                PayrollEntity payroll = new PayrollEntity();
-                payroll.employee = emp;
-                payroll.bulan = bulan;
-                payroll.tahun = tahun;
-                payroll.hari_kerja = String.valueOf(totalHadir);
-                payroll.hari_izin = String.valueOf(totalIzin);
-                payroll.hari_sakit = String.valueOf(totalSakit);
-                payroll.hari_alpha = String.valueOf(totalAlpha);
-                payroll.gaji_pokok = (master != null) ? master.gaji_pokok : 0;
-                payroll.tunjangan_transport = (master != null) ? master.tunjangan_transport : 0;
-                payroll.tunjangan_makan = (master != null) ? master.tunjangan_makan * Math.toIntExact(totalHadir) : 0;
-                payroll.tunjangan_lembur = (master != null) ? master.tunjangan_lembur * Math.toIntExact(totalHours) : 0;
-                payroll.tunjangan_lainnya = (master != null) ? master.tunjangan_lainnya : 0;
-                payroll.bpjs_kesehatan = (master != null) ? (int) Math.round(master.bpjs_kesehatan * 0.05) : 0;
-                payroll.bpjs_ketenagakerjaan = (master != null) ? (int) Math.round(master.bpjs_kesehatan * 0.1074) : 0;
-                payroll.tunjangan_jabatan = (master != null) ? master.tunjangan_jabatan : 0;
-                payroll.persist();
-
-                // Copy deductions from master
-                // System.out.println(master.gaji_pokok / total_hari_kerja * totalAlpha);
-                Long potongan_gaji = (master != null) ? master.gaji_pokok / total_hari_kerja * totalAlpha : 0;
-                PayrollDeductionEntity deduction = new PayrollDeductionEntity();
-                deduction.payrollMaster = payroll;
-                // if (master != null) {
-                // PayrollDeductionMasterEntity masterDed = PayrollDeductionMasterEntity
-                // .find("payrollMaster = ?1", master).firstResult();
-                // if (masterDed != null) {
-                // //deduction.kasbon = masterDed.kasbon; temp sebentar
-
-                // deduction.pinjaman = masterDed.pinjaman;
-                // deduction.thr_paid = masterDed.thr_paid;
-                // deduction.jaminan_pensiun = masterDed.jaminan_pensiun;
-                // deduction.bpjs_kesehatan = masterDed.bpjs_kesehatan;
-                // deduction.bpjs_kesehatan_family = masterDed.bpjs_kesehatan_family;
-                // deduction.jht_employee = masterDed.jht_employee;
-                // deduction.pph21 = masterDed.pph21;
-                // }
-                // }
-
-                String monthName = monthM.getDisplayName(
-                        TextStyle.FULL,
-                        Locale.ENGLISH).toUpperCase();
-                List<LoanDetailEntity> loan = LoanDetailEntity
-                        .find("idPinjaman.employee = ?1 AND bulan = ?2 AND tahun = ?3", emp, monthName, tahun).list();
-                Integer loanCicilan = 0;
-                for (LoanDetailEntity loanD : loan) {
-                    // System.out.println(loanD.nominal_cicilan);
-                    loanCicilan += loanD.nominal_cicilan;
-                    LoanDetailEntity upd = LoanDetailEntity.findById(loanD.id_detail_pinjaman);
-                    upd.status = "PAID";
-                }
-                deduction.pinjaman = loanCicilan;
-                deduction.potongan_kehadiran = Math.toIntExact(potongan_gaji);
-                deduction.persist();
-                generated++;
             }
 
             return Response.ok().entity(ResponseHandler.ok(
@@ -345,7 +398,7 @@ public class PayrollMasterRes {
             master.tunjangan_transport = payroll.tunjangan_transport;
             master.tunjangan_jabatan = master.tunjangan_jabatan;
             master.tunjangan_makan = payroll.tunjangan_makan;
-            master.tunjangan_lembur = payroll.tunjangan_lembur;
+            // master.tunjangan_lembur = payroll.tunjangan_lembur;
             master.tunjangan_lainnya = payroll.tunjangan_lainnya;
             master.bpjs_kesehatan = payroll.bpjs_kesehatan;
             master.bpjs_ketenagakerjaan = payroll.bpjs_ketenagakerjaan;
@@ -353,13 +406,7 @@ public class PayrollMasterRes {
             PayrollDeductionMasterEntity ded = PayrollDeductionMasterEntity
                     .find("payrollMaster = ?1", master).firstResult();
             if (ded != null) {
-                ded.kasbon = payroll.kasbon;
-                ded.pinjaman = payroll.pinjaman;
-                ded.thr_paid = payroll.thr_paid;
-                ded.jaminan_pensiun = payroll.jaminan_pensiun;
-                ded.bpjs_kesehatan = payroll.bpjs_kesehatan_deduction;
-                ded.bpjs_kesehatan_family = payroll.bpjs_kesehatan_family;
-                ded.jht_employee = payroll.jht_employee;
+
                 ded.pph21 = payroll.pph21;
             }
 
