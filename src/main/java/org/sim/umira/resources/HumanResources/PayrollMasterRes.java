@@ -421,7 +421,7 @@ public class PayrollMasterRes {
     // ── Get Payroll by Bulan/Tahun ────────────────────────────────────────────
     @GET
     @Path("/get-payroll")
-    @Transactional
+    // @Transactional
     public Response getPayroll(
             @QueryParam("bulan") String bulan,
             @QueryParam("tahun") String tahun) {
@@ -453,6 +453,7 @@ public class PayrollMasterRes {
             e.printStackTrace();
             throw new InternalServerErrorException(e.getMessage());
         }
+
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────

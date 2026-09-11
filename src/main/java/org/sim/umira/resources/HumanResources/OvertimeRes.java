@@ -238,7 +238,7 @@ public class OvertimeRes {
        
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
-         OvertimeEntity ovt = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, emp).firstResult();
+        OvertimeEntity ovt = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, emp).firstResult();
         if(ovt != null){
             throw new BadRequestException("Data Lembur Sudah Ada");
         }
@@ -252,12 +252,12 @@ public class OvertimeRes {
             throw new BadRequestException("Harus melakukan clock out terlebih dahulu");
         }
         
-        Duration durationCheck = Duration.between(LocalTime.parse(aeEntityCheck.jam_keluar),
-                LocalTime.parse(pengajuan.jam_mulai));
-        Long durationskip = durationCheck.toMinutes();
-        if (durationskip <= 120) {
-            throw new BadRequestException("Pengajuan lembur harus 2 jam setelah clock out");
-        }
+        // Duration durationCheck = Duration.between(LocalTime.parse(aeEntityCheck.jam_keluar),
+        //         LocalTime.parse(pengajuan.jam_mulai));
+        // Long durationskip = durationCheck.toMinutes();
+        // if (durationskip <= 120) {
+        //     throw new BadRequestException("Pengajuan lembur harus 2 jam setelah clock out");
+        // }
 
 
         Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),

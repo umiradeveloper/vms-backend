@@ -20,6 +20,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.configs.GoogleCalendarConfig;
 import org.sim.umira.dtos.HumanResources.AttendanceDto;
 import org.sim.umira.dtos.HumanResources.AttendanceEmployeeReportDto;
+import org.sim.umira.dtos.HumanResources.AttendanceGenerateDto;
 import org.sim.umira.dtos.HumanResources.ClockInOutDto;
 import org.sim.umira.dtos.HumanResources.PengajuanAttendanceDto;
 import org.sim.umira.dtos.HumanResources.ResponseAttendanceDto;
@@ -184,18 +185,18 @@ public class AttendanceRes {
 
             }
         }
-         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+        UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         EmployeeEntity employeeE = EmployeeEntity.find("user = ?1", ue).firstResult();
 
-        AttendanceEntity att = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal,employeeE).firstResult();
-        if(att != null){
+        AttendanceEntity att = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, employeeE)
+                .firstResult();
+        if (att != null) {
             throw new BadRequestException("Sudah Melakukan Absen");
         }
-    
 
         try {
             // List<AttendanceEntity> attendance = AttendanceEntity.listAll();
-           
+
             PengajuanAttendanceEntity pengajuanAttendance = new PengajuanAttendanceEntity();
             pengajuanAttendance.employee = employeeE;
             pengajuanAttendance.jam_keluar = pengajuan.jam_keluar;
@@ -659,6 +660,152 @@ public class AttendanceRes {
 
             throw new InternalServerErrorException(
                     e.getMessage());
+        }
+    }
+
+    @POST
+    @Path("/generate-attendance-by-employee")
+    @Transactional
+    public Response generateAttendanceByEmployee(@Valid @RequestBody AttendanceGenerateDto attendanceG) {
+        try {
+
+            String holidayCalendarId = "id.indonesian#holiday@group.v.calendar.google.com";
+
+            int monthInt = Integer.parseInt(attendanceG.month);
+            int yearInt = Integer.parseInt(attendanceG.year);
+            int tanggalPembukuan = Integer.parseInt(tanggal_pembukuan);
+
+            YearMonth ym = YearMonth.of(yearInt, monthInt);
+
+            List<EmployeeEntity> allEmployee = EmployeeEntity.find("id_employee IN ?1", attendanceG.id_employee).list();
+
+            // List<AttendanceEmployeeReportDto> response = new ArrayList<>();
+
+            Calendar service = GoogleCalendarConfig.getService();
+
+            /*
+             * Tentukan periode pembukuan
+             */
+            LocalDate startDate = ym.minusMonths(1).atDay(tanggalPembukuan + 1);
+
+            LocalDate endDate = ym.atDay(
+                    Math.min(
+                            tanggalPembukuan,
+                            ym.lengthOfMonth()));
+
+            /*
+             * Ambil hari libur sekali saja.
+             * Jangan di dalam loop employee.
+             */
+            Set<LocalDate> holidays = YearCalendarService.getHolidaysByParams(
+                    service,
+                    holidayCalendarId,
+                    startDate.toString(),
+                    endDate.toString());
+
+            for (EmployeeEntity emp : allEmployee) {
+
+                boolean saturdayOff = true;
+
+                Integer isOffice = emp.klasifikasi_works.is_office;
+
+                if (isOffice != null && isOffice == 1) {
+                    saturdayOff = false;
+                }
+
+                /*
+                 * Generate calendar untuk periode employee
+                 */
+                List<YearCalendarService.DayInfo> calendar = YearCalendarService.generatedDay(
+                        yearInt,
+                        holidays,
+                        startDate.toString(),
+                        endDate.toString(),
+                        saturdayOff);
+
+                /*
+                 * Tanggal -> attendance
+                 */
+                // Map<String, Object> attendance = new LinkedHashMap<>();
+
+                for (YearCalendarService.DayInfo g : calendar) {
+                    // String status;
+
+                    if ("Work".equals(g.status)) {
+                        saveAttendance(emp, g.date, attendanceG);
+                        // AttendanceEntity check = AttendanceEntity.find("tanggal = ?1 AND employee = ?2").firstResult();
+                        // if(check == null){
+                        //     AttendanceEntity att = new AttendanceEntity();
+                        //     att.employee = emp;
+                        //     att.tanggal = g.date;
+                        //     att.jam_masuk = attendanceG.jam_masuk;
+                        //     att.jam_keluar = attendanceG.jam_keluar;
+                        //     att.status = attendanceG.status;
+                        //     att.keterangan = attendanceG.keterangan;
+                        //     att.persist();
+                        // }else{
+                        //     check.jam_masuk = attendanceG.jam_masuk;
+                        //     check.jam_keluar = attendanceG.jam_keluar;
+                        //     check.status = attendanceG.status;
+                        //     check.keterangan = attendanceG.keterangan;
+                        // }
+                        
+                    }
+
+                    
+                }
+
+            }
+
+            return Response
+                    .ok()
+                    .entity(
+                            ResponseHandler.ok(
+                                    "Generate Attendance Done",
+                                    null))
+                    .build();
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            throw new InternalServerErrorException(
+                    e.getMessage());
+        }
+
+    }
+
+    
+    private void saveAttendance(
+            EmployeeEntity emp,
+            LocalDate date,
+            AttendanceGenerateDto attendanceG
+    ) {
+
+        AttendanceEntity check = AttendanceEntity.find(
+            "tanggal = ?1 AND employee = ?2",
+            date,
+            emp
+        ).firstResult();
+
+        if (check == null) {
+
+            AttendanceEntity att = new AttendanceEntity();
+
+            att.employee = emp;
+            att.tanggal = date;
+            att.jam_masuk = attendanceG.jam_masuk;
+            att.jam_keluar = attendanceG.jam_keluar;
+            att.status = attendanceG.status;
+            att.keterangan = attendanceG.keterangan;
+
+            att.persist();
+
+        } else {
+
+            check.jam_masuk = attendanceG.jam_masuk;
+            check.jam_keluar = attendanceG.jam_keluar;
+            check.status = attendanceG.status;
+            check.keterangan = attendanceG.keterangan;
         }
     }
 
