@@ -376,7 +376,7 @@ public class CutiRes {
                 new LeaveType("ANNUAL_LEAVE", "Cuti Tahunan", "ANL"),
                 new LeaveType("IZIN", "Izin", "IZN"),
                 new LeaveType("ROSTER_LEAVE", "Cuti Roster", "RST"),
-                new LeaveType("SICK_LEAVE", "Cuti Sakit", "SKT"),
+                new LeaveType("SICK_LEAVE", "Sakit", "SKT"),
                 new LeaveType("MATERNITY_LEAVE", "Cuti Melahirkan", "BRN"),
                 new LeaveType("BAPTISM_LEAVE", "Cuti Baptis Anak", "BPT"),
                 new LeaveType("MARRIAGE_LEAVE", "Cuti Menikah", "MRD"),

@@ -584,6 +584,10 @@ public class AttendanceRes {
                     // String status;
 
                     if ("Work".equals(g.status)) {
+                        List<String> excludeJenisCuti = List.of(
+    "SICK_LEAVE",
+    "IZIN"
+);
                         AttendanceEntity ae = AttendanceEntity.find(
                                 "tanggal = ?1 AND employee = ?2",
                                 g.date,
@@ -592,9 +596,23 @@ public class AttendanceRes {
                         boolean isCuti = CutiEntity.count(
                                 "tanggal_mulai <= ?1 " +
                                         "AND tanggal_selesai >= ?1 " +
-                                        "AND employee_pengajuan = ?2",
+                                        "AND employee_pengajuan = ?2 AND jenis_cuti NOT IN ?3",
                                 g.date,
-                                emp) > 0;
+                                emp, excludeJenisCuti) > 0;
+
+                        boolean Izin = CutiEntity.count(
+                                "tanggal_mulai <= ?1 " +
+                                        "AND tanggal_selesai >= ?1 " +
+                                        "AND employee_pengajuan = ?2 AND jenis_cuti = ?3",
+                                g.date,
+                                emp, "IZIN") > 0;
+
+                        boolean Sakit = CutiEntity.count(
+                                "tanggal_mulai <= ?1 " +
+                                        "AND tanggal_selesai >= ?1 " +
+                                        "AND employee_pengajuan = ?2 AND jenis_cuti = ?3",
+                                g.date,
+                                emp, "SICK_LEAVE") > 0;
 
                         /*
                          * Tentukan status
@@ -605,21 +623,29 @@ public class AttendanceRes {
                             // status = "C";
                             attendance.put(
                                     g.date.toString(),
-                                    "Cuti");
+                                    "C");
 
+                        }else if(Izin){
+                            attendance.put(
+                                    g.date.toString(),
+                                    "I");
+                        }else if(Sakit){
+                            attendance.put(
+                                    g.date.toString(),
+                                    "S");
                         } else if (ae != null) {
                             if ("Hadir".equals(ae.status)) {
                                 attendance.put(
                                         g.date.toString(),
                                         "H \n " + ae.jam_masuk + "-" + ae.jam_keluar);
-                            } else if ("Sakit".equals(ae.status)) {
+
+                            
+                            }else if ("WFH".equals(ae.status)) {
                                 attendance.put(
                                         g.date.toString(),
-                                        "S");
-                            } else if ("Izin".equals(ae.status)) {
-                                attendance.put(
-                                        g.date.toString(),
-                                        "I");
+                                        "H \n " + ae.jam_masuk + "-" + ae.jam_keluar);
+
+                            
                             }
 
                             // Sesuaikan dengan field entity AttendanceEntity
