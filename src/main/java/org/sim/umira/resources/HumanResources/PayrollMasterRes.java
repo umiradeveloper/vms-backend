@@ -192,7 +192,7 @@ public class PayrollMasterRes {
                             ) + 1)
                             .sum();
 
-                        List<CutiEntity> izinList = CutiEntity.list("tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti = ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL", startDate, endDate, "IZIN", "APPROVED", emp);
+                        List<CutiEntity> izinList = CutiEntity.list("tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti != ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL", startDate, endDate, "SICK_LEAVE", "APPROVED", emp);
                         long totalIzin = izinList.stream()
                             .mapToLong(a -> {
                                 LocalDate mulai = a.tanggal_mulai.isBefore(startDate)
