@@ -3,6 +3,7 @@ package org.sim.umira.resources.Cuti;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.sim.umira.dtos.Cuti.CreateCutiDto;
 import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.Cuti.CutiEntity;
 import org.sim.umira.entities.Cuti.SaldoCutiEntity;
+import org.sim.umira.entities.HumanResources.AttendanceEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import org.sim.umira.entities.HumanResources.MasterCounterCutiEntity;
 import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
@@ -335,6 +337,9 @@ public class CutiRes {
                 if (alasan_penolakan != null && !alasan_penolakan.isBlank()) {
                     cuti.alasan_penolakan_manager = alasan_penolakan;
                 }
+               
+                
+
             }
            
 

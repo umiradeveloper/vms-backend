@@ -3,6 +3,7 @@ package org.sim.umira.resources.HumanResources;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -151,13 +152,43 @@ public class EmployeeRes {
         }
     }
 
+    public record employeeResponse(EmployeeEntity employee, EmployeeEntity employeeChecker, EmployeeEntity employeeSigner){}
+
 
     @GET
     @Path("/get-employee")
     public Response getEmployee(){
         try {
             List<EmployeeEntity> employee = EmployeeEntity.listAll();
+           
             return Response.ok().entity(ResponseHandler.ok("Inquiry Employee Done", employee)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+
+    @GET
+    @Path("/get-employee-data")
+    public Response getEmployeeData(){
+        try {
+            List<EmployeeEntity> employee = EmployeeEntity.listAll();
+            List<employeeResponse> responseEmp = new ArrayList<>();
+            for(EmployeeEntity emp : employee){
+                EmployeeEntity empChecker = null;
+                EmployeeEntity empSigner = null;
+                if(emp.id_employee_checker != null && emp.id_employee_checker != ""){
+                    empChecker = EmployeeEntity.findById(emp.id_employee_checker);
+                }
+                if(emp.id_employee_signer != null && emp.id_employee_signer != ""){
+                    empSigner = EmployeeEntity.findById(emp.id_employee_signer);
+                }
+           
+                // EmployeeEntity empSigner = EmployeeEntity.findById(emp.id_employee_signer);
+                responseEmp.add(new employeeResponse(emp, (empChecker != null)?empChecker:null, (empSigner != null)?empSigner:null));
+            }
+            return Response.ok().entity(ResponseHandler.ok("Inquiry Employee Done", responseEmp)).build();
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception

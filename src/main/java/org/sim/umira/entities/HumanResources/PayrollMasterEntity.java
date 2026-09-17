@@ -41,6 +41,8 @@ public class PayrollMasterEntity extends PanacheEntityBase {
 
     public String kode_lembur;
 
+    public Integer tunjangan_pulsa;
+
     @OneToOne
     @JoinColumn(name = "id_employee")
     public EmployeeEntity employee;

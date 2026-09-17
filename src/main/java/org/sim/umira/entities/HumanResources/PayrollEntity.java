@@ -40,6 +40,8 @@ public class PayrollEntity extends PanacheEntityBase{
 
     public Integer tunjangan_lembur;
 
+    public Integer tunjangan_pulsa;
+
     public Integer tunjangan_lainnya;
 
     public Integer bpjs_kesehatan;

@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -122,8 +124,9 @@ public class OvertimeRes {
             // TODO: handle exception
         }
     }
+
     public YearMonth getPeriode(LocalDate tanggal, int tanggalPembukuan) {
-        System.out.println("tanggal "+tanggal.getDayOfMonth());
+        System.out.println("tanggal " + tanggal.getDayOfMonth());
         if (tanggal.getDayOfMonth() > tanggalPembukuan) {
             return YearMonth.from(tanggal).plusMonths(1);
         }
@@ -150,7 +153,7 @@ public class OvertimeRes {
         if (emp == null) {
             throw new BadRequestException("Employee tidak terdaftar");
         }
-         Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
+        Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
                 LocalTime.parse(pengajuan.jam_selesai));
         Long durationWork = duration.toMinutes();
         int hoursNow = Integer.parseInt(String.valueOf(durationWork)) / 60;
@@ -184,9 +187,9 @@ public class OvertimeRes {
         }
 
         try {
-           
+
             // Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
-            //         LocalTime.parse(pengajuan.jam_selesai));
+            // LocalTime.parse(pengajuan.jam_selesai));
             // Long durationWork = duration.toMinutes();
             PengajuanOvertimeEntity pengajuanOvertime = new PengajuanOvertimeEntity();
             pengajuanOvertime.employee = emp;
@@ -235,33 +238,34 @@ public class OvertimeRes {
 
             }
         }
-       
+
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
-        OvertimeEntity ovt = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, emp).firstResult();
-        if(ovt != null){
+        OvertimeEntity ovt = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, emp)
+                .firstResult();
+        if (ovt != null) {
             throw new BadRequestException("Data Lembur Sudah Ada");
         }
 
-        AttendanceEntity aeEntityCheck = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, emp).firstResult();
-        if(aeEntityCheck == null){
+        AttendanceEntity aeEntityCheck = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, emp)
+                .firstResult();
+        if (aeEntityCheck == null) {
             throw new BadRequestException("Harus melakukan absen terlebih dahulu");
         }
 
-        if(aeEntityCheck.jam_keluar == null){
+        if (aeEntityCheck.jam_keluar == null) {
             throw new BadRequestException("Harus melakukan clock out terlebih dahulu");
         }
-        
-        // Duration durationCheck = Duration.between(LocalTime.parse(aeEntityCheck.jam_keluar),
-        //         LocalTime.parse(pengajuan.jam_mulai));
-        // Long durationskip = durationCheck.toMinutes();
-        // if (durationskip <= 120) {
-        //     throw new BadRequestException("Pengajuan lembur harus 2 jam setelah clock out");
-        // }
 
+        Duration durationCheck = Duration.between(parseTime(aeEntityCheck.jam_keluar),
+                parseTime(pengajuan.jam_mulai));
+        Long durationskip = durationCheck.toMinutes();
+        if (durationskip <= 2) {
+            throw new BadRequestException("Pengajuan lembur setelah clock out");
+        }
 
-        Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
-                LocalTime.parse(pengajuan.jam_selesai));
+        Duration duration = Duration.between(parseTime(pengajuan.jam_mulai),
+                parseTime(pengajuan.jam_selesai));
         Long durationWork = duration.toMinutes();
         int hoursNow = Integer.parseInt(String.valueOf(durationWork)) / 60;
 
@@ -294,7 +298,8 @@ public class OvertimeRes {
         }
 
         try {
-            // UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+            // UserEntity ue = UserEntity.find("email = ?1",
+            // ctx.getUserPrincipal().getName()).firstResult();
             // EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             // Duration duration = Duration.between(LocalTime.parse(pengajuan.jam_mulai),
             // LocalTime.parse(pengajuan.jam_selesai));
@@ -393,32 +398,33 @@ public class OvertimeRes {
             // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanOvertimeEntity> listPengajuan;
             // if (ue.role.kode_role == "99") {
-            //     listPengajuan = PengajuanOvertimeEntity
-            //             .find("SELECT DISTINCT p FROM PengajuanOvertimeEntity p JOIN p.approval r JOIN p.employee pr")
-            //             .list();
+            // listPengajuan = PengajuanOvertimeEntity
+            // .find("SELECT DISTINCT p FROM PengajuanOvertimeEntity p JOIN p.approval r
+            // JOIN p.employee pr")
+            // .list();
             // } else {
-            //     listPengajuan = PengajuanOvertimeEntity.find("""
-            //                 SELECT DISTINCT p
-            //                 FROM PengajuanOvertimeEntity p
-            //                 WHERE EXISTS (
-            //                     SELECT 1
-            //                     FROM PengajuanApprovalOvertimeEntity ps
-            //                     WHERE ps.pengajuanOvertime = p
-            //                     AND ps.employee = ?1
-            //                 )
-            //             """, employeeApproval).list();
+            // listPengajuan = PengajuanOvertimeEntity.find("""
+            // SELECT DISTINCT p
+            // FROM PengajuanOvertimeEntity p
+            // WHERE EXISTS (
+            // SELECT 1
+            // FROM PengajuanApprovalOvertimeEntity ps
+            // WHERE ps.pengajuanOvertime = p
+            // AND ps.employee = ?1
+            // )
+            // """, employeeApproval).list();
             // }
 
             listPengajuan = PengajuanOvertimeEntity.find("""
-                            SELECT DISTINCT p
-                            FROM PengajuanOvertimeEntity p
-                            WHERE EXISTS (
-                                SELECT 1
-                                FROM PengajuanApprovalOvertimeEntity ps
-                                WHERE ps.pengajuanOvertime = p
-                                AND ps.employee = ?1
-                            )
-                        """, employeeApproval).list();
+                        SELECT DISTINCT p
+                        FROM PengajuanOvertimeEntity p
+                        WHERE EXISTS (
+                            SELECT 1
+                            FROM PengajuanApprovalOvertimeEntity ps
+                            WHERE ps.pengajuanOvertime = p
+                            AND ps.employee = ?1
+                        )
+                    """, employeeApproval).list();
             // List<PengajuanBiayaKonstruksiEntity> listPengajuan =
             // PengajuanBiayaKonstruksiEntity.listAll();
 
@@ -504,6 +510,7 @@ public class OvertimeRes {
             throw new InternalServerErrorException(e.getMessage());
         }
     }
+
     @GET
     @Path("/get-overtime-monitor")
     public Response getOvertimeMonitor(@QueryParam("tanggal") LocalDate tgl) {
@@ -512,9 +519,11 @@ public class OvertimeRes {
             // List<AttendanceEntity> attendance = AttendanceEntity.listAll();
             List<EmployeeEntity> emp = EmployeeEntity.findAll().list();
             List<responseOvertime> resOvt = new ArrayList<>();
-            for(EmployeeEntity employee: emp){
+            for (EmployeeEntity employee : emp) {
                 OvertimeEntity ovt = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", tgl, employee).firstResult();
-                resOvt.add(new responseOvertime(employee, (ovt != null)?ovt.jam_mulai:"-", (ovt != null)?ovt.jam_selesai:"-", (ovt != null)?ovt.durasi:"0", (ovt != null)?ovt.alasan:"-", (ovt != null)?ovt.id_lembur:"", tgl.toString()));
+                resOvt.add(new responseOvertime(employee, (ovt != null) ? ovt.jam_mulai : "-",
+                        (ovt != null) ? ovt.jam_selesai : "-", (ovt != null) ? ovt.durasi : "0",
+                        (ovt != null) ? ovt.alasan : "-", (ovt != null) ? ovt.id_lembur : "", tgl.toString()));
             }
             return Response.ok().entity(ResponseHandler.ok("Inquiry attendance Done", resOvt)).build();
         } catch (Exception e) {
@@ -523,9 +532,9 @@ public class OvertimeRes {
         }
     }
 
-    public record responseOvertime(EmployeeEntity emp, String jam_masuk, String jam_selesai, String durasi, String keterangan, String id_lembur, String tanggal){}
-
-
+    public record responseOvertime(EmployeeEntity emp, String jam_masuk, String jam_selesai, String durasi,
+            String keterangan, String id_lembur, String tanggal) {
+    }
 
     @GET
     @Path("/get-overtime-report")
@@ -596,13 +605,12 @@ public class OvertimeRes {
 
                 for (YearCalendarService.DayInfo g : calendar) {
                     // String status;
-                    OvertimeEntity overTime = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", g.date, emp).firstResult();
-                    
+                    OvertimeEntity overTime = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", g.date, emp)
+                            .firstResult();
 
                     ovt.put(
-                        g.date.toString(),
-                        (overTime != null)?overTime:null
-                    );
+                            g.date.toString(),
+                            (overTime != null) ? overTime : null);
                 }
 
                 response.add(
@@ -629,8 +637,8 @@ public class OvertimeRes {
         }
     }
 
-    public record responseOvertimeReport(String employeeId, String employeeName, Map<String, Object> overtime){}
-    
+    public record responseOvertimeReport(String employeeId, String employeeName, Map<String, Object> overtime) {
+    }
 
     @DELETE
     @Path("/delete-overtime")
@@ -642,6 +650,30 @@ public class OvertimeRes {
         } catch (Exception e) {
             throw new InternalServerErrorException(e.getMessage());
             // TODO: handle exception
+        }
+    }
+
+    private LocalTime parseTime(String value) {
+        if (value == null || value.isBlank()) {
+            throw new BadRequestException("Jam tidak boleh kosong");
+        }
+
+        value = value.trim();
+
+        try {
+            if (value.contains(".")) {
+                return LocalTime.parse(
+                        value,
+                        DateTimeFormatter.ofPattern("HH.mm"));
+            }
+
+            return LocalTime.parse(
+                    value,
+                    DateTimeFormatter.ofPattern("HH:mm"));
+
+        } catch (DateTimeParseException e) {
+            throw new BadRequestException(
+                    "Format jam tidak valid: " + value);
         }
     }
 }
