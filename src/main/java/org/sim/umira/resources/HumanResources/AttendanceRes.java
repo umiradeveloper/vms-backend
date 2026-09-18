@@ -188,11 +188,11 @@ public class AttendanceRes {
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         EmployeeEntity employeeE = EmployeeEntity.find("user = ?1", ue).firstResult();
 
-        AttendanceEntity att = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, employeeE)
-                .firstResult();
-        if (att != null) {
-            throw new BadRequestException("Sudah Melakukan Absen");
-        }
+        // AttendanceEntity att = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, employeeE)
+        //         .firstResult();
+        // if (att != null) {
+        //     throw new BadRequestException("Sudah Melakukan Absen");
+        // }
 
         try {
             // List<AttendanceEntity> attendance = AttendanceEntity.listAll();
