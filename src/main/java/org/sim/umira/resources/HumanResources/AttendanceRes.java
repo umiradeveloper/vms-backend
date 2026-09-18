@@ -339,9 +339,7 @@ public class AttendanceRes {
                                             pengajuanAttendance.employee)
                                     .firstResult();
                             if (checkAttendanceEmployee != null) {
-                                // if(emp.nip.equals(nip_admin_hr)){
-                                // checkAttendanceEmployee.employee = emp;
-                                // }
+                                
                                 checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
                                 checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
                                 checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
