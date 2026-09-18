@@ -30,6 +30,8 @@ public class PayrollDeductionMasterEntity extends PanacheEntityBase{
 
     public Integer pph21;
 
+    public Integer potongan_lainnya;
+
     @OneToOne
     @JoinColumn(name = "id_payroll_master")
     public PayrollMasterEntity payrollMaster;

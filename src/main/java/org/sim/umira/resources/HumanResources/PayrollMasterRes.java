@@ -96,6 +96,7 @@ public class PayrollMasterRes {
             payrollMasterDeduction.tarif_bpjskes = payroll.tarif_bpjskes;
             payrollMasterDeduction.tarif_bpjstk = payroll.tarif_bpjstk;
             payrollMasterDeduction.pph21 = payroll.pph21;
+            payrollMasterDeduction.potongan_lainnya = payroll.potongan_lainnya;
             payrollMasterDeduction.persist();
 
             return Response.ok().entity(ResponseHandler.ok("Create Payroll Master Berhasil", null)).build();
@@ -223,7 +224,7 @@ public class PayrollMasterRes {
                                 .count();
 
                         Long alphaTot = totalAlpha - totalIzin - totalSakit;
-                        System.out.println("total Izin "+totalIzin);
+                        // System.out.println("total Izin "+totalIzin);
                         // LocalDate startDate =
                         // ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
                         // LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan),
@@ -277,7 +278,7 @@ public class PayrollMasterRes {
 
                         // Copy deductions from master
                         // System.out.println(master.gaji_pokok / total_hari_kerja * totalAlpha);
-                        Long potongan_gaji = (master != null) ? master.gaji_pokok / total_hari_kerja * totalAlpha : 0;
+                        Long potongan_gaji = (master != null) ? master.gaji_pokok / total_hari_kerja * alphaTot : 0;
                         PayrollDeductionEntity deduction = new PayrollDeductionEntity();
                         deduction.payrollMaster = payroll;
                         // if (master != null) {
@@ -311,6 +312,7 @@ public class PayrollMasterRes {
                         }
                         PayrollDeductionMasterEntity masterDeduction = PayrollDeductionMasterEntity
                                 .find("payrollMaster = ?1", master).firstResult();
+                        System.out.println(masterDeduction.potongan_lainnya);
                         BigDecimal dedbpjs = new BigDecimal(master.bpjs_kesehatan);
                         BigDecimal dedtarif_bpjs = new BigDecimal((masterDeduction != null)?(masterDeduction.tarif_bpjskes != null)?masterDeduction.tarif_bpjskes:"0":"0");
                         BigDecimal dedbpjstk = new BigDecimal(master.bpjs_ketenagakerjaan);
@@ -323,6 +325,7 @@ public class PayrollMasterRes {
                         deduction.bpjstk = (masterDeduction != null)
                                 ? (int) dedbpjstk.multiply(dedtarif_bpjstk).setScale(0, RoundingMode.HALF_UP).intValue()
                                 : 0;
+                        deduction.potongan_lainnya = (masterDeduction != null)?masterDeduction.potongan_lainnya:0;
                         deduction.persist();
                         generated++;
                     }

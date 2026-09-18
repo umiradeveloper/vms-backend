@@ -43,4 +43,7 @@ public class PayrollMasterDto {
     public String tarif_bpjstk;
 
     public Integer pph21;
+
+     @NotNull(message = "Potongan Lainnya harus di isi")
+    public Integer potongan_lainnya;
 }
