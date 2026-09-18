@@ -47,9 +47,9 @@ public class EmployeeRes {
         KlasifikasiWorkEntity klasifikasi = KlasifikasiWorkEntity.find("klasifikasi_works = ?1", create.klasifikasi_works).firstResult();
         MasterProjectEntity project = MasterProjectEntity.findById(create.id_project);
         try {
-            LocalDate date = Instant.parse(create.tmt_akhir)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDate();
+        //     LocalDate date = Instant.parse(create.tmt_akhir)
+        // .atZone(ZoneId.systemDefault())
+        // .toLocalDate();
             EmployeeEntity employee = new EmployeeEntity();
             employee.nama = create.nama;
             employee.user = ue;
@@ -59,7 +59,7 @@ public class EmployeeRes {
             employee.email = create.email;
             employee.no_hp = create.no_hp;
             employee.tmt = create.tmt;
-            employee.tmt_akhir = date.toString();
+            employee.tmt_akhir = create.tmt_akhir;
             employee.status_karyawan = create.status_karyawan;
             employee.bank_account_holder = create.bank_account_holder;
             employee.religion = create.religion;
@@ -105,9 +105,9 @@ public class EmployeeRes {
         KlasifikasiWorkEntity klasifikasi = KlasifikasiWorkEntity.find("klasifikasi_works = ?1", create.klasifikasi_works).firstResult();
         MasterProjectEntity project = MasterProjectEntity.findById(create.id_project);
         try {
-            LocalDate date = Instant.parse(create.tmt_akhir)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDate();
+        //     LocalDate date = Instant.parse(create.tmt_akhir)
+        // .atZone(ZoneId.systemDefault())
+        // .toLocalDate();
             EmployeeEntity employee = EmployeeEntity.findById(create.id_employee);
             employee.nama = create.nama;
             employee.user = ue;
@@ -117,7 +117,7 @@ public class EmployeeRes {
             employee.email = create.email;
             employee.no_hp = create.no_hp;
             employee.tmt = create.tmt;
-            employee.tmt_akhir = date.toString();
+            employee.tmt_akhir = create.tmt_akhir;
             employee.status_karyawan = create.status_karyawan;
             employee.bank_account_holder = create.bank_account_holder;
             employee.religion = create.religion;
