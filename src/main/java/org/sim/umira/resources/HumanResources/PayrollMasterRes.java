@@ -325,7 +325,7 @@ public class PayrollMasterRes {
                         deduction.bpjstk = (masterDeduction != null)
                                 ? (int) dedbpjstk.multiply(dedtarif_bpjstk).setScale(0, RoundingMode.HALF_UP).intValue()
                                 : 0;
-                        deduction.potongan_lainnya = (masterDeduction != null)?masterDeduction.potongan_lainnya:0;
+                        deduction.potongan_lainnya = (masterDeduction != null)?(masterDeduction.potongan_lainnya != null)?masterDeduction.potongan_lainnya:0:0;
                         deduction.persist();
                         generated++;
                     }
