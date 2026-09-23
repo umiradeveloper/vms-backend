@@ -257,12 +257,12 @@ public class OvertimeRes {
             throw new BadRequestException("Harus melakukan clock out terlebih dahulu");
         }
 
-        Duration durationCheck = Duration.between(parseTime(aeEntityCheck.jam_keluar),
-                parseTime(pengajuan.jam_mulai));
-        Long durationskip = durationCheck.toMinutes();
-        if (durationskip <= 2) {
-            throw new BadRequestException("Pengajuan lembur setelah clock out");
-        }
+        // Duration durationCheck = Duration.between(parseTime(aeEntityCheck.jam_keluar),
+        //         parseTime(pengajuan.jam_mulai));
+        // Long durationskip = durationCheck.toMinutes();
+        // if (durationskip <= 2) {
+        //     throw new BadRequestException("Pengajuan lembur setelah clock out");
+        // }
 
         Duration duration = Duration.between(parseTime(pengajuan.jam_mulai),
                 parseTime(pengajuan.jam_selesai));

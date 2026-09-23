@@ -46,7 +46,7 @@ public class CreateCutiDto {
     @PartType(MediaType.TEXT_PLAIN)
     public String alasan_cuti;
 
-    @NotBlank(message = "tanggal_selesai Harus Di Isi")
+    @NotBlank(message = "delegasi Harus Di Isi")
     @FormParam("id_delegasi")
     @PartType(MediaType.TEXT_PLAIN)
     public String id_delegasi;
