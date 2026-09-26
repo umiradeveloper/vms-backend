@@ -21,6 +21,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.MultipartForm;
 import org.sim.umira.configs.GoogleCalendarConfig;
 import org.sim.umira.dtos.HumanResources.AttendanceEmployeeReportDto;
+import org.sim.umira.dtos.HumanResources.CreateOvertimeDto;
 import org.sim.umira.dtos.HumanResources.OvertimeDto;
 import org.sim.umira.dtos.HumanResources.PengajuanOvertimeDto;
 import org.sim.umira.dtos.HumanResources.PengajuanOvertimeMultipartDto;
@@ -68,7 +69,7 @@ public class OvertimeRes {
     @POST
     @Path("/create-overtime")
     @Transactional
-    public Response createOvertime(@Valid @RequestBody OvertimeDto overtime) {
+    public Response createOvertime(@Valid @RequestBody CreateOvertimeDto overtime) {
 
         EmployeeEntity emp = EmployeeEntity.findById(overtime.id_employee);
         if (emp == null) {
@@ -93,8 +94,8 @@ public class OvertimeRes {
         LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
 
         Integer totalOvertime = 0;
-        System.out.println(startDate);
-        System.out.println(endDate);
+        // System.out.println(startDate);
+        // System.out.println(endDate);
 
         List<OvertimeEntity> overtimeEmp = OvertimeEntity
                 .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
