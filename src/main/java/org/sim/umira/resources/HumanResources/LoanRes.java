@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.dtos.HumanResources.EmployeeDto;
@@ -154,14 +156,27 @@ public class LoanRes {
         try {
 
             // List<LoanEntity> loanList = LoanEntity.find("loanDetail.tahun = ?1", tahun).list();
+            // List<LoanEntity> loanList = LoanEntity.find(
+            //     "select distinct l " +
+            //     "from LoanEntity l " +
+            //     "join l.loanDetail detail " +
+            //     "where detail.tahun = ?1",
+            //     tahun
+            // ).list();
             List<LoanEntity> loanList = LoanEntity.find(
-                "select distinct l " +
-                "from LoanEntity l " +
-                "join l.loanDetail detail " +
-                "where detail.tahun = ?1",
-                tahun
+                "SELECT DISTINCT l FROM LoanEntity l"
             ).list();
-          
+            
+            loanList.removeIf(loan -> {
+                List<LoanDetailEntity> filteredDetail = loan.loanDetail.stream()
+                    .filter(ld -> Objects.equals(ld.tahun, tahun))
+                    .toList();
+
+                loan.loanDetail = filteredDetail;
+
+                return filteredDetail.isEmpty();
+            });
+                    
             // LoanEntity loan = new LoanEntity();
     
             List<responseReportLoan> report = new ArrayList<>();
