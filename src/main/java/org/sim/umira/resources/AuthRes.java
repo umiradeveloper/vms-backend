@@ -5,6 +5,7 @@ package org.sim.umira.resources;
 
 
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,6 +26,8 @@ import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.JwtService;
 import org.sim.umira.services.AESUtils;
+import org.sim.umira.services.PayrollData;
+import org.sim.umira.services.PdfPayrollService;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
 
@@ -347,6 +350,8 @@ public class AuthRes {
 
     }
 
+
+    
 
    
 }

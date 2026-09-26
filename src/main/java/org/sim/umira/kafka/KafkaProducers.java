@@ -23,7 +23,7 @@ public class KafkaProducers {
     public void sendEmail(EmailEventDto event) {
 
         emitter.send(event);
-
+        System.out.println("send");
         logs.save(
                 "KafkaProducer",
                 "SEND_EMAIL",

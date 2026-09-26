@@ -1,5 +1,6 @@
 package org.sim.umira.resources.HumanResources;
 
+import java.awt.PageAttributes.MediaType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -32,6 +33,10 @@ import org.sim.umira.entities.HumanResources.PayrollEntity;
 import org.sim.umira.entities.HumanResources.PayrollMasterEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.kafka.KafkaProducers;
+import org.sim.umira.kafka.DTO.EmailEventDto;
+import org.sim.umira.services.PayrollData;
+import org.sim.umira.services.PdfPayrollService;
 import org.sim.umira.services.YearCalendarService;
 
 import com.google.api.services.calendar.Calendar;
@@ -46,6 +51,7 @@ import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 
@@ -55,6 +61,9 @@ public class PayrollMasterRes {
 
     @Inject
     EntityManager em;
+
+    @Inject 
+    KafkaProducers kafkaproduce;
 
     // ── Create Payroll for every employee
     // ────────────────────────────────────────────────────────────────
@@ -82,6 +91,7 @@ public class PayrollMasterRes {
             payrollMaster.tunjangan_transport = payroll.tunjangan_transport;
             payrollMaster.tunjangan_pulsa = payroll.tunjangan_pulsa;
             payrollMaster.tunjangan_makan = payroll.tunjangan_makan;
+            payrollMaster.tunjangan_operasional = payroll.tunjangan_operasional;
             payrollMaster.tunjangan_lembur = generatedLembur(payroll.tunjangan_lembur, payroll.gaji_pokok);
             payrollMaster.tunjangan_lainnya = payroll.tunjangan_lainnya;
             payrollMaster.bpjs_kesehatan = payroll.bpjs_kesehatan;
@@ -508,4 +518,235 @@ public class PayrollMasterRes {
             throw new InternalServerErrorException(e.getMessage());
         }
     }
+
+
+     @Inject
+    PdfPayrollService payrollService;
+
+   
+
+    @GET
+    @Path("/send-payslip-bulk")
+    public Response sendBulk(@QueryParam("status") String status, @QueryParam("id_employee") List<String> id_employee, @QueryParam("bulan") String bulan, @QueryParam("tahun") String tahun){
+        try{
+
+        /*
+         * Untuk sementara contoh data.
+         * Nanti bagian ini diambil dari MySQL.
+         */
+        System.out.println(status);
+        if("ALL".equals(status)){
+            List<PayrollEntity> payrollSend = PayrollEntity.find("bulan = ?1 AND tahun = ?2", bulan, tahun).list();
+            for(PayrollEntity payroll: payrollSend){
+                    PayrollDeductionEntity payrollDed = PayrollDeductionEntity.find("payrollMaster", payroll).firstResult();
+                    PayrollData data =
+                            new PayrollData();
+                    
+                    
+
+                    data.nama = payroll.employee.nama;
+
+                    data.jabatan = payroll.employee.jabatan;
+
+                    data.departemen = payroll.employee.departemen;
+
+                    // data.hariKerja = Integer.parseInt(payroll.hari_kerja);
+                    // data.izin = 0;
+                    // data.sakit = 0;
+                    // data.alpha = 27;
+
+                    data.gajiPokok =
+                            new BigDecimal(payroll.gaji_pokok);
+
+                    data.tjPulsa =
+                            new BigDecimal(payroll.tunjangan_pulsa);
+                    data.tjJabatan =
+                            new BigDecimal(payroll.tunjangan_jabatan);
+                    data.tjOperasional =
+                            new BigDecimal(payroll.tunjangan_operasional);
+                    data.tjTransport =
+                            new BigDecimal(payroll.tunjangan_transport);
+                    data.tjMakan =
+                            new BigDecimal(payroll.tunjangan_makan);
+                    data.tjLembur =
+                            new BigDecimal(payroll.tunjangan_lembur);
+                    data.tjLainnya =
+                            new BigDecimal(payroll.tunjangan_lainnya);
+
+                    data.bpjsKesehatanPendapatan =
+                            new BigDecimal(payroll.bpjs_kesehatan);
+                    data.bpjsKetenagakerjaanPendapatan =
+                            new BigDecimal(payroll.bpjs_ketenagakerjaan);
+
+                   
+
+                   
+
+                    data.totalPendapatan =
+                            new BigDecimal(payroll.gaji_pokok + payroll.tunjangan_jabatan + payroll.tunjangan_lainnya + payroll.tunjangan_lembur + payroll.tunjangan_makan + payroll.tunjangan_makan + payroll.tunjangan_operasional + payroll.tunjangan_pulsa + payroll.tunjangan_transport + payroll.bpjs_kesehatan + payroll.bpjs_ketenagakerjaan);
+
+                    data.potonganKehadiran =
+                            new BigDecimal(payrollDed.potongan_kehadiran);
+                    data.bpjsKesehatan =
+                            new BigDecimal(payrollDed.bpjskes);
+
+                    data.bpjsKetenagakerjaan =
+                            new BigDecimal(payrollDed.bpjstk);
+                    
+                    data.potonganLainnya = new BigDecimal(payrollDed.potongan_lainnya);
+                    data.pinjaman = new BigDecimal(payrollDed.pinjaman);
+                    data.pph21 = new BigDecimal(payrollDed.pph21);
+
+                    data.totalPotongan =
+                            new BigDecimal(payrollDed.potongan_kehadiran + payrollDed.bpjskes + payrollDed.bpjstk + payrollDed.potongan_lainnya + payrollDed.pinjaman + payrollDed.pph21);
+
+                    data.takeHomePay =
+                            new BigDecimal((payroll.gaji_pokok + payroll.tunjangan_jabatan + payroll.tunjangan_lainnya + payroll.tunjangan_lembur + payroll.tunjangan_makan + payroll.tunjangan_makan + payroll.tunjangan_operasional + payroll.tunjangan_pulsa + payroll.tunjangan_transport + payroll.bpjs_kesehatan + payroll.bpjs_ketenagakerjaan) - (payrollDed.potongan_kehadiran + payrollDed.bpjskes + payrollDed.bpjstk + payrollDed.potongan_lainnya + payrollDed.pinjaman + payrollDed.pph21));
+
+                    byte[] pdf =
+                            payrollService.generate(data);
+                    kafkaproduce.sendEmail(new EmailEventDto(payroll.employee.email, "Payslip-"+bulan+"-"+tahun, "", "Payslip-"+bulan+"-"+tahun, pdf));
+            }
+        }else{
+            List<EmployeeEntity> employeeSend = EmployeeEntity.find("id_employee IN ?1", id_employee).list();
+            List<PayrollEntity> payrollSend = PayrollEntity.find("bulan = ?1 AND tahun = ?2 AND employee IN ?3", bulan, tahun, employeeSend).list();
+             for(PayrollEntity payroll: payrollSend){
+                System.out.println(payroll.hari_alpha);
+                    PayrollDeductionEntity payrollDed = PayrollDeductionEntity.find("payrollMaster", payroll).firstResult();
+                    PayrollData data =
+                            new PayrollData();
+                    
+                    
+
+                    data.nama = payroll.employee.nama;
+
+                    data.jabatan = payroll.employee.jabatan;
+
+                    data.departemen = payroll.employee.departemen;
+
+                    // data.hariKerja = Integer.parseInt(payroll.hari_kerja);
+                    // data.izin = 0;
+                    // data.sakit = 0;
+                    // data.alpha = 27;
+
+                    data.gajiPokok =
+                            new BigDecimal(payroll.gaji_pokok);
+
+                    data.tjPulsa =
+                            new BigDecimal(payroll.tunjangan_pulsa);
+                    data.tjJabatan =
+                            new BigDecimal(payroll.tunjangan_jabatan);
+                    data.tjOperasional =
+                            new BigDecimal(payroll.tunjangan_operasional);
+                    data.tjTransport =
+                            new BigDecimal(payroll.tunjangan_transport);
+                    data.tjMakan =
+                            new BigDecimal(payroll.tunjangan_makan);
+                    data.tjLembur =
+                            new BigDecimal(payroll.tunjangan_lembur);
+                    data.tjLainnya =
+                            new BigDecimal(payroll.tunjangan_lainnya);
+
+                    data.bpjsKesehatanPendapatan =
+                            new BigDecimal(payroll.bpjs_kesehatan);
+                    data.bpjsKetenagakerjaanPendapatan =
+                            new BigDecimal(payroll.bpjs_ketenagakerjaan);
+
+                   
+
+                   
+
+                    data.totalPendapatan =
+                            new BigDecimal(payroll.gaji_pokok + payroll.tunjangan_jabatan + payroll.tunjangan_lainnya + payroll.tunjangan_lembur + payroll.tunjangan_makan + payroll.tunjangan_makan + payroll.tunjangan_operasional + payroll.tunjangan_pulsa + payroll.tunjangan_transport + payroll.bpjs_kesehatan + payroll.bpjs_ketenagakerjaan);
+
+                    data.potonganKehadiran =
+                            new BigDecimal(payrollDed.potongan_kehadiran);
+                    data.bpjsKesehatan =
+                            new BigDecimal(payrollDed.bpjskes);
+
+                    data.bpjsKetenagakerjaan =
+                            new BigDecimal(payrollDed.bpjstk);
+                    
+                    data.potonganLainnya = new BigDecimal(payrollDed.potongan_lainnya);
+                    data.pinjaman = new BigDecimal(payrollDed.pinjaman);
+                    data.pph21 = new BigDecimal(payrollDed.pph21);
+
+                    data.totalPotongan =
+                            new BigDecimal(payrollDed.potongan_kehadiran + payrollDed.bpjskes + payrollDed.bpjstk + payrollDed.potongan_lainnya + payrollDed.pinjaman + payrollDed.pph21);
+
+                    data.takeHomePay =
+                            new BigDecimal((payroll.gaji_pokok + payroll.tunjangan_jabatan + payroll.tunjangan_lainnya + payroll.tunjangan_lembur + payroll.tunjangan_makan + payroll.tunjangan_makan + payroll.tunjangan_operasional + payroll.tunjangan_pulsa + payroll.tunjangan_transport + payroll.bpjs_kesehatan + payroll.bpjs_ketenagakerjaan) - (payrollDed.potongan_kehadiran + payrollDed.bpjskes + payrollDed.bpjstk + payrollDed.potongan_lainnya + payrollDed.pinjaman + payrollDed.pph21));
+
+                    byte[] pdf =
+                            payrollService.generate(data);
+                    kafkaproduce.sendEmail(new EmailEventDto(payroll.employee.email, "Payslip-"+bulan+"-"+tahun, "", "Payslip-"+bulan+"-"+tahun, pdf));
+            }
+        }
+
+        // PayrollData data =
+        //         new PayrollData();
+
+        // data.nama =
+        //         "Rudiat M Yamin";
+
+        // data.jabatan =
+        //         "HSE Officer";
+
+        // data.departemen =
+        //         "Health Safety Environment";
+
+        // data.hariKerja = 0;
+        // data.izin = 0;
+        // data.sakit = 0;
+        // data.alpha = 27;
+
+        // data.gajiPokok =
+        //         new BigDecimal("6600000");
+
+        // data.tjPulsa =
+        //         new BigDecimal("200000");
+
+        // data.bpjsKesehatanPendapatan =
+        //         new BigDecimal("30000");
+
+        // data.potonganKehadiran =
+        //         new BigDecimal("6599988");
+
+        // data.bpjsKesehatan =
+        //         new BigDecimal("30000");
+
+        // data.bpjsKetenagakerjaan =
+        //         new BigDecimal("90000");
+
+        // data.totalPendapatan =
+        //         new BigDecimal("6830000");
+
+        // data.totalPotongan =
+        //         new BigDecimal("6719988");
+
+        // data.takeHomePay =
+        //         new BigDecimal("110012");
+
+        // byte[] pdf =
+        //         payrollService.generate(data);
+
+        // return Response.ok(pdf)
+        //         .header(
+        //                 "Content-Disposition",
+        //                 "inline; filename=\"slip-gaji-" +
+        //                 id +
+        //                 ".pdf\""
+        //         )
+        //         .type("application/pdf")
+        //         .build();
+
+            return Response.ok().entity(ResponseHandler.ok("Send Payroll Berhasil tunggu bebrapa saat", null)).build();
+        } catch (Exception e) {
+            throw new InternalServerErrorException(e.getMessage());
+        }
+    }
+    
+
+   
+
 }

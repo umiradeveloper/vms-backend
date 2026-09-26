@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.sim.umira.configs.ConfigHttpService;
 import org.sim.umira.kafka.DTO.DeleteFileEventDto;
 import org.sim.umira.kafka.DTO.EmailEventDto;
 import org.sim.umira.kafka.DTO.UploadEventDto;
@@ -35,6 +36,9 @@ public class KafkaConsumers {
      @ConfigProperty(name = "redis.email.channel")
     String redisChannelEmail;
 
+    @Inject
+    ConfigHttpService httpService;
+
     
 
     @Inject
@@ -43,12 +47,14 @@ public class KafkaConsumers {
     @Incoming("email-in")
     public void consumeEmail(EmailEventDto event) {
         try {
-            String json = Json.encode(event);
-            // System.out.println(json);
-            ListCommands<String, String> list = redis.list(String.class);
+            // String json = Json.encode(event);
+             System.out.println(event.to);
+            // ListCommands<String, String> list = redis.list(String.class);
 
-            // push ke Redis queue
-            list.rpush(redisChannelEmail, json);
+            // // push ke Redis queue
+            // list.rpush(redisChannelEmail, json);
+
+            httpService.sendEmailWithAttach(event.to, event.message, event.subject, event.filename, event.attachment);
 
             logs.save(
                     "KafkaConsumer",

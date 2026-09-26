@@ -10,6 +10,8 @@ public class PayrollMasterDto {
     public Integer gaji_pokok;
     @NotNull(message = "tunjangan transport harus di isi")
     public Integer tunjangan_transport;
+    @NotNull(message = "tunjangan operasional harus di isi")
+    public Integer tunjangan_operasional;
     @NotNull(message = "tunjangan jabatan harus di isi")
     public Integer tunjangan_jabatan;
     @NotNull(message = "tunjangan makan harus di isi")
