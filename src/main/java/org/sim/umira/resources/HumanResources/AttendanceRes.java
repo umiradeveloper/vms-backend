@@ -112,6 +112,10 @@ public class AttendanceRes {
                 throw new BadRequestException("Sudah melakukan Clock In");
             }
         }
+        CutiEntity checkCuti = CutiEntity.find("tanggal_mulai >= ?1 AND tanggal_selesai <= ?1 AND status_cuti = ?2 AND employee_pengajuan = ?3 AND tanggal_manager IS NOT NULL", attendance.tanggal, "APPROVED",employee).firstResult();
+        if(checkCuti != null){
+            throw new BadRequestException("Anda sedang cuti/sakit tidak perlu presensi");
+        }
 
         AttendanceEntity ae = new AttendanceEntity();
         ae.employee = employee;
