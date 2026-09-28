@@ -80,6 +80,8 @@ public class OvertimeRes {
         Long durationWork = duration.toMinutes();
         int hoursNow = Integer.parseInt(String.valueOf(durationWork)) / 60;
 
+        
+
         LocalDate tanggal = overtime.tanggal;
 
         YearMonth periode = getPeriode(tanggal, Integer.parseInt(tanggal_pembukuan));
@@ -104,10 +106,11 @@ public class OvertimeRes {
         }
         int hours = totalOvertime / 60;
 
+        System.out.println(hours + hoursNow);
+
         if ((hours + hoursNow) > Integer.parseInt(overtime_max)) {
             throw new BadRequestException("Overtime Melebihi Limit");
         }
-
         try {
 
             OvertimeEntity ov = new OvertimeEntity();
@@ -158,7 +161,6 @@ public class OvertimeRes {
                 LocalTime.parse(pengajuan.jam_selesai));
         Long durationWork = duration.toMinutes();
         int hoursNow = Integer.parseInt(String.valueOf(durationWork)) / 60;
-
         LocalDate tanggal = pengajuan.tanggal;
 
         YearMonth periode = getPeriode(tanggal, Integer.parseInt(tanggal_pembukuan));
