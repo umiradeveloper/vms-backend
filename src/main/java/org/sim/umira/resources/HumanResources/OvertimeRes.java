@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -39,6 +40,7 @@ import org.sim.umira.jwt.Secured;
 import org.sim.umira.resources.HumanResources.AttendanceRes.responseAttendanceMonitor;
 import org.sim.umira.services.YearCalendarService;
 
+import com.aayushatharva.brotli4j.common.annotations.Local;
 import com.google.api.services.calendar.Calendar;
 
 import jakarta.transaction.Transactional;
@@ -547,6 +549,9 @@ public class OvertimeRes {
             String keterangan, String id_lembur, String tanggal) {
     }
 
+    public record OvertimeEntityFake(String id_lembur,LocalDate tanggal,String durasi,String jam_mulai,String jam_selesai,String alasan,String dokumen){
+    }
+
     @GET
     @Path("/get-overtime-report")
     @Transactional
@@ -616,12 +621,37 @@ public class OvertimeRes {
 
                 for (YearCalendarService.DayInfo g : calendar) {
                     // String status;
-                    OvertimeEntity overTime = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", g.date, emp)
-                            .firstResult();
+                     List<OvertimeEntity> overTime = OvertimeEntity.find("tanggal = ?1 AND employee = ?2", g.date, emp)
+                            .list();
+
+                        List<String> id_lembur = new ArrayList<>();
+                        List<LocalDate> tanggal = new ArrayList<>();
+
+                        Integer durasi = 0;
+
+                        List<String> jam_mulai = new ArrayList<>();
+
+                        List<String> jam_selesai = new ArrayList<>();
+
+                        List<String> alasan = new ArrayList<>();
+
+                        List<String> dokumen = new ArrayList<>();
+
+                        for(OvertimeEntity ov: overTime){
+                            id_lembur.add(ov.id_lembur);
+                            tanggal.add(ov.tanggal);
+                            durasi += Integer.parseInt(ov.durasi);
+                            jam_mulai.add(ov.jam_mulai);
+                            jam_selesai.add(ov.jam_selesai);
+                            alasan.add(ov.alasan);
+                            dokumen.add(ov.dokumen);
+                        }
+
+                    // String tanggalView = tanggal.stream().map(LocalDate::toString).collect(Collectors.joining(","));
 
                     ovt.put(
                             g.date.toString(),
-                            (overTime != null) ? overTime : null);
+                            (overTime != null) ? new OvertimeEntityFake(String.join(",", id_lembur), g.date, String.valueOf(durasi) , String.join(",", jam_mulai), String.join(",", jam_selesai), String.join(",", alasan), String.join(",", dokumen)) : null);
                 }
 
                 response.add(
