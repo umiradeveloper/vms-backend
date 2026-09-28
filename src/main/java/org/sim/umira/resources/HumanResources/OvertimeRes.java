@@ -102,11 +102,15 @@ public class OvertimeRes {
         List<OvertimeEntity> overtimeEmp = OvertimeEntity
                 .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
         for (OvertimeEntity ov : overtimeEmp) {
-            totalOvertime += Integer.parseInt(ov.durasi);
+            // totalOvertime += Integer.parseInt(ov.durasi);
+             Duration durationEnt = Duration.between(LocalTime.parse(ov.jam_mulai),
+                LocalTime.parse(ov.jam_selesai));
+                Long durationEntity = durationEnt.toMinutes();
+                totalOvertime += Integer.parseInt(String.valueOf(durationEntity)) / 60;
         }
         int hours = totalOvertime / 60;
 
-        System.out.println(hours + hoursNow);
+        // System.out.println(hours + hoursNow);
 
         if ((hours + hoursNow) > Integer.parseInt(overtime_max)) {
             throw new BadRequestException("Overtime Melebihi Limit");
@@ -181,7 +185,11 @@ public class OvertimeRes {
         List<OvertimeEntity> overtimeEmp = OvertimeEntity
                 .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
         for (OvertimeEntity ov : overtimeEmp) {
-            totalOvertime += Integer.parseInt(ov.durasi);
+            // totalOvertime += Integer.parseInt(ov.durasi);
+             Duration durationEnt = Duration.between(LocalTime.parse(ov.jam_mulai),
+                LocalTime.parse(ov.jam_selesai));
+                Long durationEntity = durationEnt.toMinutes();
+                totalOvertime += Integer.parseInt(String.valueOf(durationEntity)) / 60;
         }
         int hours = totalOvertime / 60;
 
