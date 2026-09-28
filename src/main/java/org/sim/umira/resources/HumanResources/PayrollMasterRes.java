@@ -205,17 +205,23 @@ public class PayrollMasterRes {
 
                         List<CutiEntity> izinList = CutiEntity.list("tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti != ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL", startDate, endDate, "SICK_LEAVE", "APPROVED", emp);
                         long totalIzin = izinList.stream()
-                            .mapToLong(a -> {
-                                LocalDate mulai = a.tanggal_mulai.isBefore(startDate)
-                                    ? startDate
-                                    : a.tanggal_mulai;
+                            .mapToLong(a -> 
+                                ChronoUnit.DAYS.between(
+                                a.tanggal_mulai,
+                                a.tanggal_selesai
+                            ) + 1
+                                // {
+                                //         LocalDate mulai = a.tanggal_mulai.isBefore(startDate)
+                                //         ? startDate
+                                //         : a.tanggal_mulai;
 
-                                LocalDate selesai = a.tanggal_selesai.isAfter(endDate)
-                                    ? endDate
-                                    : a.tanggal_selesai;
+                                //         LocalDate selesai = a.tanggal_selesai.isAfter(endDate)
+                                //         ? endDate
+                                //         : a.tanggal_selesai;
 
-                                return ChronoUnit.DAYS.between(mulai, selesai) + 1;
-                            })
+                                //         return ChronoUnit.DAYS.between(mulai, selesai) + 1;
+                                // }
+                                )
                             .sum();
                        
                         List<AttendanceEntity> AlphaList = AttendanceEntity.list(
