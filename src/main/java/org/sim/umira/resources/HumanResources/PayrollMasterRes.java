@@ -195,51 +195,80 @@ public class PayrollMasterRes {
                                 .map(a -> a.tanggal)
                                 .distinct()
                                 .count();
-                        List<CutiEntity> sakitList = CutiEntity.list("tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti = ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL", startDate, endDate, "SICK_LEAVE", "APPROVED", emp);
-                        long totalSakit = sakitList.stream()
-                            .mapToLong(a -> ChronoUnit.DAYS.between(
-                                a.tanggal_mulai,
-                                a.tanggal_selesai
-                            ) + 1)
-                            .sum();
-
-                        List<CutiEntity> izinList = CutiEntity.list("tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti != ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL", startDate, endDate, "SICK_LEAVE", "APPROVED", emp);
-                        long totalIzin = izinList.stream()
-                            .mapToLong(a -> 
-                                ChronoUnit.DAYS.between(
-                                a.tanggal_mulai,
-                                a.tanggal_selesai
-                            ) + 1
-                                // {
-                                //         LocalDate mulai = a.tanggal_mulai.isBefore(startDate)
-                                //         ? startDate
-                                //         : a.tanggal_mulai;
-
-                                //         LocalDate selesai = a.tanggal_selesai.isAfter(endDate)
-                                //         ? endDate
-                                //         : a.tanggal_selesai;
-
-                                //         return ChronoUnit.DAYS.between(mulai, selesai) + 1;
-                                // }
-                                )
-                            .sum();
                        
-                        List<AttendanceEntity> AlphaList = AttendanceEntity.list(
-                                "tanggal BETWEEN ?1 AND ?2 AND employee = ?3",
-                                startDate,
-                                endDate,
-                                emp);
+                        List<CutiEntity> sakitList = CutiEntity.list("tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti = ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL", startDate, endDate, "SICK_LEAVE", "APPROVED", emp);
+                        Set<LocalDate> sakitDates = sakitList.stream()
+                                .flatMap(cuti -> {
+                                        LocalDate mulai = cuti.tanggal_mulai;
+                                        LocalDate selesai = cuti.tanggal_selesai;
 
-                        Set<LocalDate> alphaDates = AlphaList.stream()
-                                .map(a -> a.tanggal)
+                                        return mulai.datesUntil(selesai.plusDays(1));
+                                })
                                 .collect(Collectors.toSet());
 
-                        Long totalAlpha = calendar.stream()
-                                .filter(a -> "GREEN".equals(a.type))
-                                .filter(a -> !alphaDates.contains(a.date))
+                        Long totalSakit = calendar.stream()
+                                .filter(a -> sakitDates.contains(a.date))
                                 .count();
+                        // long totalSakit = sakitList.stream()
+                        //     .mapToLong(a -> {
+                        //                 LocalDate mulai = a.tanggal_mulai.isBefore(startDate)
+                        //                 ? startDate
+                        //                 : a.tanggal_mulai;
 
-                        Long alphaTot = totalAlpha - totalIzin - totalSakit;
+                        //                 LocalDate selesai = a.tanggal_selesai.isAfter(endDate)
+                        //                 ? endDate
+                        //                 : a.tanggal_selesai;
+
+                        //                 return ChronoUnit.DAYS.between(mulai, selesai) + 1;
+                        //     })
+                        //     .sum();
+
+                        List<CutiEntity> izinList = CutiEntity.list("tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti != ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL", startDate, endDate, "SICK_LEAVE", "APPROVED", emp);
+                        Set<LocalDate> izinDates = izinList.stream()
+                                .flatMap(cuti -> {
+                                        LocalDate mulai = cuti.tanggal_mulai;
+                                        LocalDate selesai = cuti.tanggal_selesai;
+
+                                        return mulai.datesUntil(selesai.plusDays(1));
+                                })
+                                .collect(Collectors.toSet());
+
+                        Long totalIzin = calendar.stream()
+                                .filter(a -> izinDates.contains(a.date))
+                                .count();
+                        // long totalIzin = izinList.stream()
+                        //     .mapToLong(a -> 
+                                
+                        //         {
+                        //                 LocalDate mulai = a.tanggal_mulai.isBefore(startDate)
+                        //                 ? startDate
+                        //                 : a.tanggal_mulai;
+
+                        //                 LocalDate selesai = a.tanggal_selesai.isAfter(endDate)
+                        //                 ? endDate
+                        //                 : a.tanggal_selesai;
+
+                        //                 return ChronoUnit.DAYS.between(mulai, selesai) + 1;
+                        //         }
+                        //         )
+                        //     .sum();
+                       
+                        // List<AttendanceEntity> AlphaList = AttendanceEntity.list(
+                        //         "tanggal BETWEEN ?1 AND ?2 AND employee = ?3",
+                        //         startDate,
+                        //         endDate,
+                        //         emp);
+
+                        // Set<LocalDate> alphaDates = AlphaList.stream()
+                        //         .map(a -> a.tanggal)
+                        //         .collect(Collectors.toSet());
+
+                        // Long totalAlpha = calendar.stream()
+                        //         .filter(a -> "Work".equals(a.status))
+                        //         .filter(a -> !alphaDates.contains(a.date))
+                        //         .count();
+
+                        Long alphaTot = total_hari_kerja - totalHadir - totalIzin - totalSakit;
                         // System.out.println("total Izin "+totalIzin);
                         // LocalDate startDate =
                         // ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
