@@ -198,15 +198,16 @@ public class PayrollMasterRes {
                                                 Integer totalSakit = 0;
                                                 Integer totalAlpha = 0;
                                                 for (YearCalendarService.DayInfo date : calendar) {
+                                                        
                                                         List<CutiEntity> izinList = CutiEntity.list(
-                                                                        "tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti != ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL",
+                                                                        "tanggal_mulai <= ?1 AND tanggal_selesai >= ?2 AND jenis_cuti != ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL",
                                                                         date.date, date.date, "SICK_LEAVE", "APPROVED",
                                                                         emp);
                                                         if (izinList.size() > 0) {
                                                                 totalIzin++;
                                                         } else {
                                                                 List<CutiEntity> sakitList = CutiEntity.list(
-                                                                                "tanggal_mulai >= ?1 AND tanggal_selesai <= ?2 AND jenis_cuti = ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL",
+                                                                                "tanggal_mulai <= ?1 AND tanggal_selesai >= ?2 AND jenis_cuti = ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL",
                                                                                 date.date, date.date, "SICK_LEAVE",
                                                                                 "APPROVED", emp);
                                                                 if (sakitList.size() > 0) {
