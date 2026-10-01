@@ -21,6 +21,8 @@ import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.sim.umira.configs.GoogleCalendarConfig;
 import org.sim.umira.dtos.HumanResources.PayrollMasterDto;
 import org.sim.umira.dtos.HumanResources.ResponseAttendanceDto;
+import org.sim.umira.dtos.HumanResources.VerifyPayslipDto;
+import org.sim.umira.entities.UserEntity;
 import org.sim.umira.entities.Cuti.CutiEntity;
 import org.sim.umira.entities.HumanResources.AttendanceEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
@@ -41,9 +43,11 @@ import org.sim.umira.services.YearCalendarService;
 
 import com.google.api.services.calendar.Calendar;
 
+import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -53,7 +57,9 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/HR-Payroll")
 @Secured
@@ -286,18 +292,18 @@ public class PayrollMasterRes {
                                                                         if ("Hadir".equals(ae.status)) {
                                                                                 totalHadir++;
                                                                                 // attendance.put(
-                                                                                //                 g.date.toString(),
-                                                                                //                 "H \n " + ae.jam_masuk
-                                                                                //                                 + "-"
-                                                                                //                                 + ae.jam_keluar);
+                                                                                // g.date.toString(),
+                                                                                // "H \n " + ae.jam_masuk
+                                                                                // + "-"
+                                                                                // + ae.jam_keluar);
 
                                                                         } else if ("WFH".equals(ae.status)) {
                                                                                 totalHadir++;
                                                                                 // attendance.put(
-                                                                                //                 g.date.toString(),
-                                                                                //                 "H \n " + ae.jam_masuk
-                                                                                //                                 + "-"
-                                                                                //                                 + ae.jam_keluar);
+                                                                                // g.date.toString(),
+                                                                                // "H \n " + ae.jam_masuk
+                                                                                // + "-"
+                                                                                // + ae.jam_keluar);
 
                                                                         }
 
@@ -306,11 +312,11 @@ public class PayrollMasterRes {
                                                                         // status = "P";
 
                                                                 } else {
-                                                                
+
                                                                         totalAlpha++;
                                                                         // attendance.put(
-                                                                        //                 g.date.toString(),
-                                                                        //                 "A");
+                                                                        // g.date.toString(),
+                                                                        // "A");
                                                                 }
 
                                                         }
@@ -743,6 +749,47 @@ public class PayrollMasterRes {
                 }
         }
 
+        @GET
+        @Path("/get-payslip")
+        public Response getPayslip(@Context SecurityContext ctx) {
+                UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+                EmployeeEntity employee = EmployeeEntity.find("user = ?1", ue).firstResult();
+                try {
+                        List<PayrollEntity> payroll = PayrollEntity.find("employee = ?1", employee).list();
+                        return Response.ok().entity(ResponseHandler.ok("get Payslip Berhasil", payroll)).build();
+                } catch (Exception e) {
+                        throw new InternalServerErrorException(e.getMessage());
+                        // TODO: handle exception
+                }
+
+        }
+
+        public record payslipResponse(PayrollEntity payroll, PayrollDeductionEntity payrollDeduction) {
+        }
+
+        @POST
+        @Path("/verify-payslip")
+        public Response verifyPayslip(@Valid @RequestBody VerifyPayslipDto payslip, @Context SecurityContext ctx) {
+                UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
+                EmployeeEntity employee = EmployeeEntity.find("user = ?1", ue).firstResult();
+                if (!BcryptUtil.matches(payslip.password, ue.password)) {
+                        return Response.status(Response.Status.BAD_REQUEST)
+                                        .entity(ResponseHandler.error("Password not match")).build();
+                }
+                try {
+                        PayrollEntity payroll = PayrollEntity.find("employee = ?1 AND tahun = ?2 AND bulan = ?3",
+                                        employee, payslip.tahun, payslip.bulan).firstResult();
+                        PayrollDeductionEntity payrollDeduction = PayrollDeductionEntity
+                                        .find("payrollMaster = ?1", payroll).firstResult();
+
+                        return Response.ok().entity(ResponseHandler.ok("Verifikasi Berhasil",
+                                        new payslipResponse(payroll, payrollDeduction))).build();
+                } catch (Exception e) {
+                        throw new InternalServerErrorException(e.getMessage());
+                        // TODO: handle exception
+                }
+        }
+
         @Inject
         PdfPayrollService payrollService;
 
@@ -964,6 +1011,149 @@ public class PayrollMasterRes {
 
                         return Response.ok()
                                         .entity(ResponseHandler.ok("Send Payroll Berhasil tunggu bebrapa saat", null))
+                                        .build();
+                } catch (Exception e) {
+                        throw new InternalServerErrorException(e.getMessage());
+                }
+        }
+
+        @GET
+        @Path("/get-payslip-employee")
+        public Response getPayslipEmployee(@QueryParam("id") String id, @QueryParam("password") String password,
+                        @Context SecurityContext ctx) {
+                UserEntity ue = UserEntity.find("email = ?1",
+                                ctx.getUserPrincipal().getName()).firstResult();
+                // EmployeeEntity employee = EmployeeEntity.find("user = ?1", ue).firstResult();
+                if (!BcryptUtil.matches(password, ue.password)) {
+                        return Response.status(Response.Status.BAD_REQUEST)
+                                        .entity(ResponseHandler.error("Password not match")).build();
+                }
+
+                try {
+
+                        PayrollEntity payroll = PayrollEntity.findById(id);
+
+                        PayrollDeductionEntity payrollDed = PayrollDeductionEntity
+                                        .find("payrollMaster", payroll).firstResult();
+                        PayrollData data = new PayrollData();
+
+                        data.nama = payroll.employee.nama;
+
+                        data.jabatan = payroll.employee.jabatan;
+
+                        data.departemen = payroll.employee.departemen;
+
+                        // data.hariKerja = Integer.parseInt(payroll.hari_kerja);
+                        // data.izin = 0;
+                        // data.sakit = 0;
+                        // data.alpha = 27;
+
+                        data.gajiPokok = new BigDecimal((payroll.gaji_pokok != null) ? payroll.gaji_pokok : 0);
+
+                        data.tjPulsa = new BigDecimal((payroll.tunjangan_pulsa != null) ? payroll.tunjangan_pulsa : 0);
+                        data.tjJabatan = new BigDecimal(
+                                        (payroll.tunjangan_jabatan != null) ? payroll.tunjangan_jabatan : 0);
+                        data.tjOperasional = new BigDecimal(
+                                        (payroll.tunjangan_operasional != null) ? payroll.tunjangan_operasional : 0);
+                        data.tjTransport = new BigDecimal(
+                                        (payroll.tunjangan_transport != null) ? payroll.tunjangan_transport : 0);
+                        data.tjMakan = new BigDecimal((payroll.tunjangan_makan != null) ? payroll.tunjangan_makan : 0);
+                        data.tjLembur = new BigDecimal(
+                                        (payroll.tunjangan_lembur != null) ? payroll.tunjangan_lembur : 0);
+                        data.tjLainnya = new BigDecimal(
+                                        (payroll.tunjangan_lainnya != null) ? payroll.tunjangan_lainnya : 0);
+
+                        data.bpjsKesehatanPendapatan = new BigDecimal(
+                                        (payroll.bpjs_kesehatan != null) ? payroll.bpjs_kesehatan : 0);
+                        data.bpjsKetenagakerjaanPendapatan = new BigDecimal(
+                                        (payroll.bpjs_ketenagakerjaan != null) ? payroll.bpjs_ketenagakerjaan : 0);
+
+                        data.totalPendapatan = new BigDecimal(
+                                        (payroll.gaji_pokok == null ? 0 : payroll.gaji_pokok)
+                                                        + (payroll.tunjangan_jabatan == null ? 0
+                                                                        : payroll.tunjangan_jabatan)
+                                                        + (payroll.tunjangan_lainnya == null ? 0
+                                                                        : payroll.tunjangan_lainnya)
+                                                        + (payroll.tunjangan_lembur == null ? 0
+                                                                        : payroll.tunjangan_lembur)
+                                                        + (payroll.tunjangan_makan == null ? 0
+                                                                        : payroll.tunjangan_makan)
+                                                        + (payroll.tunjangan_operasional == null ? 0
+                                                                        : payroll.tunjangan_operasional)
+                                                        + (payroll.tunjangan_pulsa == null ? 0
+                                                                        : payroll.tunjangan_pulsa)
+                                                        + (payroll.tunjangan_transport == null ? 0
+                                                                        : payroll.tunjangan_transport)
+                                                        + (payroll.bpjs_kesehatan == null ? 0 : payroll.bpjs_kesehatan)
+                                                        + (payroll.bpjs_ketenagakerjaan == null ? 0
+                                                                        : payroll.bpjs_ketenagakerjaan));
+
+                        data.potonganKehadiran = new BigDecimal(
+                                        (payrollDed.potongan_kehadiran != null) ? payrollDed.potongan_kehadiran : 0);
+                        data.bpjsKesehatan = new BigDecimal((payrollDed.bpjskes != null) ? payrollDed.bpjskes : 0);
+
+                        data.bpjsKetenagakerjaan = new BigDecimal((payrollDed.bpjstk != null) ? payrollDed.bpjstk : 0);
+
+                        data.potonganLainnya = new BigDecimal(
+                                        (payrollDed.potongan_lainnya != null) ? payrollDed.potongan_lainnya : 0);
+                        data.pinjaman = new BigDecimal((payrollDed.pinjaman != null) ? payrollDed.pinjaman : 0);
+                        data.pph21 = new BigDecimal((payrollDed.pph21 != null) ? payrollDed.pph21 : 0);
+
+                        data.totalPotongan = new BigDecimal(
+                                        (payrollDed.potongan_kehadiran == null ? 0 : payrollDed.potongan_kehadiran)
+                                                        + (payrollDed.bpjskes == null ? 0 : payrollDed.bpjskes)
+                                                        + (payrollDed.bpjstk == null ? 0 : payrollDed.bpjstk)
+                                                        + (payrollDed.potongan_lainnya == null ? 0
+                                                                        : payrollDed.potongan_lainnya)
+                                                        + (payrollDed.pinjaman == null ? 0 : payrollDed.pinjaman)
+                                                        + (payrollDed.pph21 == null ? 0 : payrollDed.pph21));
+
+                        data.takeHomePay = new BigDecimal(
+                                        ((payroll.gaji_pokok == null ? 0 : payroll.gaji_pokok)
+                                                        + (payroll.tunjangan_jabatan == null ? 0
+                                                                        : payroll.tunjangan_jabatan)
+                                                        + (payroll.tunjangan_lainnya == null ? 0
+                                                                        : payroll.tunjangan_lainnya)
+                                                        + (payroll.tunjangan_lembur == null ? 0
+                                                                        : payroll.tunjangan_lembur)
+                                                        + (payroll.tunjangan_makan == null ? 0
+                                                                        : payroll.tunjangan_makan)
+                                                        + (payroll.tunjangan_operasional == null ? 0
+                                                                        : payroll.tunjangan_operasional)
+                                                        + (payroll.tunjangan_pulsa == null ? 0
+                                                                        : payroll.tunjangan_pulsa)
+                                                        + (payroll.tunjangan_transport == null ? 0
+                                                                        : payroll.tunjangan_transport)
+                                                        + (payroll.bpjs_kesehatan == null ? 0 : payroll.bpjs_kesehatan)
+                                                        + (payroll.bpjs_ketenagakerjaan == null ? 0
+                                                                        : payroll.bpjs_ketenagakerjaan))
+                                                        -
+                                                        ((payrollDed.potongan_kehadiran == null ? 0
+                                                                        : payrollDed.potongan_kehadiran)
+                                                                        + (payrollDed.bpjskes == null ? 0
+                                                                                        : payrollDed.bpjskes)
+                                                                        + (payrollDed.bpjstk == null ? 0
+                                                                                        : payrollDed.bpjstk)
+                                                                        + (payrollDed.potongan_lainnya == null ? 0
+                                                                                        : payrollDed.potongan_lainnya)
+                                                                        + (payrollDed.pinjaman == null ? 0
+                                                                                        : payrollDed.pinjaman)
+                                                                        + (payrollDed.pph21 == null ? 0
+                                                                                        : payrollDed.pph21)));
+
+                        byte[] pdf = payrollService.generate(data);
+
+                        // return Response.ok()
+                        // .entity(ResponseHandler.ok("Send Payroll Berhasil tunggu bebrapa saat",
+                        // null))
+                        // .build();
+                        return Response.ok(pdf)
+                                        .header(
+                                                        "Content-Disposition",
+                                                        "inline; filename=\"payslip-" +
+                                                                        payroll.bulan + "-" + payroll.tahun +
+                                                                        ".pdf\"")
+                                        .type("application/pdf")
                                         .build();
                 } catch (Exception e) {
                         throw new InternalServerErrorException(e.getMessage());
