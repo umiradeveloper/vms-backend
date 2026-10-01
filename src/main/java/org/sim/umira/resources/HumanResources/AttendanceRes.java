@@ -112,8 +112,10 @@ public class AttendanceRes {
                 throw new BadRequestException("Sudah melakukan Clock In");
             }
         }
-        CutiEntity checkCuti = CutiEntity.find("tanggal_mulai >= ?1 AND tanggal_selesai <= ?1 AND status_cuti = ?2 AND employee_pengajuan = ?3 AND tanggal_manager IS NOT NULL", attendance.tanggal, "APPROVED",employee).firstResult();
-        if(checkCuti != null){
+        CutiEntity checkCuti = CutiEntity.find(
+                "tanggal_mulai >= ?1 AND tanggal_selesai <= ?1 AND status_cuti = ?2 AND employee_pengajuan = ?3 AND tanggal_manager IS NOT NULL",
+                attendance.tanggal, "APPROVED", employee).firstResult();
+        if (checkCuti != null) {
             throw new BadRequestException("Anda sedang cuti/sakit tidak perlu presensi");
         }
 
@@ -192,10 +194,11 @@ public class AttendanceRes {
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         EmployeeEntity employeeE = EmployeeEntity.find("user = ?1", ue).firstResult();
 
-        // AttendanceEntity att = AttendanceEntity.find("tanggal = ?1 AND employee = ?2", pengajuan.tanggal, employeeE)
-        //         .firstResult();
+        // AttendanceEntity att = AttendanceEntity.find("tanggal = ?1 AND employee =
+        // ?2", pengajuan.tanggal, employeeE)
+        // .firstResult();
         // if (att != null) {
-        //     throw new BadRequestException("Sudah Melakukan Absen");
+        // throw new BadRequestException("Sudah Melakukan Absen");
         // }
 
         try {
@@ -343,7 +346,7 @@ public class AttendanceRes {
                                             pengajuanAttendance.employee)
                                     .firstResult();
                             if (checkAttendanceEmployee != null) {
-                                
+
                                 checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
                                 checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
                                 checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
@@ -587,9 +590,8 @@ public class AttendanceRes {
 
                     if ("Work".equals(g.status)) {
                         List<String> excludeJenisCuti = List.of(
-    "SICK_LEAVE",
-    "IZIN"
-);
+                                "SICK_LEAVE",
+                                "IZIN");
                         AttendanceEntity ae = AttendanceEntity.find(
                                 "tanggal = ?1 AND employee = ?2",
                                 g.date,
@@ -627,11 +629,11 @@ public class AttendanceRes {
                                     g.date.toString(),
                                     "C");
 
-                        }else if(Izin){
+                        } else if (Izin) {
                             attendance.put(
                                     g.date.toString(),
                                     "I");
-                        }else if(Sakit){
+                        } else if (Sakit) {
                             attendance.put(
                                     g.date.toString(),
                                     "S");
@@ -641,13 +643,11 @@ public class AttendanceRes {
                                         g.date.toString(),
                                         "H \n " + ae.jam_masuk + "-" + ae.jam_keluar);
 
-                            
-                            }else if ("WFH".equals(ae.status)) {
+                            } else if ("WFH".equals(ae.status)) {
                                 attendance.put(
                                         g.date.toString(),
                                         "H \n " + ae.jam_masuk + "-" + ae.jam_keluar);
 
-                            
                             }
 
                             // Sesuaikan dengan field entity AttendanceEntity
@@ -761,26 +761,26 @@ public class AttendanceRes {
 
                     if ("Work".equals(g.status)) {
                         saveAttendance(emp, g.date, attendanceG);
-                        // AttendanceEntity check = AttendanceEntity.find("tanggal = ?1 AND employee = ?2").firstResult();
+                        // AttendanceEntity check = AttendanceEntity.find("tanggal = ?1 AND employee =
+                        // ?2").firstResult();
                         // if(check == null){
-                        //     AttendanceEntity att = new AttendanceEntity();
-                        //     att.employee = emp;
-                        //     att.tanggal = g.date;
-                        //     att.jam_masuk = attendanceG.jam_masuk;
-                        //     att.jam_keluar = attendanceG.jam_keluar;
-                        //     att.status = attendanceG.status;
-                        //     att.keterangan = attendanceG.keterangan;
-                        //     att.persist();
+                        // AttendanceEntity att = new AttendanceEntity();
+                        // att.employee = emp;
+                        // att.tanggal = g.date;
+                        // att.jam_masuk = attendanceG.jam_masuk;
+                        // att.jam_keluar = attendanceG.jam_keluar;
+                        // att.status = attendanceG.status;
+                        // att.keterangan = attendanceG.keterangan;
+                        // att.persist();
                         // }else{
-                        //     check.jam_masuk = attendanceG.jam_masuk;
-                        //     check.jam_keluar = attendanceG.jam_keluar;
-                        //     check.status = attendanceG.status;
-                        //     check.keterangan = attendanceG.keterangan;
+                        // check.jam_masuk = attendanceG.jam_masuk;
+                        // check.jam_keluar = attendanceG.jam_keluar;
+                        // check.status = attendanceG.status;
+                        // check.keterangan = attendanceG.keterangan;
                         // }
-                        
+
                     }
 
-                    
                 }
 
             }
@@ -802,18 +802,15 @@ public class AttendanceRes {
 
     }
 
-    
     private void saveAttendance(
             EmployeeEntity emp,
             LocalDate date,
-            AttendanceGenerateDto attendanceG
-    ) {
+            AttendanceGenerateDto attendanceG) {
 
         AttendanceEntity check = AttendanceEntity.find(
-            "tanggal = ?1 AND employee = ?2",
-            date,
-            emp
-        ).firstResult();
+                "tanggal = ?1 AND employee = ?2",
+                date,
+                emp).firstResult();
 
         if (check == null) {
 

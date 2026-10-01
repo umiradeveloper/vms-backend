@@ -197,39 +197,128 @@ public class PayrollMasterRes {
                                                 Integer totalIzin = 0;
                                                 Integer totalSakit = 0;
                                                 Integer totalAlpha = 0;
-                                                for (YearCalendarService.DayInfo date : calendar) {
-                                                        if (date.status.equals("Work")) {
-                                                                List<CutiEntity> izinList = CutiEntity.list(
-                                                                                "tanggal_mulai <= ?1 AND tanggal_selesai >= ?2 AND jenis_cuti != ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL",
-                                                                                date.date, date.date, "SICK_LEAVE",
-                                                                                "APPROVED",
-                                                                                emp);
-                                                                if (izinList.size() > 0) {
+                                                // for (YearCalendarService.DayInfo date : calendar) {
+                                                // if (date.status.equals("Work")) {
+                                                // List<CutiEntity> izinList = CutiEntity.list(
+                                                // "tanggal_mulai <= ?1 AND tanggal_selesai >= ?2 AND jenis_cuti != ?3
+                                                // AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager
+                                                // IS NOT NULL",
+                                                // date.date, date.date, "SICK_LEAVE",
+                                                // "APPROVED",
+                                                // emp);
+                                                // if (izinList.size() > 0) {
+                                                // totalIzin++;
+                                                // } else {
+                                                // List<CutiEntity> sakitList = CutiEntity.list(
+                                                // "tanggal_mulai <= ?1 AND tanggal_selesai >= ?2 AND jenis_cuti = ?3
+                                                // AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager
+                                                // IS NOT NULL",
+                                                // date.date, date.date,
+                                                // "SICK_LEAVE",
+                                                // "APPROVED", emp);
+                                                // if (sakitList.size() > 0) {
+                                                // totalSakit++;
+                                                // } else {
+                                                // List<AttendanceEntity> hadirList = AttendanceEntity
+                                                // .list(
+                                                // "tanggal = ?1 AND employee = ?2 AND status = ?3",
+                                                // date.date,
+                                                // emp,
+                                                // "Hadir");
+                                                // if (hadirList.size() > 0) {
+                                                // totalHadir++;
+                                                // } else {
+                                                // totalAlpha++;
+                                                // }
+                                                // }
+                                                // }
+                                                // }
+
+                                                // }
+
+                                                for (YearCalendarService.DayInfo g : calendar) {
+                                                        // String status;
+
+                                                        if ("Work".equals(g.status)) {
+                                                                List<String> excludeJenisCuti = List.of(
+                                                                                "SICK_LEAVE",
+                                                                                "IZIN");
+                                                                AttendanceEntity ae = AttendanceEntity.find(
+                                                                                "tanggal = ?1 AND employee = ?2",
+                                                                                g.date,
+                                                                                emp).firstResult();
+
+                                                                boolean isCuti = CutiEntity.count(
+                                                                                "tanggal_mulai <= ?1 " +
+                                                                                                "AND tanggal_selesai >= ?1 "
+                                                                                                +
+                                                                                                "AND employee_pengajuan = ?2 AND jenis_cuti NOT IN ?3",
+                                                                                g.date,
+                                                                                emp, excludeJenisCuti) > 0;
+
+                                                                boolean Izin = CutiEntity.count(
+                                                                                "tanggal_mulai <= ?1 " +
+                                                                                                "AND tanggal_selesai >= ?1 "
+                                                                                                +
+                                                                                                "AND employee_pengajuan = ?2 AND jenis_cuti = ?3",
+                                                                                g.date,
+                                                                                emp, "IZIN") > 0;
+
+                                                                boolean Sakit = CutiEntity.count(
+                                                                                "tanggal_mulai <= ?1 " +
+                                                                                                "AND tanggal_selesai >= ?1 "
+                                                                                                +
+                                                                                                "AND employee_pengajuan = ?2 AND jenis_cuti = ?3",
+                                                                                g.date,
+                                                                                emp, "SICK_LEAVE") > 0;
+
+                                                                /*
+                                                                 * Tentukan status
+                                                                 */
+
+                                                                if (isCuti) {
                                                                         totalIzin++;
-                                                                } else {
-                                                                        List<CutiEntity> sakitList = CutiEntity.list(
-                                                                                        "tanggal_mulai <= ?1 AND tanggal_selesai >= ?2 AND jenis_cuti = ?3 AND status_cuti = ?4 AND employee_pengajuan = ?5 AND tanggal_manager IS NOT NULL",
-                                                                                        date.date, date.date,
-                                                                                        "SICK_LEAVE",
-                                                                                        "APPROVED", emp);
-                                                                        if (sakitList.size() > 0) {
-                                                                                totalSakit++;
-                                                                        } else {
-                                                                                List<AttendanceEntity> hadirList = AttendanceEntity
-                                                                                                .list(
-                                                                                                                "tanggal = ?1 AND employee = ?2 AND status = ?3",
-                                                                                                                date.date,
-                                                                                                                emp,
-                                                                                                                "Hadir");
-                                                                                if (hadirList.size() > 0) {
-                                                                                        totalHadir++;
-                                                                                } else {
-                                                                                        totalAlpha++;
-                                                                                }
+                                                                } else if (Izin) {
+                                                                        totalIzin++;
+                                                                } else if (Sakit) {
+                                                                        totalSakit++;
+                                                                } else if (ae != null) {
+                                                                        if ("Hadir".equals(ae.status)) {
+                                                                                totalHadir++;
+                                                                                // attendance.put(
+                                                                                //                 g.date.toString(),
+                                                                                //                 "H \n " + ae.jam_masuk
+                                                                                //                                 + "-"
+                                                                                //                                 + ae.jam_keluar);
+
+                                                                        } else if ("WFH".equals(ae.status)) {
+                                                                                totalHadir++;
+                                                                                // attendance.put(
+                                                                                //                 g.date.toString(),
+                                                                                //                 "H \n " + ae.jam_masuk
+                                                                                //                                 + "-"
+                                                                                //                                 + ae.jam_keluar);
+
                                                                         }
+
+                                                                        // Sesuaikan dengan field entity
+                                                                        // AttendanceEntity
+                                                                        // status = "P";
+
+                                                                } else {
+                                                                
+                                                                        totalAlpha++;
+                                                                        // attendance.put(
+                                                                        //                 g.date.toString(),
+                                                                        //                 "A");
                                                                 }
+
                                                         }
 
+                                                        // attendance.put(
+                                                        // g.date.toString(),
+                                                        // status
+                                                        // );
                                                 }
 
                                                 // List<AttendanceEntity> hadirList = AttendanceEntity.list(
