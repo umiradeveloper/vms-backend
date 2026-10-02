@@ -30,6 +30,7 @@ import org.sim.umira.entities.HumanResources.AttendanceEntity;
 import org.sim.umira.entities.HumanResources.EmployeeEntity;
 import org.sim.umira.entities.HumanResources.LoanDetailEntity;
 import org.sim.umira.entities.HumanResources.LoanEntity;
+import org.sim.umira.entities.HumanResources.LockPayrollEntity;
 import org.sim.umira.entities.HumanResources.OvertimeEntity;
 import org.sim.umira.entities.HumanResources.PayrollDeductionEntity;
 import org.sim.umira.entities.HumanResources.PayrollDeductionMasterEntity;
@@ -154,8 +155,18 @@ public class PayrollMasterRes {
                         @QueryParam("tahun") String tahun) {
 
                 String holidayCalendarId = "id.indonesian#holiday@group.v.calendar.google.com";
-                if (bulan == null || tahun == null)
+
+                LockPayrollEntity lockPayrollCheck = LockPayrollEntity.find("tahun = ?1 AND bulan = ?2", tahun, bulan).firstResult();
+                if (bulan == null || tahun == null){
                         throw new BadRequestException("Bulan dan tahun wajib diisi");
+                }
+                if(lockPayrollCheck != null){
+                        if(lockPayrollCheck.status.equals("on")){
+                                throw new BadRequestException("Payslip sudah di kunci");
+                        }
+                }
+
+                        
 
                 try {
                         List<EmployeeEntity> employees = EmployeeEntity.listAll();
@@ -738,6 +749,12 @@ public class PayrollMasterRes {
         public Response deletePayroll(
                         @QueryParam("bulan") String bulan,
                         @QueryParam("tahun") String tahun) {
+                LockPayrollEntity lockPayrollCheck = LockPayrollEntity.find("tahun = ?1 AND bulan = ?2", tahun, bulan).firstResult();
+                if(lockPayrollCheck != null){
+                        if(lockPayrollCheck.status.equals("on")){
+                                throw new BadRequestException("Payroll sudah di kunci");
+                        }
+                }
                 try {
                         List<PayrollEntity> list = PayrollEntity.find(
                                         "bulan = ?1 AND tahun = ?2", bulan, tahun).list();
@@ -760,13 +777,66 @@ public class PayrollMasterRes {
                 EmployeeEntity employee = EmployeeEntity.find("user = ?1", ue).firstResult();
                 try {
                         List<PayrollEntity> payroll = PayrollEntity.find("employee = ?1", employee).list();
-                        return Response.ok().entity(ResponseHandler.ok("get Payslip Berhasil", payroll)).build();
+                        List<PayrollEntity> payrollResult = new ArrayList<>();
+                        for(PayrollEntity pay: payroll){
+                                LockPayrollEntity lockCheck = LockPayrollEntity.find("tahun = ?1 AND bulan = ?2", pay.tahun, pay.bulan).firstResult();
+                                if(lockCheck != null){
+                                        if(lockCheck.status.equals("on")){
+                                                payrollResult.add(pay);
+                                        }
+                                }
+                                
+                        }
+                        
+                        return Response.ok().entity(ResponseHandler.ok("get Payslip Berhasil", payrollResult)).build();
                 } catch (Exception e) {
                         throw new InternalServerErrorException(e.getMessage());
                         // TODO: handle exception
                 }
 
         }
+
+        @GET
+        @Path("/lock-payslip")
+        @Transactional
+        public Response lockPayroll(@QueryParam("tahun") String tahun, @QueryParam("bulan") String bulan, @QueryParam("status") String status){
+               try {
+                        // List<PayrollEntity> payroll = PayrollEntity.find("tahun = ?1 AND bulan = ?2", tahun, bulan).list();
+                        // Integer lockPayroll = PayrollEntity.update("status_lock = ?1 WHERE tahun = ?2 AND bulan = ?3", status, tahun, bulan);
+                        LockPayrollEntity checkLock = LockPayrollEntity.find("tahun = ?1 AND bulan = ?2", tahun, bulan).firstResult();
+                        if(checkLock != null){
+                                checkLock.status = status;
+                        }else{
+                                LockPayrollEntity lockNew = new LockPayrollEntity();
+                                lockNew.bulan = bulan;
+                                lockNew.tahun = tahun;
+                                lockNew.status = status;
+                                lockNew.persist();
+                        }
+                        return Response.ok().entity(ResponseHandler.ok("Lock Payslip Berhasil", null)).build();
+                } catch (Exception e) {
+                        throw new InternalServerErrorException(e.getMessage());
+                        // TODO: handle exception
+                } 
+        }
+
+        @GET
+        @Path("/get-lock-payslip")
+        @Transactional
+        public Response getLockPayroll(@QueryParam("tahun") String tahun, @QueryParam("bulan") String bulan, @QueryParam("status") String status){
+               try {
+                        // List<PayrollEntity> payroll = PayrollEntity.find("tahun = ?1 AND bulan = ?2", tahun, bulan).list();
+                        // Integer lockPayroll = PayrollEntity.update("status_lock = ?1 WHERE tahun = ?2 AND bulan = ?3", status, tahun, bulan);
+                        LockPayrollEntity checkLock = LockPayrollEntity.find("tahun = ?1 AND bulan = ?2", tahun, bulan).firstResult();
+                        
+                        return Response.ok().entity(ResponseHandler.ok("get Lock Payslip Berhasil", checkLock)).build();
+                } catch (Exception e) {
+                        throw new InternalServerErrorException(e.getMessage());
+                        // TODO: handle exception
+                } 
+        }
+
+
 
         public record payslipResponse(PayrollEntity payroll, PayrollDeductionEntity payrollDeduction) {
         }
@@ -1020,6 +1090,8 @@ public class PayrollMasterRes {
                         throw new InternalServerErrorException(e.getMessage());
                 }
         }
+
+
 
         @GET
         @Path("/get-payslip-employee")
