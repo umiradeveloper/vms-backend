@@ -1,6 +1,8 @@
 package org.sim.umira.resources.HumanResources;
 
 import java.awt.PageAttributes.MediaType;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -44,11 +46,13 @@ import org.sim.umira.services.YearCalendarService;
 import com.google.api.services.calendar.Calendar;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
@@ -1019,6 +1023,8 @@ public class PayrollMasterRes {
 
         @GET
         @Path("/get-payslip-employee")
+        @Consumes("application/json")
+        @Produces("application/pdf")
         public Response getPayslipEmployee(@QueryParam("id") String id, @QueryParam("password") String password,
                         @Context SecurityContext ctx) {
                 UserEntity ue = UserEntity.find("email = ?1",
@@ -1147,14 +1153,9 @@ public class PayrollMasterRes {
                         // .entity(ResponseHandler.ok("Send Payroll Berhasil tunggu bebrapa saat",
                         // null))
                         // .build();
-                        return Response.ok(pdf)
-                                        .header(
-                                                        "Content-Disposition",
-                                                        "inline; filename=\"payslip-" +
-                                                                        payroll.bulan + "-" + payroll.tahun +
-                                                                        ".pdf\"")
-                                        .type("application/pdf")
-                                        .build();
+                        System.out.println("download");
+                        InputStream imageStream = new ByteArrayInputStream(pdf);
+                        return Response.ok(imageStream).build();
                 } catch (Exception e) {
                         throw new InternalServerErrorException(e.getMessage());
                 }
