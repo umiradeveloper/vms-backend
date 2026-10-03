@@ -391,7 +391,9 @@ public class AttendanceRes {
                         .firstResult();
                     if(getPersetujuanNotifikasi != null){
                         if(getPersetujuanNotifikasi.employee.user.token_mobile != null){
-                            fcmService.sendAsync(getPersetujuanNotifikasi.employee.user.token_mobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+pengajuanAttendance.employee.nama);
+                            String tokenMobile = getPersetujuanNotifikasi.employee.user.token_mobile;
+                            String namaMobile = pengajuanAttendance.employee.nama;
+                            fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+namaMobile);
                         }
                     }
 
