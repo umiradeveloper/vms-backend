@@ -235,7 +235,9 @@ public class AttendanceRes {
             if(pengajuan.id_employee_approval.size() > 0){
                 EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(0));
                 if(employeeApproval.user.token_mobile != null){
-                    fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+employeeE.nama);
+                    String tokenMobile = employeeApproval.user.token_mobile;
+                    String namaMobile = employeeE.nama;
+                    fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+namaMobile);
                 }
                 
 
