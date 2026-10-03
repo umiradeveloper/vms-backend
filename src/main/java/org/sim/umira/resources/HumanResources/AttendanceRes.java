@@ -234,7 +234,10 @@ public class AttendanceRes {
             }
             if(pengajuan.id_employee_approval.size() > 0){
                 EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(0));
-                fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+employeeE.nama);
+                if(employeeApproval.user.token_mobile != null){
+                    fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+employeeE.nama);
+                }
+                
 
             }
 
@@ -387,7 +390,9 @@ public class AttendanceRes {
                                 pengajuanAttendance)
                         .firstResult();
                     if(getPersetujuanNotifikasi != null){
-                        fcmService.sendAsync(getPersetujuanNotifikasi.employee.user.token_mobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+pengajuanAttendance.employee.nama);
+                        if(getPersetujuanNotifikasi.employee.user.token_mobile != null){
+                            fcmService.sendAsync(getPersetujuanNotifikasi.employee.user.token_mobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+pengajuanAttendance.employee.nama);
+                        }
                     }
 
                     return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();

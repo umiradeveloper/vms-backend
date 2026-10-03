@@ -362,7 +362,10 @@ public class OvertimeRes {
             }
             if(pengajuan.id_employee_approval.size() > 0){
                 EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(0));
-                fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Overtime", "Pengajuan Overtime dari "+emp);
+                if(employeeApproval.user.token_mobile != null){
+                    fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Overtime", "Pengajuan Overtime dari "+emp);
+                }
+                
 
             }
             return Response.ok().entity(ResponseHandler.ok("Create Overtime Success", null)).build();
@@ -517,7 +520,10 @@ public class OvertimeRes {
                     .firstResult();
 
                 if(getPersetujuanOvertimeNotifikasi != null){
-                    fcmService.sendAsync(getPersetujuanOvertimeNotifikasi.employee.user.token_mobile, "Pengajuan Overtime", "Pengajuan Approval Overtime dari "+pengajuanOvertime.employee.nama);
+                    if(getPersetujuanOvertimeNotifikasi.employee.user.token_mobile != null){
+                        fcmService.sendAsync(getPersetujuanOvertimeNotifikasi.employee.user.token_mobile, "Pengajuan Overtime", "Pengajuan Approval Overtime dari "+pengajuanOvertime.employee.nama);
+                    }
+                    
                 }
 
                 return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();

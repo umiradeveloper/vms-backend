@@ -175,7 +175,9 @@ public class CutiRes {
             // cuti.id_approver = create.id_approver;
             cuti.persist();
             if(empApproval != null){
-                fcmService.sendAsync(empApproval.user.token_mobile, "Pengajuan Cuti", "Pengajuan Cuti dari "+emp.nama);
+                if(empApproval.user.token_mobile != null){
+                    fcmService.sendAsync(empApproval.user.token_mobile, "Pengajuan Cuti", "Pengajuan Cuti dari "+emp.nama);
+                }
             }
 
             return Response.ok().entity(ResponseHandler.ok("Create Cuti Berhasil", null)).build();
@@ -494,7 +496,9 @@ public class CutiRes {
                     cuti.alasan_penolakan = alasan_penolakan;
                 }
                 if(cuti.employee_manager != null){
-                    fcmService.sendAsync(cuti.employee_manager.user.token_mobile, "Pengajuan Cuti", "Pengajuan Approval Cuti dari "+emp.nama);
+                    if(cuti.employee_manager.user.token_mobile != null){
+                        fcmService.sendAsync(cuti.employee_manager.user.token_mobile, "Pengajuan Cuti", "Pengajuan Approval Cuti dari "+emp.nama);
+                    }
                 }
             }
             if (cuti.employee_manager.equals(emp)) {
