@@ -32,6 +32,8 @@ import org.sim.umira.entities.HumanResources.PengajuanApprovalAttendanceEntity;
 import org.sim.umira.entities.HumanResources.PengajuanAttendanceEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.kafka.KafkaProducers;
+import org.sim.umira.kafka.DTO.SendFcmEventDto;
 import org.sim.umira.services.FcmService;
 import org.sim.umira.services.YearCalendarService;
 
@@ -55,8 +57,8 @@ import jakarta.ws.rs.core.SecurityContext;
 @Secured
 public class AttendanceRes {
 
-     @Inject
-    FcmService fcmService;
+     @Inject 
+     KafkaProducers kafkaProduce;
 
     @POST
     @Path("/create-attendance-manual")
@@ -240,7 +242,8 @@ public class AttendanceRes {
    
             if(tokenMobile != null){
                 String namaMobile = employeeE.nama;
-                fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+namaMobile);
+                // fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+namaMobile);
+                kafkaProduce.sendFcm(new SendFcmEventDto(tokenMobile, "Pengajuan Presensi", namaMobile, "Pengajuan Presensi dari "+namaMobile));
             }
 
             return Response.ok().entity(ResponseHandler.ok("Inquiry attendance Done", null)).build();
@@ -383,7 +386,8 @@ public class AttendanceRes {
                                 if(getPersetujuanNotifikasi.employee.user.token_mobile != null){
                                     String tokenMobile = getPersetujuanNotifikasi.employee.user.token_mobile;
                                     String namaMobile = pengajuanAttendance.employee.nama;
-                                    fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+namaMobile);
+                                    // fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+namaMobile);
+                                    kafkaProduce.sendFcm(new SendFcmEventDto(tokenMobile, "Pengajuan Presensi", namaMobile, "Pengajuan Approval Presensi dari "+namaMobile));
                                 }
                             }
                     } else if (status_approval.equals("Reject")) {
@@ -400,7 +404,8 @@ public class AttendanceRes {
                             String tokenMobile = pengajuanAttendance.employee.user.token_mobile;
                             String namaMobile = pengajuanAttendance.employee.nama;
                             String tanggal = pengajuanAttendance.tanggal.toString();
-                            fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Approval Presensi di tolak dari "+namaMobile+ " Tanggal "+tanggal);
+                            // fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Approval Presensi di tolak dari "+namaMobile+ " Tanggal "+tanggal);
+                            kafkaProduce.sendFcm(new SendFcmEventDto(tokenMobile, "Pengajuan Presensi", namaMobile, "Pengajuan Approval Presensi di tolak dari "+namaMobile+ " Tanggal "+tanggal));;
                         }
 
                     }

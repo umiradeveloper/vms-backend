@@ -37,6 +37,8 @@ import org.sim.umira.entities.HumanResources.PengajuanAttendanceEntity;
 import org.sim.umira.entities.HumanResources.PengajuanOvertimeEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.kafka.KafkaProducers;
+import org.sim.umira.kafka.DTO.SendFcmEventDto;
 import org.sim.umira.resources.HumanResources.AttendanceRes.responseAttendanceMonitor;
 import org.sim.umira.services.FcmService;
 import org.sim.umira.services.YearCalendarService;
@@ -71,7 +73,9 @@ public class OvertimeRes {
     String overtime_max;
 
     @Inject
-    FcmService fcmService;
+    KafkaProducers kafkaProduce;
+
+   
 
     @POST
     @Path("/create-overtime")
@@ -363,7 +367,8 @@ public class OvertimeRes {
             if(pengajuan.id_employee_approval.size() > 0){
                 EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(0));
                 if(employeeApproval.user.token_mobile != null){
-                    fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Overtime", "Pengajuan Overtime dari "+emp);
+                    kafkaProduce.sendFcm(new SendFcmEventDto(employeeApproval.user.token_mobile, "Pengajuan Overtime", emp.nama, "Pengajuan Overtime dari "+emp.nama));
+                    // fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Overtime", "Pengajuan Overtime dari "+emp);
                 }
                 
 
@@ -521,7 +526,8 @@ public class OvertimeRes {
 
                 if(getPersetujuanOvertimeNotifikasi != null){
                     if(getPersetujuanOvertimeNotifikasi.employee.user.token_mobile != null){
-                        fcmService.sendAsync(getPersetujuanOvertimeNotifikasi.employee.user.token_mobile, "Pengajuan Overtime", "Pengajuan Approval Overtime dari "+pengajuanOvertime.employee.nama);
+                        // fcmService.sendAsync(getPersetujuanOvertimeNotifikasi.employee.user.token_mobile, "Pengajuan Overtime", "Pengajuan Approval Overtime dari "+pengajuanOvertime.employee.nama);
+                        kafkaProduce.sendFcm(new SendFcmEventDto(getPersetujuanOvertimeNotifikasi.employee.user.token_mobile, "Pengajuan Overtime", pengajuanOvertime.employee.nama, "Pengajuan Approval Overtime dari "+pengajuanOvertime.employee.nama));
                     }
                     
                 }

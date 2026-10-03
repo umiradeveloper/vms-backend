@@ -11,8 +11,10 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.sim.umira.configs.ConfigHttpService;
 import org.sim.umira.kafka.DTO.DeleteFileEventDto;
 import org.sim.umira.kafka.DTO.EmailEventDto;
+import org.sim.umira.kafka.DTO.SendFcmEventDto;
 import org.sim.umira.kafka.DTO.UploadEventDto;
 import org.sim.umira.minio.MinioServices;
+import org.sim.umira.services.FcmService;
 import org.sim.umira.services.SuperappsExecutor;
 
 import io.quarkus.redis.datasource.RedisDataSource;
@@ -38,6 +40,9 @@ public class KafkaConsumers {
 
     @Inject
     ConfigHttpService httpService;
+
+     @Inject
+    FcmService fcmService;
 
     
 
@@ -169,6 +174,29 @@ public class KafkaConsumers {
                     "delete-file-in",
                     "FAILED",
                     Json.encode(upload),
+                    e.getMessage());
+            // TODO: handle exception
+        }
+    }
+
+    @Incoming("send-fcm-in")
+    public void consumeSendFcm(SendFcmEventDto sendFcm) {
+        try {
+            logs.save(
+                    "KafkaConsumer",
+                    "SEND_FCM",
+                    "send-fcm-in",
+                    "SUCCESS",
+                    Json.encode(sendFcm),
+                    null);
+                fcmService.sendAsync(sendFcm.token, sendFcm.title, sendFcm.message);
+        } catch (Exception e) {
+            logs.save(
+                    "KafkaConsumer",
+                    "SEND_FCM",
+                    "send-fcm-in",
+                    "FAILED",
+                    Json.encode(sendFcm),
                     e.getMessage());
             // TODO: handle exception
         }

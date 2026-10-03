@@ -4,6 +4,7 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.sim.umira.kafka.DTO.DeleteFileEventDto;
 import org.sim.umira.kafka.DTO.EmailEventDto;
+import org.sim.umira.kafka.DTO.SendFcmEventDto;
 import org.sim.umira.kafka.DTO.UploadEventDto;
 
 import io.vertx.core.json.Json;
@@ -50,7 +51,7 @@ public class KafkaProducers {
                 null);
     }
 
-     @Inject
+    @Inject
     @Channel("delete-file-out")
     Emitter<DeleteFileEventDto> emitterDelete;
 
@@ -64,6 +65,34 @@ public class KafkaProducers {
                 "SUCCESS",
                 Json.encode(delete),
                 null);
+    }
+
+    @Inject
+    @Channel("send-fcm-out")
+    Emitter<SendFcmEventDto> emitterSendFcm;
+
+    public void sendFcm(SendFcmEventDto send) {
+        try {
+            emitterSendFcm.send(send);
+
+            logs.save(
+                    "KafkaProducer",
+                    "SEND_FCM",
+                    "send-fcm-out",
+                    "SUCCESS",
+                    Json.encode(send),
+                    null);
+        } catch (Exception e) {
+            logs.save(
+                    "KafkaProducer",
+                    "SEND_FCM",
+                    "send-fcm-out",
+                    "FAILED",
+                    Json.encode(send),
+                    null);
+            // TODO: handle exception
+        }
+        
     }
 
 }
