@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public class PayrollMasterDto {
+
+    public String id_payroll_master;
+
     @NotBlank(message = "id_employee harus di isi")
     public String id_employee;
     @NotNull(message = "gaji pokok harus di isi")

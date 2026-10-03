@@ -92,7 +92,7 @@ public class PayrollMasterRes {
                 if (existing != null) {
                         throw new BadRequestException("Master payroll untuk employee ini sudah ada");
                 }
-                System.out.println(payroll.tarif_bpjstk);
+                // System.out.println(payroll.tarif_bpjstk);
 
                 try {
                         PayrollMasterEntity payrollMaster = new PayrollMasterEntity();
@@ -121,6 +121,55 @@ public class PayrollMasterRes {
                         payrollMasterDeduction.persist();
 
                         return Response.ok().entity(ResponseHandler.ok("Create Payroll Master Berhasil", null)).build();
+                } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new InternalServerErrorException(e.getMessage());
+                }
+        }
+
+        @POST
+        @Path("/update-payroll-master")
+        @Transactional
+        public Response updatePayrollMaster(@RequestBody PayrollMasterDto payroll) {
+                EmployeeEntity employee = EmployeeEntity.findById(payroll.id_employee);
+                if (employee == null) {
+                        throw new BadRequestException("Employee tidak ditemukan");
+                }
+
+                // Check if master already exists for this employee
+                // PayrollMasterEntity existing = PayrollMasterEntity.find("employee = ?1", employee).firstResult();
+                // if (existing != null) {
+                //         throw new BadRequestException("Master payroll untuk employee ini sudah ada");
+                // }
+                // System.out.println(payroll.tarif_bpjstk);
+
+                try {
+                        PayrollMasterEntity payrollMaster = PayrollMasterEntity.findById(payroll.id_payroll_master);
+                        payrollMaster.employee = employee;
+                        payrollMaster.gaji_pokok = payroll.gaji_pokok;
+                        payrollMaster.tunjangan_jabatan = payroll.tunjangan_jabatan;
+                        payrollMaster.tunjangan_transport = payroll.tunjangan_transport;
+                        payrollMaster.tunjangan_pulsa = payroll.tunjangan_pulsa;
+                        payrollMaster.tunjangan_makan = payroll.tunjangan_makan;
+                        payrollMaster.tunjangan_operasional = payroll.tunjangan_operasional;
+                        payrollMaster.tunjangan_lembur = generatedLembur(payroll.tunjangan_lembur, payroll.gaji_pokok);
+                        payrollMaster.tunjangan_lainnya = payroll.tunjangan_lainnya;
+                        payrollMaster.bpjs_kesehatan = payroll.bpjs_kesehatan;
+                        payrollMaster.bpjs_ketenagakerjaan = payroll.bpjs_ketenagakerjaan;
+                        payrollMaster.tarif_bpjs_kesehatan = payroll.tarif_bpjs_kesehatan;
+                        payrollMaster.tarif_bpjs_ketenagakerjaan = payroll.tarif_bpjs_ketenagakerjaan;
+                        payrollMaster.kode_lembur = payroll.tunjangan_lembur;
+                        // payrollMaster.persist();
+
+                        PayrollDeductionMasterEntity payrollMasterDeduction = PayrollDeductionMasterEntity.find("payrollMaster = ?1", payrollMaster).firstResult();
+                        payrollMasterDeduction.payrollMaster = payrollMaster;
+                        payrollMasterDeduction.tarif_bpjskes = payroll.tarif_bpjskes;
+                        payrollMasterDeduction.tarif_bpjstk = payroll.tarif_bpjstk;
+                        payrollMasterDeduction.pph21 = payroll.pph21;
+                        payrollMasterDeduction.potongan_lainnya = payroll.potongan_lainnya;
+                        // payrollMasterDeduction.persist();
+
+                        return Response.ok().entity(ResponseHandler.ok("Update Payroll Master Berhasil", null)).build();
                 } catch (Exception e) {
                         e.printStackTrace();
                         throw new InternalServerErrorException(e.getMessage());
