@@ -25,6 +25,8 @@ import org.sim.umira.entities.HumanResources.MasterCounterCutiEntity;
 import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
+import org.sim.umira.kafka.KafkaProducers;
+import org.sim.umira.kafka.DTO.SendFcmEventDto;
 import org.sim.umira.services.ApiService;
 import org.sim.umira.services.FcmService;
 
@@ -54,7 +56,7 @@ public class CutiRes {
     private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/dokumen-cuti");
 
     @Inject
-    FcmService fcmService;
+    KafkaProducers kafkaProduce;
 
     @POST
     @Path("/create-cuti")
@@ -176,7 +178,8 @@ public class CutiRes {
             cuti.persist();
             if(empApproval != null){
                 if(empApproval.user.token_mobile != null){
-                    fcmService.sendAsync(empApproval.user.token_mobile, "Pengajuan Cuti", "Pengajuan Cuti dari "+emp.nama);
+                    // fcmService.sendAsync(empApproval.user.token_mobile, "Pengajuan Cuti", "Pengajuan Cuti dari "+emp.nama);
+                    kafkaProduce.sendFcm(new SendFcmEventDto(empApproval.user.token_mobile, "Pengajuan Cuti", emp.nama, "Pengajuan Cuti dari "+emp.nama));
                 }
             }
 
@@ -497,7 +500,9 @@ public class CutiRes {
                 }
                 if(cuti.employee_manager != null){
                     if(cuti.employee_manager.user.token_mobile != null){
-                        fcmService.sendAsync(cuti.employee_manager.user.token_mobile, "Pengajuan Cuti", "Pengajuan Approval Cuti dari "+emp.nama);
+                        // fcmService.sendAsync(cuti.employee_manager.user.token_mobile, "Pengajuan Cuti", "Pengajuan Approval Cuti dari "+emp.nama);
+                        kafkaProduce.sendFcm(new SendFcmEventDto(cuti.employee_manager.user.token_mobile, "Pengajuan Cuti", emp.nama, "Pengajuan Approval Cuti dari "+emp.nama));
+                        
                     }
                 }
             }
