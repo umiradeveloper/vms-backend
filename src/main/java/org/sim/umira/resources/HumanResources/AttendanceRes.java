@@ -203,6 +203,7 @@ public class AttendanceRes {
         // if (att != null) {
         // throw new BadRequestException("Sudah Melakukan Absen");
         // }
+        String tokenMobile = "";
 
         try {
             // List<AttendanceEntity> attendance = AttendanceEntity.listAll();
@@ -225,6 +226,10 @@ public class AttendanceRes {
             pengajuanApprovalMaker.persist();
             for (int i = 0; i < pengajuan.id_employee_approval.size(); i++) {
                 EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(i));
+                if(i == 0){
+                    tokenMobile = employeeApproval.user.token_mobile;
+                }
+                
                 PengajuanApprovalAttendanceEntity pengajuanApproval = new PengajuanApprovalAttendanceEntity();
                 pengajuanApproval.pengajuanAbsensi = pengajuanAttendance;
                 pengajuanApproval.employee = employeeApproval;
@@ -232,15 +237,10 @@ public class AttendanceRes {
                 pengajuanApproval.urutan = pengajuan.urutan.get(i);
                 pengajuanApproval.persist();
             }
-            if(pengajuan.id_employee_approval.size() > 0){
-                EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(0));
-                if(employeeApproval.user.token_mobile != null){
-                    String tokenMobile = employeeApproval.user.token_mobile;
-                    String namaMobile = employeeE.nama;
-                    fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+namaMobile);
-                }
-                
-
+   
+            if(tokenMobile != null){
+                String namaMobile = employeeE.nama;
+                fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+namaMobile);
             }
 
             return Response.ok().entity(ResponseHandler.ok("Inquiry attendance Done", null)).build();
@@ -375,6 +375,17 @@ public class AttendanceRes {
                             }
 
                         }
+                         PengajuanApprovalAttendanceEntity getPersetujuanNotifikasi = PengajuanApprovalAttendanceEntity
+                                .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                                        pengajuanAttendance)
+                                .firstResult();
+                            if(getPersetujuanNotifikasi != null){
+                                if(getPersetujuanNotifikasi.employee.user.token_mobile != null){
+                                    String tokenMobile = getPersetujuanNotifikasi.employee.user.token_mobile;
+                                    String namaMobile = pengajuanAttendance.employee.nama;
+                                    fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+namaMobile);
+                                }
+                            }
                     } else if (status_approval.equals("Reject")) {
                         List<PengajuanApprovalAttendanceEntity> getPersetujuanReject = PengajuanApprovalAttendanceEntity
                                 .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
@@ -385,19 +396,15 @@ public class AttendanceRes {
                             pengajuanReject.status_approval = "Reject";
                             pengajuanReject.keterangan = "Rejected By " + ue.username;
                         }
+                        if(pengajuanAttendance.employee.user.token_mobile != null){
+                            String tokenMobile = pengajuanAttendance.employee.user.token_mobile;
+                            String namaMobile = pengajuanAttendance.employee.nama;
+                            String tanggal = pengajuanAttendance.tanggal.toString();
+                            fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Approval Presensi di tolak dari "+namaMobile+ " Tanggal "+tanggal);
+                        }
 
                     }
-                     PengajuanApprovalAttendanceEntity getPersetujuanNotifikasi = PengajuanApprovalAttendanceEntity
-                        .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
-                                pengajuanAttendance)
-                        .firstResult();
-                    if(getPersetujuanNotifikasi != null){
-                        if(getPersetujuanNotifikasi.employee.user.token_mobile != null){
-                            String tokenMobile = getPersetujuanNotifikasi.employee.user.token_mobile;
-                            String namaMobile = pengajuanAttendance.employee.nama;
-                            fcmService.sendAsync(tokenMobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+namaMobile);
-                        }
-                    }
+                    
 
                     return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
                 } else {
