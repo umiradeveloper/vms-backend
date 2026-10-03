@@ -55,6 +55,9 @@ import jakarta.ws.rs.core.SecurityContext;
 @Secured
 public class AttendanceRes {
 
+     @Inject
+    FcmService fcmService;
+
     @POST
     @Path("/create-attendance-manual")
     @Transactional
@@ -229,6 +232,11 @@ public class AttendanceRes {
                 pengajuanApproval.urutan = pengajuan.urutan.get(i);
                 pengajuanApproval.persist();
             }
+            if(pengajuan.id_employee_approval.size() > 0){
+                EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(0));
+                fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Presensi", "Pengajuan Presensi dari "+employeeE.nama);
+
+            }
 
             return Response.ok().entity(ResponseHandler.ok("Inquiry attendance Done", null)).build();
         } catch (Exception e) {
@@ -293,8 +301,7 @@ public class AttendanceRes {
         }
     }
 
-    @Inject
-    FcmService fcmService;
+   
 
     @GET
     @Path("/approval-attendance")
@@ -374,6 +381,13 @@ public class AttendanceRes {
                             pengajuanReject.keterangan = "Rejected By " + ue.username;
                         }
 
+                    }
+                     PengajuanApprovalAttendanceEntity getPersetujuanNotifikasi = PengajuanApprovalAttendanceEntity
+                        .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                                pengajuanAttendance)
+                        .firstResult();
+                    if(getPersetujuanNotifikasi != null){
+                        fcmService.sendAsync(getPersetujuanNotifikasi.employee.user.token_mobile, "Pengajuan Presensi", "Pengajuan Approval Presensi dari "+pengajuanAttendance.employee.nama);
                     }
 
                     return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();

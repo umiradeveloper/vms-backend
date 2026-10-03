@@ -26,6 +26,7 @@ import org.sim.umira.entities.Reimbursement.ReimbursementEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 import org.sim.umira.services.ApiService;
+import org.sim.umira.services.FcmService;
 
 import io.smallrye.common.annotation.Blocking;
 import jakarta.inject.Inject;
@@ -52,9 +53,11 @@ public class CutiRes {
 
     private static final java.nio.file.Path UPLOAD_DIR = java.nio.file.Path.of("uploads/dokumen-cuti");
 
+    @Inject
+    FcmService fcmService;
+
     @POST
     @Path("/create-cuti")
-    
     @Transactional
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response createCuti(
@@ -171,6 +174,9 @@ public class CutiRes {
             cuti.employee_manager = empManager;
             // cuti.id_approver = create.id_approver;
             cuti.persist();
+            if(empApproval != null){
+                fcmService.sendAsync(empApproval.user.token_mobile, "Pengajuan Cuti", "Pengajuan Cuti dari "+emp.nama);
+            }
 
             return Response.ok().entity(ResponseHandler.ok("Create Cuti Berhasil", null)).build();
         } catch (Exception e) {
@@ -486,6 +492,9 @@ public class CutiRes {
                 cuti.tanggal_approval = LocalDateTime.now();
                 if (alasan_penolakan != null && !alasan_penolakan.isBlank()) {
                     cuti.alasan_penolakan = alasan_penolakan;
+                }
+                if(cuti.employee_manager != null){
+                    fcmService.sendAsync(cuti.employee_manager.user.token_mobile, "Pengajuan Cuti", "Pengajuan Approval Cuti dari "+emp.nama);
                 }
             }
             if (cuti.employee_manager.equals(emp)) {

@@ -38,11 +38,13 @@ import org.sim.umira.entities.HumanResources.PengajuanOvertimeEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 import org.sim.umira.resources.HumanResources.AttendanceRes.responseAttendanceMonitor;
+import org.sim.umira.services.FcmService;
 import org.sim.umira.services.YearCalendarService;
 
 import com.aayushatharva.brotli4j.common.annotations.Local;
 import com.google.api.services.calendar.Calendar;
 
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
@@ -67,6 +69,9 @@ public class OvertimeRes {
 
     @ConfigProperty(name = "overtime-max")
     String overtime_max;
+
+    @Inject
+    FcmService fcmService;
 
     @POST
     @Path("/create-overtime")
@@ -296,8 +301,8 @@ public class OvertimeRes {
         LocalDate endDate = ym.atDay(Math.min(Integer.parseInt(tanggal_pembukuan), ym.lengthOfMonth()));
 
         Integer totalOvertime = 0;
-        System.out.println(startDate);
-        System.out.println(endDate);
+        // System.out.println(startDate);
+        // System.out.println(endDate);
 
         List<OvertimeEntity> overtimeEmp = OvertimeEntity
                 .find("employee = ?1 AND tanggal BETWEEN ?2 AND ?3", emp, startDate, endDate).list();
@@ -354,6 +359,11 @@ public class OvertimeRes {
                 pengajuanApprovalOvertime.level_approval = pengajuan.level_approval.get(i);
                 pengajuanApprovalOvertime.urutan = pengajuan.urutan.get(i);
                 pengajuanApprovalOvertime.persist();
+            }
+            if(pengajuan.id_employee_approval.size() > 0){
+                EmployeeEntity employeeApproval = EmployeeEntity.findById(pengajuan.id_employee_approval.get(0));
+                fcmService.sendAsync(employeeApproval.user.token_mobile, "Pengajuan Overtime", "Pengajuan Overtime dari "+emp);
+
             }
             return Response.ok().entity(ResponseHandler.ok("Create Overtime Success", null)).build();
         } catch (Exception e) {
@@ -500,6 +510,14 @@ public class OvertimeRes {
                         pengajuanReject.keterangan = "Rejected By " + ue.username;
                     }
 
+                }
+                PengajuanApprovalOvertimeEntity getPersetujuanOvertimeNotifikasi = PengajuanApprovalOvertimeEntity
+                    .find("pengajuanOvertime = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                            pengajuanOvertime)
+                    .firstResult();
+
+                if(getPersetujuanOvertimeNotifikasi != null){
+                    fcmService.sendAsync(getPersetujuanOvertimeNotifikasi.employee.user.token_mobile, "Pengajuan Overtime", "Pengajuan Approval Overtime dari "+pengajuanOvertime.employee.nama);
                 }
 
                 return Response.ok().entity(ResponseHandler.ok("Approver Berhasil", null)).build();
