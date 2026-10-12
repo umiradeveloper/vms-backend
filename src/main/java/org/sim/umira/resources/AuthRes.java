@@ -26,6 +26,8 @@ import org.sim.umira.entities.HumanResources.PayrollDeductionEntity;
 import org.sim.umira.entities.HumanResources.PayrollEntity;
 import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.JwtService;
+import org.sim.umira.kafka.KafkaProducers;
+import org.sim.umira.kafka.DTO.EmailEventDto;
 import org.sim.umira.services.AESUtils;
 import org.sim.umira.services.PayrollData;
 import org.sim.umira.services.PdfPayrollService;
@@ -61,6 +63,9 @@ public class AuthRes {
 
     @Inject
     ConfigService configService;
+
+    @Inject
+    KafkaProducers kafkaProd;
 
     @POST
     @Path("/login")
@@ -125,9 +130,10 @@ public class AuthRes {
         ue.branch = be;
         ue.persist();
 
-        httpService.SendWhatsapp(registerDto.no_hp,
-                "Terima Kasih telah register \n \n tunggu approval dari administrator");
-        httpService.sendEmail(ue.email, "Terima kasih telah register", "Registrasi");
+        // httpService.SendWhatsapp(registerDto.no_hp,
+        //         "Terima Kasih telah register \n \n tunggu approval dari administrator");
+        // httpService.sendEmail(ue.email, "Terima kasih telah register", "Registrasi");
+         kafkaProd.sendEmail(new EmailEventDto(ue.email.trim(), "Registrasi", "Terima kasih telah register \\n tunggu approval dari administrator", null, null));
 
         return Response.ok().entity(ResponseHandler.ok("success register", null)).build();
     }
@@ -238,19 +244,25 @@ public class AuthRes {
         ue.branch = be;
         ue.persist();
 
-        httpService.SendWhatsapp(registerDto.no_hp.trim(),
-                "Terima Kasih telah register \n tunggu approval dari administrator");
-        httpService.sendEmail(ue.email.trim(), "Terima kasih telah register \n tunggu approval dari administrator",
-                "Registrasi");
+        // httpService.SendWhatsapp(registerDto.no_hp.trim(),
+        //         "Terima Kasih telah register \n tunggu approval dari administrator");
+        kafkaProd.sendEmail(new EmailEventDto(ue.email.trim(), "Registrasi", "Terima kasih telah register \\n tunggu approval dari administrator", null, null));
+        // httpService.sendEmail(ue.email.trim(), "Terima kasih telah register \n tunggu approval dari administrator",
+        //         "Registrasi");
         List<UserEntity> userNotifikasi = UserEntity.find("role.kode_role = ?1 ", "32").list();
         for (UserEntity us : userNotifikasi) {
-            httpService.sendEmail(us.email.trim(), "Pengajuan pendaftaran Akun vendor dengan email " + registerDto.email
+            kafkaProd.sendEmail(new EmailEventDto(us.email.trim(), "Registrasi Vendor","Pengajuan pendaftaran Akun vendor dengan email " + registerDto.email
                     + " dan nama " + registerDto.nama_perusahaan
-                    + " sedang menunggu approval akun silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini",
-                    "Approval Akun Vendor");
-            httpService.SendWhatsapp(us.no_hp.trim(), "Pengajuan pendaftaran Akun vendor dengan email "
-                    + registerDto.email + " dan nama " + registerDto.nama_perusahaan
-                    + " sedang menunggu approval akun silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini");
+                    + " sedang menunggu approval akun silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini" , null, null));
+
+
+            // httpService.sendEmail(us.email.trim(), "Pengajuan pendaftaran Akun vendor dengan email " + registerDto.email
+            //         + " dan nama " + registerDto.nama_perusahaan
+            //         + " sedang menunggu approval akun silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini",
+            //         "Approval Akun Vendor");
+            // httpService.SendWhatsapp(us.no_hp.trim(), "Pengajuan pendaftaran Akun vendor dengan email "
+            //         + registerDto.email + " dan nama " + registerDto.nama_perusahaan
+            //         + " sedang menunggu approval akun silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini");
         }
 
         return Response.ok().entity(ResponseHandler.ok("success register", null)).build();

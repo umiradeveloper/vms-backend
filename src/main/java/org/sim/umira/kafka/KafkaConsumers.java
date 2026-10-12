@@ -53,17 +53,25 @@ public class KafkaConsumers {
     public void consumeEmail(EmailEventDto event) {
         try {
             // String json = Json.encode(event);
-             System.out.println(event.to);
+            //  System.out.println(event.to);
             // ListCommands<String, String> list = redis.list(String.class);
 
             // // push ke Redis queue
             // list.rpush(redisChannelEmail, json);
+            String status_attach = "";
+            if(event.attachment == null){
+                httpService.sendEmail(event.to, event.message, event.subject);
+                status_attach = "NO_ATTACH";
+            }else{
+                httpService.sendEmailWithAttach(event.to, event.message, event.subject, event.filename, event.attachment);
+                 status_attach = "WITH_ATTACH";
+            }
 
-            httpService.sendEmailWithAttach(event.to, event.message, event.subject, event.filename, event.attachment);
+            
 
             logs.save(
                     "KafkaConsumer",
-                    "SEND_EMAIL",
+                    "SEND_EMAIL_"+status_attach,
                     "email-in",
                     "SUCCESS",
                     Json.encode(event),
