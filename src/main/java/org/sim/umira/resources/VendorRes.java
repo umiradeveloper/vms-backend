@@ -32,6 +32,7 @@ import org.sim.umira.handlers.ResponseHandler;
 import org.sim.umira.jwt.Secured;
 import org.sim.umira.kafka.KafkaProducers;
 import org.sim.umira.kafka.DTO.DeleteFileEventDto;
+import org.sim.umira.kafka.DTO.EmailEventDto;
 import org.sim.umira.kafka.DTO.UploadEventDto;
 import org.sim.umira.minio.MinioServices;
 
@@ -198,20 +199,25 @@ public class VendorRes {
         List<String> kode_role_notifikasi = List.of("02", "03", "04", "16", "32");
         List<UserEntity> userNotifikasi = UserEntity.find("role.kode_role IN ?1 ", kode_role_notifikasi).list();
         for (UserEntity us : userNotifikasi) {
-            httpService.sendEmail(us.email.trim(), "Pengajuan pendaftaran rekanan vendor ID Pengajuan " + pengajuan
+            kafkaProducers.sendEmail(new EmailEventDto(us.email.trim(), "Approval Daftar Rekanan", "Pengajuan pendaftaran rekanan vendor ID Pengajuan " + pengajuan
                     + " dengan nama " + create.nama_perusahaan + " dengan email " + create.email_pic + " dan "
                     + create.email_direktur
-                    + " sedang menunggu approval silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini",
-                    "Approval Daftar Rekanan");
-            httpService.SendWhatsapp((us != null &&
-                    us.no_hp != null &&
-                    !us.no_hp.isBlank())
-                            ? us.no_hp.trim()
-                            : "",
-                    "Pengajuan pendaftaran rekanan vendor ID Pengajuan " + pengajuan + " dengan nama "
-                            + create.nama_perusahaan + " dengan email " + create.email_pic + " dan "
-                            + create.email_direktur
-                            + " sedang menunggu approval silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini");
+                    + " sedang menunggu approval silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini"
+            , null, null));
+            // httpService.sendEmail(us.email.trim(), "Pengajuan pendaftaran rekanan vendor ID Pengajuan " + pengajuan
+            //         + " dengan nama " + create.nama_perusahaan + " dengan email " + create.email_pic + " dan "
+            //         + create.email_direktur
+            //         + " sedang menunggu approval silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini",
+            //         "Approval Daftar Rekanan");
+            // httpService.SendWhatsapp((us != null &&
+            //         us.no_hp != null &&
+            //         !us.no_hp.isBlank())
+            //                 ? us.no_hp.trim()
+            //                 : "",
+            //         "Pengajuan pendaftaran rekanan vendor ID Pengajuan " + pengajuan + " dengan nama "
+            //                 + create.nama_perusahaan + " dengan email " + create.email_pic + " dan "
+            //                 + create.email_direktur
+            //                 + " sedang menunggu approval silahkan di cek ke https://superapps.simumira.com untuk menindaklanjuti pengajuan ini");
         }
 
         return Response.ok().entity(ResponseHandler.ok("Create Vendor Berhasil", null)).build();
@@ -543,27 +549,34 @@ public class VendorRes {
             ve.tanggal_awal_skt = nowDate;
             ve.tanggal_akhir_skt = nowDate.plusYears(2);
 
-            httpService.SendWhatsapp(ve.no_hp_pic.trim(), "Pengajuan Pendaftaran vendor telah di approve dengan nomor "
-                    + no_skt + " dan nomor pengajuan " + ve.id_pengajuan);
-            httpService.SendWhatsapp(ve.no_hp_direktur.trim(),
-                    "Pengajuan Pendaftaran vendor telah di approve dengan nomor " + no_skt + "dan nomor pengajuan "
-                            + ve.id_pengajuan);
-            httpService.sendEmail(ve.email_pic.trim(), "Pengajuan Pendaftaran vendor telah di approve dengan nomor "
-                    + no_skt + "dan nomor pengajuan " + ve.id_pengajuan, "Approval SKT");
-            httpService.sendEmail(ve.email_direktur.trim(),
-                    "Pengajuan Pendaftaran vendor telah di approve dengan nomor " + no_skt + "dan nomor pengajuan "
-                            + ve.id_pengajuan,
-                    "Approval SKT");
+            // httpService.SendWhatsapp(ve.no_hp_pic.trim(), "Pengajuan Pendaftaran vendor telah di approve dengan nomor "
+            //         + no_skt + " dan nomor pengajuan " + ve.id_pengajuan);
+            // httpService.SendWhatsapp(ve.no_hp_direktur.trim(),
+            //         "Pengajuan Pendaftaran vendor telah di approve dengan nomor " + no_skt + "dan nomor pengajuan "
+            //                 + ve.id_pengajuan);
+            // httpService.sendEmail(ve.email_pic.trim(), "Pengajuan Pendaftaran vendor telah di approve dengan nomor "
+            //         + no_skt + "dan nomor pengajuan " + ve.id_pengajuan, "Approval SKT");
+            // httpService.sendEmail(ve.email_direktur.trim(),
+            //         "Pengajuan Pendaftaran vendor telah di approve dengan nomor " + no_skt + "dan nomor pengajuan "
+            //                 + ve.id_pengajuan,
+            //         "Approval SKT");
+
+            kafkaProducers.sendEmail(new EmailEventDto(ve.email_pic.trim(),"Approval SKT", "Pengajuan Pendaftaran vendor telah di approve dengan nomor "
+                    + no_skt + "dan nomor pengajuan " + ve.id_pengajuan, null, null));
+            kafkaProducers.sendEmail(new EmailEventDto(ve.email_direktur.trim(),"Approval SKT", "Pengajuan Pendaftaran vendor telah di approve dengan nomor " + no_skt + "dan nomor pengajuan "
+                            + ve.id_pengajuan, null, null));
         }
         if (approval.isApproval == 0) {
             ve.catatan = approval.catatan;
-            httpService.SendWhatsapp(ve.no_hp_direktur.trim(),
-                    "Pengajuan pendaftaran vendor anda telah di tolak dengan catatan " + approval.catatan
-                            + " ID Pengajuan " + ve.id_pengajuan);
-            httpService.sendEmail(ve.email_pic.trim(),
-                    "Pengajuan pendaftaran vendor anda telah di tolak dengan catatan " + approval.catatan
-                            + " ID Pengajuan " + ve.id_pengajuan,
-                    "Approval SKT");
+            // httpService.SendWhatsapp(ve.no_hp_direktur.trim(),
+            //         "Pengajuan pendaftaran vendor anda telah di tolak dengan catatan " + approval.catatan
+            //                 + " ID Pengajuan " + ve.id_pengajuan);
+            // httpService.sendEmail(ve.email_pic.trim(),
+            //         "Pengajuan pendaftaran vendor anda telah di tolak dengan catatan " + approval.catatan
+            //                 + " ID Pengajuan " + ve.id_pengajuan,
+            //         "Approval SKT");
+            kafkaProducers.sendEmail(new EmailEventDto(ve.email_pic.trim(),"Approval SKT", "Pengajuan pendaftaran vendor anda telah di tolak dengan catatan " + approval.catatan
+                            + " ID Pengajuan " + ve.id_pengajuan, null, null));
         }
 
         return Response.ok().entity(ResponseHandler.ok("approval berhasil", ve)).build();
