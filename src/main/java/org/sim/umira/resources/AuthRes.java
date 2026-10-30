@@ -133,7 +133,7 @@ public class AuthRes {
         // httpService.SendWhatsapp(registerDto.no_hp,
         //         "Terima Kasih telah register \n \n tunggu approval dari administrator");
         // httpService.sendEmail(ue.email, "Terima kasih telah register", "Registrasi");
-         kafkaProd.sendEmail(new EmailEventDto(ue.email.trim(), "Registrasi", "Terima kasih telah register \\n tunggu approval dari administrator", null, null));
+         kafkaProd.sendEmail(new EmailEventDto(ue.email.trim(), "Registrasi", "Terima kasih telah register \n tunggu approval dari administrator", null, null));
 
         return Response.ok().entity(ResponseHandler.ok("success register", null)).build();
     }
@@ -186,10 +186,10 @@ public class AuthRes {
         if (emp == null) {
             throw new BadRequestException("Employee Tidak Di Temukan");
         } else {
-            if (emp.id_employee_checker != null || emp.id_employee_checker != "") {
+            if (emp.id_employee_checker != null && !emp.id_employee_checker.isEmpty()) {
                 empChecker = EmployeeEntity.findById(emp.id_employee_checker);
             }
-            if (emp.id_employee_signer != null || emp.id_employee_signer != "") {
+            if (emp.id_employee_signer != null && !emp.id_employee_signer.isEmpty()) {
                 empSigner = EmployeeEntity.findById(emp.id_employee_signer);
             }
         }
@@ -246,7 +246,7 @@ public class AuthRes {
 
         // httpService.SendWhatsapp(registerDto.no_hp.trim(),
         //         "Terima Kasih telah register \n tunggu approval dari administrator");
-        kafkaProd.sendEmail(new EmailEventDto(ue.email.trim(), "Registrasi", "Terima kasih telah register \\n tunggu approval dari administrator", null, null));
+        kafkaProd.sendEmail(new EmailEventDto(ue.email.trim(), "Registrasi", "Terima kasih telah register \n tunggu approval dari administrator", null, null));
         // httpService.sendEmail(ue.email.trim(), "Terima kasih telah register \n tunggu approval dari administrator",
         //         "Registrasi");
         List<UserEntity> userNotifikasi = UserEntity.find("role.kode_role = ?1 ", "32").list();
@@ -277,7 +277,8 @@ public class AuthRes {
             throw new BadRequestException("Email atau no handphone tidak terdaftar");
         }
         try {
-            String enc = AESUtils.encrypt(email + "|" + LocalDateTime.now().plusHours(2));
+            // pakai email dari database (input bisa berupa no_hp), karena reset-password mencari berdasarkan email
+            String enc = AESUtils.encrypt(ue.email + "|" + LocalDateTime.now().plusHours(2));
 
             httpService.sendEmail(ue.email.trim(),
                     "Berikut link untuk reset password : https://superapps.simumira.com/VerifyPassword?token=" + enc,
@@ -294,6 +295,9 @@ public class AuthRes {
     @PermitAll
     public Response VerifyToken(@QueryParam("token") String token) {
 
+        if (token == null || token.isBlank()) {
+            throw new BadRequestException("Token harus di isi");
+        }
         try {
             String dec = AESUtils.decrypt(token);
             String[] decrypt = dec.split("\\|");
@@ -309,8 +313,8 @@ public class AuthRes {
             // return Response.ok().entity(ResponseHandler.ok("Reset password berhasil di
             // kirim ke email ", null)).build();
         } catch (Exception e) {
-            throw new InternalServerErrorException(e.getMessage());
-            // TODO: handle exception
+            // token rusak / tidak bisa didekripsi -> anggap expired, bukan 500
+            return Response.ok().entity(ResponseHandler.ok("Token tidak valid", true)).build();
         }
     }
 
@@ -319,17 +323,25 @@ public class AuthRes {
     @PermitAll
     @Transactional
     public Response ResetPassword(@Valid @RequestBody ResetPasswordDto reset) {
-        String dec = AESUtils.decrypt(reset.token);
-        String[] decrypt = dec.split("\\|");
-        // System.out.println(decrypt[1]);
-        LocalDateTime perbandinganWaktu = LocalDateTime.parse(decrypt[1]);
+        String[] decrypt;
+        LocalDateTime perbandinganWaktu;
+        try {
+            String dec = AESUtils.decrypt(reset.token);
+            decrypt = dec.split("\\|");
+            perbandinganWaktu = LocalDateTime.parse(decrypt[1]);
+        } catch (Exception e) {
+            throw new BadRequestException("Token reset password tidak valid");
+        }
         if (LocalDateTime.now().isAfter(perbandinganWaktu)) {
             // return Response.ok().entity(ResponseHandler.ok("Masih Berlaku",
             // false)).build();
             throw new BadRequestException("Link Sudah Expired");
         }
         try {
-            UserEntity ue = UserEntity.find("email = ?1", decrypt[0]).firstResult();
+            UserEntity ue = UserEntity.find("email = ?1 OR no_hp = ?1", decrypt[0]).firstResult();
+            if (ue == null) {
+                throw new BadRequestException("User tidak ditemukan");
+            }
             ue.password = BcryptUtil.bcryptHash(reset.password);
             return Response.ok().entity(ResponseHandler.ok("Reset Password Berhasil", null)).build();
         } catch (Exception e) {

@@ -38,7 +38,7 @@ public class JwtFilter implements ContainerRequestFilter {
                 return; // lewati filter
         }
         String authHeader = requestContext.getHeaderString("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer")) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             abort(requestContext, "Missing or invalid Authorization header");
             return;
         }
@@ -47,6 +47,7 @@ public class JwtFilter implements ContainerRequestFilter {
 
         try {
            String subject = js.validateToken(token);
+           java.util.List<String> roles = js.getRoles(token);
 
             // inject subject ke context kalau perlu
             // requestContext.setProperty("user", subject);
@@ -58,7 +59,8 @@ public class JwtFilter implements ContainerRequestFilter {
                 @Override
                 public boolean isUserInRole(String role) {
                     // bisa cek claim "roles" dari JWT di sini
-                    return role != null && role.contains(role);
+                    // sebelumnya `role.contains(role)` selalu true -> semua user dianggap punya semua role
+                    return role != null && roles.contains(role);
                 }
 
                 @Override
@@ -75,7 +77,8 @@ public class JwtFilter implements ContainerRequestFilter {
                 }
             });
 
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
+            // IllegalArgumentException: token kosong ("Bearer ") -> sebelumnya jadi 500
             abort(requestContext, "Invalid or expired token");
         }
     }

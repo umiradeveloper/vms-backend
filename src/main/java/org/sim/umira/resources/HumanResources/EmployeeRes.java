@@ -178,10 +178,10 @@ public class EmployeeRes {
             for(EmployeeEntity emp : employee){
                 EmployeeEntity empChecker = null;
                 EmployeeEntity empSigner = null;
-                if(emp.id_employee_checker != null && emp.id_employee_checker != ""){
+                if(emp.id_employee_checker != null && !emp.id_employee_checker.isEmpty()){
                     empChecker = EmployeeEntity.findById(emp.id_employee_checker);
                 }
-                if(emp.id_employee_signer != null && emp.id_employee_signer != ""){
+                if(emp.id_employee_signer != null && !emp.id_employee_signer.isEmpty()){
                     empSigner = EmployeeEntity.findById(emp.id_employee_signer);
                 }
            

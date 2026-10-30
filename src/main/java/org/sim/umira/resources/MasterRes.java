@@ -320,16 +320,18 @@ public class MasterRes {
 
     @GET
     @Path("/calendar")
-    public Response getTanggalCalendar() {
+    public Response getTanggalCalendar(@QueryParam("year") Integer year) {
+        // sebelumnya tahun di-hardcode 2026
+        int tahun = (year != null) ? year : LocalDate.now().getYear();
         try {
             String holidayCalendarId = "id.indonesian#holiday@group.v.calendar.google.com";
             Calendar service = GoogleCalendarConfig.getService();
 
             // 1. ambil libur nasional
-            Set<LocalDate> holidays = YearCalendarService.getHolidays(service, holidayCalendarId);
+            Set<LocalDate> holidays = YearCalendarService.getHolidays(service, holidayCalendarId, tahun);
 
             // 2. generate 1 tahun
-            List<YearCalendarService.DayInfo> calendar = YearCalendarService.generateYear(2026, holidays);
+            List<YearCalendarService.DayInfo> calendar = YearCalendarService.generateYear(tahun, holidays);
 
             // for (Event e : events.getItems()) {
             // System.out.println("LIBUR: " + e.getSummary());

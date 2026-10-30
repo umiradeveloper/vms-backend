@@ -266,7 +266,7 @@ public class PengajuanBiayaKonstruksiRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanBiayaKonstruksiEntity> listPengajuan;
-            if(ue.role.id_role == "99"){
+            if("99".equals(ue.role.kode_role)){
                 listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p  JOIN p.proyek pr").list(); 
             }else{
                 listPengajuan = PengajuanBiayaKonstruksiEntity.find("""
@@ -298,10 +298,10 @@ public class PengajuanBiayaKonstruksiRes {
         @QueryParam("id_pengajuan_bk") String id_pengajuan_bk, @Context SecurityContext ctx, @QueryParam("catatan") String catatan, @QueryParam("status_approver") String status_approver
     ){
 
-        if(id_pengajuan_bk == null || id_pengajuan_bk == ""){
+        if(id_pengajuan_bk == null || id_pengajuan_bk.isBlank()){
             throw new BadRequestException("id_pengajuan_bk harus Di Isi");
         }   
-        if(status_approver == null || status_approver == ""){
+        if(status_approver == null || status_approver.isBlank()){
             throw new BadRequestException("status_approver harus Di Isi");
         }
         System.out.println(id_pengajuan_bk);
@@ -312,7 +312,7 @@ public class PengajuanBiayaKonstruksiRes {
             if(getPersetujuan != null){
                 getPersetujuan.status_approver = status_approver;
                 getPersetujuan.tanggal_persetujuan = LocalDateTime.now();
-                getPersetujuan.catatan_persetujuan = (catatan != "" || catatan != null)?catatan:"";
+                getPersetujuan.catatan_persetujuan = (catatan != null) ? catatan : "";
                 
                 if(status_approver.equals("Approve")){
                     // System.out.println(status_approver);
@@ -409,7 +409,7 @@ public class PengajuanBiayaKonstruksiRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             // PengajuanBiayaKonstruksiPersetujuanEntity pengajuan = PengajuanBiayaKonstruksiPersetujuanEntity.find("id_user = ?1 AND tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanBiayaKonstruksiEntity> listPengajuan;
-            if(ue.role.id_role == "99"){
+            if("99".equals(ue.role.kode_role)){
                 listPengajuan = PengajuanBiayaKonstruksiEntity.find("SELECT DISTINCT p FROM PengajuanBiayaKonstruksiEntity p JOIN p.proyek pr").list(); 
             }else{
                 listPengajuan = PengajuanBiayaKonstruksiEntity.find("""

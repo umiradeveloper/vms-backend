@@ -57,13 +57,18 @@ public class YearCalendarService {
 
     public static Set<LocalDate> getHolidays(Calendar service, String calendarId)
             throws Exception {
+        return getHolidays(service, calendarId, LocalDate.now().getYear());
+    }
+
+    public static Set<LocalDate> getHolidays(Calendar service, String calendarId, int year)
+            throws Exception {
 
         Set<LocalDate> holidays = new HashSet<>();
 
         Events events = service.events()
                 .list(calendarId)
-                .setTimeMin(new DateTime("2026-01-01T00:00:00Z"))
-                .setTimeMax(new DateTime("2026-12-31T23:59:59Z"))
+                .setTimeMin(new DateTime(year + "-01-01T00:00:00Z"))
+                .setTimeMax(new DateTime(year + "-12-31T23:59:59Z"))
                 .execute();
 
         for (Event e : events.getItems()) {
@@ -113,8 +118,7 @@ public class YearCalendarService {
 
             // boolean weekend = date.getDayOfWeek() == DayOfWeek.SATURDAY ||
             //         date.getDayOfWeek() == DayOfWeek.SUNDAY;
-            boolean weekend = date.getDayOfWeek() == DayOfWeek.SUNDAY
-        || (SaturdayOff && date.getDayOfWeek() == DayOfWeek.SATURDAY);
+            boolean weekend = date.getDayOfWeek() == DayOfWeek.SUNDAY || (!SaturdayOff && date.getDayOfWeek() == DayOfWeek.SATURDAY);
 
             boolean holiday = holidays.contains(date);
 

@@ -268,7 +268,7 @@ public class AttendanceRes {
             // tanggal_persetujuan IS NULL ORDER BY urutan ASC ", ue.id_user).firstResult();
             List<PengajuanAttendanceEntity> listPengajuan;
 
-            if (ue.role.kode_role == "99") {
+            if ("99".equals(ue.role.kode_role)) {
                 listPengajuan = PengajuanAttendanceEntity.find("""
                             SELECT DISTINCT p
                             FROM PengajuanAttendanceEntity p
@@ -317,10 +317,10 @@ public class AttendanceRes {
     public Response approvalAttendance(@QueryParam("id_pengajuan_absensi") String id_pengajuan_absensi,
             @QueryParam("status_approval") String status_approval, @Context SecurityContext ctx,
             @QueryParam("catatan") String catatan) {
-        if (id_pengajuan_absensi == null || id_pengajuan_absensi == "") {
+        if (id_pengajuan_absensi == null || id_pengajuan_absensi.isBlank()) {
             throw new BadRequestException("id_pengajuan_absensi harus Di Isi");
         }
-        if (status_approval == null || status_approval == "") {
+        if (status_approval == null || status_approval.isBlank()) {
             throw new BadRequestException("status_approval harus Di Isi");
         }
         // System.out.println(id_pengajuan_absensi);
@@ -328,14 +328,23 @@ public class AttendanceRes {
             UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
             PengajuanAttendanceEntity pengajuanAttendance = PengajuanAttendanceEntity.findById(id_pengajuan_absensi);
-            if (ue.role.kode_role == "99") {
+            if ("99".equals(ue.role.kode_role)) {
+                if (pengajuanAttendance == null) {
+                    throw new BadRequestException("Pengajuan absensi tidak ditemukan");
+                }
                 List<PengajuanApprovalAttendanceEntity> list = PengajuanApprovalAttendanceEntity
-                        .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC").list();
+                        .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
+                                pengajuanAttendance)
+                        .list();
                 for (PengajuanApprovalAttendanceEntity appr : list) {
                     // appr.employee = emp;
                     appr.status_approval = status_approval;
                     appr.tanggal_approval = LocalDateTime.now();
-                    appr.keterangan = "Approved By Superadmin";
+                    appr.keterangan = "Reject".equals(status_approval) ? "Rejected By Superadmin"
+                            : "Approved By Superadmin";
+                }
+                if ("Approve".equals(status_approval)) {
+                    upsertAttendanceFromPengajuan(pengajuanAttendance);
                 }
                 PengajuanApprovalAttendanceEntity.flush();
                 return Response.ok().entity(ResponseHandler.ok("Approver HR Berhasil", null)).build();
@@ -347,7 +356,7 @@ public class AttendanceRes {
                 if (getPersetujuanAttendance != null) {
                     getPersetujuanAttendance.status_approval = status_approval;
                     getPersetujuanAttendance.tanggal_approval = LocalDateTime.now();
-                    getPersetujuanAttendance.keterangan = (catatan != "" || catatan != null) ? catatan : "";
+                    getPersetujuanAttendance.keterangan = (catatan != null) ? catatan : "";
 
                     if (status_approval.equals("Approve")) {
                         // System.out.println(status_approver);
@@ -356,27 +365,7 @@ public class AttendanceRes {
                         // if(emp.nip.equals(nip_admin_hr)){
 
                         if (pengajuanList.size() == 0) {
-                            AttendanceEntity checkAttendanceEmployee = AttendanceEntity
-                                    .find("tanggal = ?1 AND employee = ?2", pengajuanAttendance.tanggal,
-                                            pengajuanAttendance.employee)
-                                    .firstResult();
-                            if (checkAttendanceEmployee != null) {
-
-                                checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
-                                checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
-                                checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
-                                checkAttendanceEmployee.status = pengajuanAttendance.status_absensi;
-                            } else {
-                                AttendanceEntity attendance = new AttendanceEntity();
-                                attendance.employee = pengajuanAttendance.employee;
-                                attendance.tanggal = pengajuanAttendance.tanggal;
-                                attendance.jam_keluar = pengajuanAttendance.jam_keluar;
-                                attendance.jam_masuk = pengajuanAttendance.jam_masuk;
-                                attendance.keterangan = pengajuanAttendance.keterangan;
-                                attendance.status = pengajuanAttendance.status_absensi;
-                                attendance.persist();
-                            }
-
+                            upsertAttendanceFromPengajuan(pengajuanAttendance);
                         }
                          PengajuanApprovalAttendanceEntity getPersetujuanNotifikasi = PengajuanApprovalAttendanceEntity
                                 .find("pengajuanAbsensi = ?1 AND tanggal_approval IS NULL ORDER BY urutan ASC",
@@ -423,6 +412,28 @@ public class AttendanceRes {
         }
     }
 
+    private void upsertAttendanceFromPengajuan(PengajuanAttendanceEntity pengajuanAttendance) {
+        AttendanceEntity checkAttendanceEmployee = AttendanceEntity
+                .find("tanggal = ?1 AND employee = ?2", pengajuanAttendance.tanggal,
+                        pengajuanAttendance.employee)
+                .firstResult();
+        if (checkAttendanceEmployee != null) {
+            checkAttendanceEmployee.jam_keluar = pengajuanAttendance.jam_keluar;
+            checkAttendanceEmployee.jam_masuk = pengajuanAttendance.jam_masuk;
+            checkAttendanceEmployee.keterangan = pengajuanAttendance.keterangan;
+            checkAttendanceEmployee.status = pengajuanAttendance.status_absensi;
+        } else {
+            AttendanceEntity attendance = new AttendanceEntity();
+            attendance.employee = pengajuanAttendance.employee;
+            attendance.tanggal = pengajuanAttendance.tanggal;
+            attendance.jam_keluar = pengajuanAttendance.jam_keluar;
+            attendance.jam_masuk = pengajuanAttendance.jam_masuk;
+            attendance.keterangan = pengajuanAttendance.keterangan;
+            attendance.status = pengajuanAttendance.status_absensi;
+            attendance.persist();
+        }
+    }
+
     @GET
     @Path("/get-monitoring-approval-attendance")
     public Response getMonitoringApprovalAttendance(@Context SecurityContext ctx) {
@@ -432,7 +443,7 @@ public class AttendanceRes {
             System.out.println(employeeApproval.nama);
             List<PengajuanAttendanceEntity> listPengajuan;
 
-            if (ue.role.kode_role == "99") {
+            if ("99".equals(ue.role.kode_role)) {
                 listPengajuan = PengajuanAttendanceEntity
                         .find("SELECT DISTINCT p FROM PengajuanAttendanceEntity p JOIN p.approval r JOIN p.employee pr")
                         .list();

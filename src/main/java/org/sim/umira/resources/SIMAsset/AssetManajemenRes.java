@@ -267,7 +267,7 @@ public class AssetManajemenRes {
         try {
             UserEntity userSession = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
             List<SimAssetEntity> asset;
-            if(userSession.role.kode_role == "99"){
+            if("99".equals(userSession.role.kode_role)){
                 asset = SimAssetEntity.find("status_asset = ?1", "aktif").list();
             }else{
                 asset = SimAssetEntity.find("user_pemilik = ?1 AND status_asset = ?2", userSession, "aktif").list();

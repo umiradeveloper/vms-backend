@@ -43,6 +43,12 @@ public class LoanRes {
         if (emp == null) {
             throw new BadRequestException("Employee tidak terdaftar");
         }
+        if (create.jumlah_cicilan == null || create.jumlah_cicilan <= 0) {
+            throw new BadRequestException("Jumlah cicilan harus lebih dari 0");
+        }
+        if (create.total_pinjaman == null || create.total_pinjaman <= 0) {
+            throw new BadRequestException("Total pinjaman harus lebih dari 0");
+        }
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         try {
 

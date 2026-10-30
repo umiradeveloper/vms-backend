@@ -100,7 +100,8 @@ public class OvertimeRes {
         // System.out.println("periode "+overtime.tanggal);
         int monthInt = periode.getMonthValue();
         Month monthM = Month.of(monthInt);
-        YearMonth ym = YearMonth.of(tanggal.getYear(), monthM);
+        // gunakan periode langsung agar tahun ikut bergeser (Des -> Jan tahun berikutnya)
+        YearMonth ym = periode;
 
         // LocalDate startDate = ym.atDay(1);
         LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
@@ -117,7 +118,8 @@ public class OvertimeRes {
              Duration durationEnt = Duration.between(LocalTime.parse(ov.jam_mulai),
                 LocalTime.parse(ov.jam_selesai));
                 Long durationEntity = durationEnt.toMinutes();
-                totalOvertime += Integer.parseInt(String.valueOf(durationEntity)) / 60;
+                // akumulasi dalam MENIT; dikonversi ke jam di bawah (totalOvertime / 60)
+                totalOvertime += Math.toIntExact(durationEntity);
         }
         int hours = totalOvertime / 60;
 
@@ -183,7 +185,8 @@ public class OvertimeRes {
         // System.out.println("periode "+overtime.tanggal);
         int monthInt = periode.getMonthValue();
         Month monthM = Month.of(monthInt);
-        YearMonth ym = YearMonth.of(tanggal.getYear(), monthM);
+        // gunakan periode langsung agar tahun ikut bergeser (Des -> Jan tahun berikutnya)
+        YearMonth ym = periode;
 
         // LocalDate startDate = ym.atDay(1);
         LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
@@ -200,7 +203,8 @@ public class OvertimeRes {
              Duration durationEnt = Duration.between(LocalTime.parse(ov.jam_mulai),
                 LocalTime.parse(ov.jam_selesai));
                 Long durationEntity = durationEnt.toMinutes();
-                totalOvertime += Integer.parseInt(String.valueOf(durationEntity)) / 60;
+                // akumulasi dalam MENIT; dikonversi ke jam di bawah (totalOvertime / 60)
+                totalOvertime += Math.toIntExact(durationEntity);
         }
         int hours = totalOvertime / 60;
 
@@ -298,7 +302,8 @@ public class OvertimeRes {
         // System.out.println("periode "+overtime.tanggal);
         int monthInt = periode.getMonthValue();
         Month monthM = Month.of(monthInt);
-        YearMonth ym = YearMonth.of(tanggal.getYear(), monthM);
+        // gunakan periode langsung agar tahun ikut bergeser (Des -> Jan tahun berikutnya)
+        YearMonth ym = periode;
 
         // LocalDate startDate = ym.atDay(1);
         LocalDate startDate = ym.minusMonths(1).atDay(Integer.parseInt(tanggal_pembukuan) + 1);
@@ -473,10 +478,10 @@ public class OvertimeRes {
     public Response approvalAttendance(@QueryParam("id_pengajuan_lembur") String id_pengajuan_lembur,
             @QueryParam("status_approval") String status_approval, @Context SecurityContext ctx,
             @QueryParam("catatan") String catatan) {
-        if (id_pengajuan_lembur == null || id_pengajuan_lembur == "") {
+        if (id_pengajuan_lembur == null || id_pengajuan_lembur.isBlank()) {
             throw new BadRequestException("id_pengajuan_lembur harus Di Isi");
         }
-        if (status_approval == null || status_approval == "") {
+        if (status_approval == null || status_approval.isBlank()) {
             throw new BadRequestException("status_approval harus Di Isi");
         }
         try {
@@ -490,7 +495,7 @@ public class OvertimeRes {
             if (getPersetujuanOvertime != null) {
                 getPersetujuanOvertime.status_approval = status_approval;
                 getPersetujuanOvertime.tanggal_approval = LocalDateTime.now();
-                getPersetujuanOvertime.keterangan = (catatan != "" || catatan != null) ? catatan : "";
+                getPersetujuanOvertime.keterangan = (catatan != null) ? catatan : "";
 
                 if (status_approval.equals("Approve")) {
                     // System.out.println(status_approver);

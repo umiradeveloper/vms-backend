@@ -212,7 +212,7 @@ public class TransaksiProyekRes {
         UserEntity user = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         try {
             List<TransaksiProyekEntity> trx;
-            if(user.role.kode_role == "99"){
+            if("99".equals(user.role.kode_role)){
                 trx = TransaksiProyekEntity.listAll();
             }else{
                 trx = TransaksiProyekEntity.find("""
@@ -333,7 +333,7 @@ public class TransaksiProyekRes {
             // List<TransaksiEntity> transaksi = TransaksiEntity.listAll();
             TransaksiDetailProyekEntity detail = TransaksiDetailProyekEntity.findById(id);
             detail.user_verified = userVerified;
-            detail.catatan = (catatan != "") ? catatan : "";
+            detail.catatan = (catatan != null) ? catatan : "";
             detail.verified_at = LocalDateTime.now();
             if (status_verified.equals("verified")) {
                 detail.checklist = 1;
@@ -357,7 +357,9 @@ public class TransaksiProyekRes {
             // TransaksiDetailPdetail = TransaksiDetailEntity.findById(id);
             TransaksiDetailProyekEntity detail = TransaksiDetailProyekEntity.findById(id);
             if(update.upload_dokumen_transaksi != null){
-                Files.deleteIfExists(java.nio.file.Path.of(detail.jawaban));
+                if (detail.jawaban != null && !detail.jawaban.isBlank()) {
+                    Files.deleteIfExists(java.nio.file.Path.of(detail.jawaban));
+                }
                 String ext = update.upload_dokumen_transaksi.fileName()
                         .substring(update.upload_dokumen_transaksi.fileName().lastIndexOf("."));
                 String fileName = java.util.UUID.randomUUID() + ext;
@@ -394,10 +396,10 @@ public class TransaksiProyekRes {
     @Path("/update-status-pengajuan")
     @Transactional
     public Response updateStatusPengajuan(@QueryParam("id_transaksi") String id_transaksi, @Context SecurityContext ctx, @QueryParam("catatan") String catatan, @QueryParam("status_approval") String status_approval) {
-        if(id_transaksi == null || id_transaksi == ""){
+        if(id_transaksi == null || id_transaksi.isBlank()){
             throw new BadRequestException("id_transaksi harus Di Isi");
         }   
-        if(status_approval == null || status_approval == ""){
+        if(status_approval == null || status_approval.isBlank()){
             throw new BadRequestException("status_approval harus Di Isi");
         }
         // System.out.println(id_pengajuan_bk);
@@ -408,7 +410,7 @@ public class TransaksiProyekRes {
             if(getPersetujuan != null){
                 getPersetujuan.status_approver = status_approval;
                 getPersetujuan.tanggal_persetujuan = LocalDateTime.now();
-                getPersetujuan.catatan_persetujuan = (catatan != "" || catatan != null)?catatan:"";
+                getPersetujuan.catatan_persetujuan = (catatan != null) ? catatan : "";
                 
                 if(status_approval.equals("Approve")){
                     // System.out.println(status_approver);

@@ -65,6 +65,12 @@ public class CutiRes {
     public Response createCuti(
             @Valid @MultipartForm CreateCutiDto create, @Context SecurityContext ctx) {
 
+        if (create.tanggal_mulai == null || create.tanggal_selesai == null) {
+            throw new BadRequestException("Tanggal mulai dan tanggal selesai harus di isi");
+        }
+        if (create.tanggal_selesai.isBefore(create.tanggal_mulai)) {
+            throw new BadRequestException("Tanggal selesai tidak boleh sebelum tanggal mulai");
+        }
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         // EmployeeEntity emp = EmployeeEntity.find("id_user = ?1",
         // ue.id_user).firstResult();
@@ -80,7 +86,7 @@ public class CutiRes {
 
         EmployeeEntity emp = EmployeeEntity.find("user = ?1", ue).firstResult();
         List<CutiEntity> cutiE = CutiEntity
-                .find("employee_pengajuan = ?1 AND tanggal_mulai <= ?2 AND tanggal_selesai >= ?3 AND status_cuti = ?4",
+                .find("employee_pengajuan = ?1 AND tanggal_mulai <= ?3 AND tanggal_selesai >= ?2 AND status_cuti = ?4",
                         emp, create.tanggal_mulai, create.tanggal_selesai, "APPROVED")
                 .list();
         // List<CutiEntity> cutiR = CutiEntity.find("employee_pengajuan = ?1 AND
@@ -107,7 +113,7 @@ public class CutiRes {
         String id_cuti = "";
         if (getCount != null) {
             getCount.counter = getCount.counter + 1;
-            id_cuti = create.kode_cuti + "-" + years + String.format("%5s", getCount.counter + 1).replace(' ', '0');
+            id_cuti = create.kode_cuti + "-" + years + String.format("%5s", getCount.counter).replace(' ', '0');
         } else {
             MasterCounterCutiEntity countMaster = new MasterCounterCutiEntity();
             countMaster.jenis_cuti = create.kode_cuti;
@@ -197,6 +203,12 @@ public class CutiRes {
     public Response createCutiBulk(
             @Valid CreateCutiBulkDto create, @Context SecurityContext ctx) {
 
+        if (create.tanggal_mulai == null || create.tanggal_selesai == null) {
+            throw new BadRequestException("Tanggal mulai dan tanggal selesai harus di isi");
+        }
+        if (create.tanggal_selesai.isBefore(create.tanggal_mulai)) {
+            throw new BadRequestException("Tanggal selesai tidak boleh sebelum tanggal mulai");
+        }
         UserEntity ue = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         // EmployeeEntity emp = EmployeeEntity.find("id_user = ?1",
         // ue.id_user).firstResult();
@@ -215,7 +227,7 @@ public class CutiRes {
         for (String id_emp : create.id_employee) {
             EmployeeEntity emp = EmployeeEntity.findById(id_emp);
             List<CutiEntity> cutiE = CutiEntity
-                    .find("employee_pengajuan = ?1 AND tanggal_mulai <= ?2 AND tanggal_selesai >= ?3 AND status_cuti = ?4",
+                    .find("employee_pengajuan = ?1 AND tanggal_mulai <= ?3 AND tanggal_selesai >= ?2 AND status_cuti = ?4",
                             emp, create.tanggal_mulai, create.tanggal_selesai, "APPROVED")
                     .list();
             // List<CutiEntity> cutiR = CutiEntity.find("employee_pengajuan = ?1 AND
@@ -246,7 +258,7 @@ public class CutiRes {
             String id_cuti = "";
             if (getCount != null) {
                 getCount.counter = getCount.counter + 1;
-                id_cuti = create.kode_cuti + "-" + years + String.format("%5s", getCount.counter + 1).replace(' ', '0');
+                id_cuti = create.kode_cuti + "-" + years + String.format("%5s", getCount.counter).replace(' ', '0');
             } else {
                 MasterCounterCutiEntity countMaster = new MasterCounterCutiEntity();
                 countMaster.jenis_cuti = create.kode_cuti;
@@ -436,6 +448,9 @@ public class CutiRes {
     public Response updateCuti(@Valid @MultipartForm CreateCutiDto create) {
         try {
             CutiEntity cuti = CutiEntity.findById(create.id_cuti);
+            if (cuti == null) {
+                throw new NotFoundException("Data cuti tidak ditemukan");
+            }
 
             cuti.jenis_cuti = create.jenis_cuti;
             cuti.tanggal_mulai = create.tanggal_mulai;
@@ -447,7 +462,9 @@ public class CutiRes {
                 if (!Files.exists(UPLOAD_DIR)) {
                     Files.createDirectories(UPLOAD_DIR);
                 }
-                Files.deleteIfExists(java.nio.file.Path.of(cuti.dokumen_cuti));
+                if (cuti.dokumen_cuti != null && !cuti.dokumen_cuti.isBlank()) {
+                    Files.deleteIfExists(java.nio.file.Path.of(cuti.dokumen_cuti));
+                }
                 String ext = create.dokumen_upload.fileName()
                         .substring(create.dokumen_upload.fileName().lastIndexOf("."));
                 String fileName = java.util.UUID.randomUUID() + ext;
@@ -479,7 +496,9 @@ public class CutiRes {
             }
 
             // deduct balance only for ANNUAL_LEAVE when approved
-            if ("APPROVED".equals(status_cuti) && "ANNUAL_LEAVE".equals(cuti.jenis_cuti)) {
+            // potong saldo hanya sekali: saat status berubah menjadi APPROVED
+            if ("APPROVED".equals(status_cuti) && !"APPROVED".equals(cuti.status_cuti)
+                    && "ANNUAL_LEAVE".equals(cuti.jenis_cuti)) {
                 int tahun = cuti.tanggal_mulai.getYear();
                 SaldoCutiEntity balance = SaldoCutiEntity.findByUserAndTahun(cuti.created_by, tahun);
                 if (balance != null) {
@@ -493,7 +512,7 @@ public class CutiRes {
             }
 
             cuti.status_cuti = status_cuti;
-            if (cuti.employee_approval.equals(emp)) {
+            if (emp != null && emp.equals(cuti.employee_approval)) {
                 cuti.tanggal_approval = LocalDateTime.now();
                 if (alasan_penolakan != null && !alasan_penolakan.isBlank()) {
                     cuti.alasan_penolakan = alasan_penolakan;
@@ -506,7 +525,7 @@ public class CutiRes {
                     }
                 }
             }
-            if (cuti.employee_manager.equals(emp)) {
+            if (emp != null && emp.equals(cuti.employee_manager)) {
                 cuti.tanggal_manager = LocalDateTime.now();
                 if (alasan_penolakan != null && !alasan_penolakan.isBlank()) {
                     cuti.alasan_penolakan_manager = alasan_penolakan;

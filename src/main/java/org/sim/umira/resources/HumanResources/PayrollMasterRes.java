@@ -558,9 +558,12 @@ public class PayrollMasterRes {
                                                 // Copy deductions from master
                                                 // System.out.println(master.gaji_pokok / total_hari_kerja *
                                                 // totalAlpha);
-                                                Long potongan_gaji = (master != null)
-                                                                ? master.gaji_pokok / total_hari_kerja * totalAlpha
-                                                                : 0;
+                                                // kalikan dulu baru bagi agar tidak kehilangan presisi,
+                                                // dan hindari pembagian dengan nol bila tidak ada hari kerja
+                                                Long potongan_gaji = (master != null && master.gaji_pokok != null
+                                                                && total_hari_kerja > 0)
+                                                                ? (long) master.gaji_pokok * totalAlpha / total_hari_kerja
+                                                                : 0L;
                                                 PayrollDeductionEntity deduction = new PayrollDeductionEntity();
                                                 deduction.payrollMaster = payroll;
                                                 // if (master != null) {
@@ -596,14 +599,17 @@ public class PayrollMasterRes {
                                                 }
                                                 PayrollDeductionMasterEntity masterDeduction = PayrollDeductionMasterEntity
                                                                 .find("payrollMaster = ?1", master).firstResult();
-                                                System.out.println(masterDeduction.potongan_lainnya);
-                                                BigDecimal dedbpjs = new BigDecimal(master.bpjs_kesehatan);
+                                                BigDecimal dedbpjs = new BigDecimal(
+                                                                master.bpjs_kesehatan != null ? master.bpjs_kesehatan : 0);
                                                 BigDecimal dedtarif_bpjs = new BigDecimal((masterDeduction != null)
                                                                 ? (masterDeduction.tarif_bpjskes != null)
                                                                                 ? masterDeduction.tarif_bpjskes
                                                                                 : "0"
                                                                 : "0");
-                                                BigDecimal dedbpjstk = new BigDecimal(master.bpjs_ketenagakerjaan);
+                                                BigDecimal dedbpjstk = new BigDecimal(
+                                                                master.bpjs_ketenagakerjaan != null
+                                                                                ? master.bpjs_ketenagakerjaan
+                                                                                : 0);
                                                 BigDecimal dedtarif_bpjstk = new BigDecimal((masterDeduction != null)
                                                                 ? (masterDeduction.tarif_bpjstk != null)
                                                                                 ? masterDeduction.tarif_bpjstk

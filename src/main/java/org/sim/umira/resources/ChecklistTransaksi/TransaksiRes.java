@@ -537,7 +537,7 @@ public class TransaksiRes {
         UserEntity user = UserEntity.find("email = ?1", ctx.getUserPrincipal().getName()).firstResult();
         try {
             List<TransaksiEntity> trxE;
-            if (user.role.kode_role == "99") {
+            if ("99".equals(user.role.kode_role)) {
                 trxE = TransaksiEntity.listAll();
             } else {
                 trxE = TransaksiEntity
@@ -780,7 +780,7 @@ public class TransaksiRes {
             }
 
             detail.user_verified = userVerified;
-            detail.catatan = (catatan != "") ? catatan : "";
+            detail.catatan = (catatan != null) ? catatan : "";
             detail.verified_at = LocalDateTime.now();
             if (status_verified.equals("verified")) {
                 detail.checklist = 1;
@@ -804,8 +804,10 @@ public class TransaksiRes {
             // List<TransaksiEntity> transaksi = TransaksiEntity.listAll();
             TransaksiDetailEntity detail = TransaksiDetailEntity.findById(id);
             if (update.upload_dokumen_transaksi != null) {
-                kafkaProducers.deleteDoc(new DeleteFileEventDto(detail.jawaban));
-                Files.deleteIfExists(java.nio.file.Path.of(detail.jawaban));
+                if (detail.jawaban != null && !detail.jawaban.isBlank()) {
+                    kafkaProducers.deleteDoc(new DeleteFileEventDto(detail.jawaban));
+                    Files.deleteIfExists(java.nio.file.Path.of(detail.jawaban));
+                }
                 String ext = update.upload_dokumen_transaksi.fileName()
                         .substring(update.upload_dokumen_transaksi.fileName().lastIndexOf("."));
                 String fileName = java.util.UUID.randomUUID() + ext;
@@ -905,7 +907,7 @@ public class TransaksiRes {
 
                     trx.status_pengajuan = "Paid";
                     if (trx.transaksi_via.equals("Proyek")) {
-                        if (trx.reference_id_transaksi_proyek != null || trx.reference_id_transaksi_proyek != "") {
+                        if (trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isEmpty()) {
                             TransaksiProyekEntity trxProyek = TransaksiProyekEntity
                                     .find("id_transaksi = ?1", trx.reference_id_transaksi_proyek).firstResult();
                             if (trxProyek != null) {
@@ -927,14 +929,16 @@ public class TransaksiRes {
                     trx.approvedBy = userApproved;
                     trx.approved_at = LocalDateTime.now();
                     if (trx.transaksi_via.equals("Proyek")) {
-                        if (trx.reference_id_transaksi_proyek != null || trx.reference_id_transaksi_proyek != "") {
+                        if (trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isEmpty()) {
                             TransaksiProyekEntity trxProyek = TransaksiProyekEntity
                                     .find("id_transaksi = ?1", trx.reference_id_transaksi_proyek).firstResult();
-                            trxProyek.approvedBy = userApproved;
-                            trxProyek.approved_at = LocalDateTime.now();
-                            trxProyek.status_pengajuan = "Telah Di Verified HO";
-                            trxProyek.tanggal_jatuh_tempo_after_verified = LocalDate.now()
-                                    .plusDays(Long.valueOf(trx.tempo_pembayaran_after_verified));
+                            if (trxProyek != null) {
+                                trxProyek.approvedBy = userApproved;
+                                trxProyek.approved_at = LocalDateTime.now();
+                                trxProyek.status_pengajuan = "Telah Di Verified HO";
+                                trxProyek.tanggal_jatuh_tempo_after_verified = LocalDate.now()
+                                        .plusDays(Long.valueOf(trx.tempo_pembayaran_after_verified));
+                            }
                         }
                     }
                     trx.tanggal_jatuh_tempo_after_verified = LocalDate.now()
@@ -943,11 +947,13 @@ public class TransaksiRes {
                     break;
                 case "Reject":
                     if (trx.transaksi_via.equals("Proyek")) {
-                        if (trx.reference_id_transaksi_proyek != null || trx.reference_id_transaksi_proyek != "") {
+                        if (trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isEmpty()) {
                             TransaksiProyekEntity trxProyek = TransaksiProyekEntity
                                     .find("id_transaksi = ?1", trx.reference_id_transaksi_proyek).firstResult();
-                            trxProyek.approvedBy = userApproved;
-                            trxProyek.status_pengajuan = "Telah Di Reject HO";
+                            if (trxProyek != null) {
+                                trxProyek.approvedBy = userApproved;
+                                trxProyek.status_pengajuan = "Telah Di Reject HO";
+                            }
                         }
                     }
                     trx.approvedBy = userApproved;
@@ -961,10 +967,10 @@ public class TransaksiRes {
 
             trx.updatedBy = userApproved;
             trx.last_updated = LocalDateTime.now();
-            if (create.layak_bayar != null || create.layak_bayar != "") {
+            if (create.layak_bayar != null && !create.layak_bayar.isEmpty()) {
                 trx.layak_bayar = create.layak_bayar;
                 if (trx.transaksi_via.equals("Proyek")) {
-                    if (trx.reference_id_transaksi_proyek != null || trx.reference_id_transaksi_proyek != "") {
+                    if (trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isEmpty()) {
                         TransaksiProyekEntity trxProyek = TransaksiProyekEntity
                                 .find("id_transaksi = ?1", trx.reference_id_transaksi_proyek).firstResult();
                         if (trxProyek != null) {
@@ -975,10 +981,10 @@ public class TransaksiRes {
                 }
             }
 
-            if (catatan_verified != null || catatan_verified != "") {
+            if (catatan_verified != null && !catatan_verified.isEmpty()) {
                 trx.catatan_verified = catatan_verified;
                 if (trx.transaksi_via.equals("Proyek")) {
-                    if (trx.reference_id_transaksi_proyek != null || trx.reference_id_transaksi_proyek != "") {
+                    if (trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isEmpty()) {
                         TransaksiProyekEntity trxProyek = TransaksiProyekEntity
                                 .find("id_transaksi = ?1", trx.reference_id_transaksi_proyek).firstResult();
                         // trxProyek.catatan_verified = catatan_verified;
@@ -988,10 +994,10 @@ public class TransaksiRes {
                     }
                 }
             }
-            if (catatan_payment != null || catatan_payment != "") {
+            if (catatan_payment != null && !catatan_payment.isEmpty()) {
                 trx.catatan_payment = catatan_payment;
                 if (trx.transaksi_via.equals("Proyek")) {
-                    if (trx.reference_id_transaksi_proyek != null || trx.reference_id_transaksi_proyek != "") {
+                    if (trx.reference_id_transaksi_proyek != null && !trx.reference_id_transaksi_proyek.isEmpty()) {
                         TransaksiProyekEntity trxProyek = TransaksiProyekEntity
                                 .find("id_transaksi = ?1", trx.reference_id_transaksi_proyek).firstResult();
                         if (trxProyek != null) {
